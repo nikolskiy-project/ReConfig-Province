@@ -13,6 +13,7 @@
   --success: #10b981;
   --danger: #ef4444;
   --max: 1180px;
+  --scroll-progress: 0;
 }
 
 * {
@@ -48,11 +49,14 @@ body::after {
   left: 0;
   right: 0;
   top: 0;
-  height: 1px;
-  background: rgba(139,92,246,.7);
-  opacity: .22;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  box-shadow: 0 0 12px rgba(139,92,246,.28);
+  transform: scaleX(var(--scroll-progress));
+  transform-origin: left center;
   pointer-events: none;
   z-index: 100;
+  will-change: transform;
 }
 
 ::selection { background: transparent; color: inherit; }
@@ -74,9 +78,10 @@ img, svg { -webkit-user-drag: none; user-drag: none; }
   border-bottom: 1px solid var(--border);
   background: rgba(15,15,19,.94);
   backdrop-filter: blur(14px);
-  transition: background .2s ease, box-shadow .2s ease;
+  transition: background .24s ease, box-shadow .24s ease, height .28s cubic-bezier(.22,1,.36,1);
 }
 .topbar.scrolled {
+  height: 70px;
   background: rgba(15,15,19,.985);
   box-shadow: 0 12px 30px rgba(0,0,0,.18);
 }
@@ -224,10 +229,27 @@ footer { width:min(calc(100% - 40px),var(--max)); margin:0 auto; min-height:126p
 .footer-links a:hover { color:#fff; }
 .copyright { justify-self:end; color:#626271; font-size:10px; }
 
-.reveal { opacity:0; transform:translateY(14px); transition:opacity .6s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1); }
-.reveal.visible { opacity:1; transform:translateY(0); }
-.delay-1 { transition-delay:.08s; }
-.delay-2 { transition-delay:.16s; }
+.reveal {
+  --reveal-delay: 0ms;
+  opacity:0;
+  transform:translate3d(0,24px,0) scale(.992);
+  filter:blur(4px);
+  transition:
+    opacity .62s cubic-bezier(.22,1,.36,1) var(--reveal-delay),
+    transform .72s cubic-bezier(.16,1,.3,1) var(--reveal-delay),
+    filter .48s ease var(--reveal-delay);
+  will-change:opacity,transform,filter;
+}
+.reveal[data-reveal-style="left"] { transform:translate3d(-18px,18px,0) scale(.995); }
+.reveal[data-reveal-style="row"] { transform:translate3d(-14px,16px,0); }
+.reveal[data-reveal-style="release"] { transform:translate3d(18px,14px,0); }
+.reveal[data-reveal-style="scale"] { transform:translate3d(0,20px,0) scale(.975); }
+.reveal.visible { opacity:1; transform:translate3d(0,0,0) scale(1); filter:blur(0); }
+.delay-1 { --reveal-delay:80ms; }
+.delay-2 { --reveal-delay:160ms; }
+
+/* При прокрутке вниз элементы чуть мягче «догоняют» движение страницы. */
+body.scrolling-down .reveal.visible { transition-timing-function:cubic-bezier(.16,1,.3,1); }
 
 .cursor-dot,.cursor-ring,.cursor-glow { position:fixed; left:0; top:0; pointer-events:none; opacity:0; z-index:9999; will-change:transform; }
 .cursor-dot { width:7px; height:7px; border-radius:50%; background:#fff; box-shadow:0 0 9px rgba(167,139,250,.9),0 0 18px rgba(139,92,246,.34); margin:-3.5px 0 0 -3.5px; transition:width .16s ease,height .16s ease,margin .16s ease,background .16s ease,opacity .2s ease; }
@@ -236,6 +258,30 @@ footer { width:min(calc(100% - 40px),var(--max)); margin:0 auto; min-height:126p
 body.cursor-active .cursor-dot,body.cursor-active .cursor-ring,body.cursor-active .cursor-glow { opacity:1; }
 body.cursor-hover .cursor-dot { width:4px; height:4px; margin:-2px 0 0 -2px; background:var(--accent-light); }
 body.cursor-hover .cursor-ring { width:44px; height:44px; margin:-22px 0 0 -22px; border-color:rgba(255,255,255,.68); background:rgba(139,92,246,.08); }
+
+/* Зажать ЛКМ на свободной области и тянуть страницу вверх/вниз. */
+body.page-drag-ready { cursor:none; }
+body.page-dragging {
+  cursor:none;
+  scroll-behavior:auto!important;
+}
+body.page-dragging * {
+  cursor:none!important;
+}
+body.page-dragging .cursor-dot {
+  width:5px;
+  height:5px;
+  margin:-2.5px 0 0 -2.5px;
+  background:var(--accent-light);
+}
+body.page-dragging .cursor-ring {
+  width:21px;
+  height:21px;
+  margin:-10.5px 0 0 -10.5px;
+  border-color:#fff;
+  background:rgba(139,92,246,.20);
+}
+body.page-dragging .cursor-glow { opacity:.55; }
 
 @media (pointer:fine) and (min-width:900px) {
   body,a,button,summary { cursor:none!important; }

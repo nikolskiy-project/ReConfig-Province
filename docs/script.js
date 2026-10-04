@@ -141,7 +141,39 @@ async function loadReleases() {
 }
 
 let revealObserver;
+function prepareRevealAnimations() {
+  $$('.reveal').forEach((el, index) => {
+    if (!el.dataset.revealPrepared) {
+      el.dataset.revealPrepared = '1';
+
+      // Небольшая индивидуальность для разных блоков без резких эффектов.
+      if (el.classList.contains('section-heading') || el.classList.contains('versions-head')) {
+        el.dataset.revealStyle = 'left';
+      } else if (el.classList.contains('feature-row')) {
+        el.dataset.revealStyle = 'row';
+      } else if (el.classList.contains('release-item')) {
+        el.dataset.revealStyle = 'release';
+      } else if (el.classList.contains('download-panel')) {
+        el.dataset.revealStyle = 'scale';
+      } else {
+        el.dataset.revealStyle = 'up';
+      }
+
+      // Автоматический каскад для соседних элементов.
+      const parent = el.parentElement;
+      if (parent) {
+        const siblings = [...parent.children].filter(child => child.classList?.contains('reveal'));
+        const localIndex = Math.max(0, siblings.indexOf(el));
+        el.style.setProperty('--reveal-delay', `${Math.min(localIndex * 55, 220)}ms`);
+      } else {
+        el.style.setProperty('--reveal-delay', `${Math.min(index * 20, 180)}ms`);
+      }
+    }
+  });
+}
+
 function observeReveals() {
+  prepareRevealAnimations();
   if (!('IntersectionObserver' in window)) {
     $$('.reveal').forEach(el => el.classList.add('visible'));
     return;
@@ -154,16 +186,38 @@ function observeReveals() {
           revealObserver.unobserve(entry.target);
         }
       });
-    }, { threshold:.12, rootMargin:'0px 0px -30px' });
+    }, { threshold:.11, rootMargin:'0px 0px -48px' });
   }
   $$('.reveal:not(.visible)').forEach(el => revealObserver.observe(el));
 }
 
 function initHeader() {
   const topbar = $('#topbar');
-  const sync = () => topbar?.classList.toggle('scrolled', window.scrollY > 18);
+  let lastY = window.scrollY;
+  let ticking = false;
+
+  const sync = () => {
+    const y = window.scrollY;
+    const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    const progress = Math.max(0, Math.min(1, y / maxScroll));
+
+    topbar?.classList.toggle('scrolled', y > 18);
+    document.body.classList.toggle('scrolling-down', y > lastY + 2);
+    document.body.classList.toggle('scrolling-up', y < lastY - 2);
+    document.documentElement.style.setProperty('--scroll-progress', progress.toFixed(4));
+    lastY = y;
+    ticking = false;
+  };
+
+  const requestSync = () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(sync);
+  };
+
   sync();
-  window.addEventListener('scroll', sync, { passive:true });
+  window.addEventListener('scroll', requestSync, { passive:true });
+  window.addEventListener('resize', requestSync, { passive:true });
 }
 
 let hoverBound = new WeakSet();
@@ -232,6 +286,102 @@ function initPreviewMotion() {
   }, { passive:true });
 }
 
+function initDragScroll() {
+  if (!matchMedia('(pointer:fine)').matches || innerWidth < 900) return;
+
+  let isDown = false;
+  let didDrag = false;
+  let startY = 0;
+  let startScroll = 0;
+  let lastY = 0;
+  let lastTime = 0;
+  let velocity = 0;
+  let momentumFrame = 0;
+
+  const interactiveSelector = 'a, button, summary, input, textarea, select, option, [contenteditable="true"]';
+
+  const stopMomentum = () => {
+    if (momentumFrame) cancelAnimationFrame(momentumFrame);
+    momentumFrame = 0;
+  };
+
+  const endDrag = () => {
+    if (!isDown) return;
+    isDown = false;
+    document.body.classList.remove('page-drag-ready', 'page-dragging');
+
+    if (!didDrag || Math.abs(velocity) < .08 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    let v = velocity * 16;
+    const momentum = () => {
+      if (Math.abs(v) < .15) {
+        momentumFrame = 0;
+        return;
+      }
+      window.scrollBy(0, -v);
+      v *= .92;
+      momentumFrame = requestAnimationFrame(momentum);
+    };
+    momentumFrame = requestAnimationFrame(momentum);
+  };
+
+  document.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    if (e.target.closest(interactiveSelector)) return;
+
+    stopMomentum();
+    isDown = true;
+    didDrag = false;
+    startY = e.clientY;
+    startScroll = window.scrollY;
+    lastY = e.clientY;
+    lastTime = performance.now();
+    velocity = 0;
+    document.body.classList.add('page-drag-ready');
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!isDown) return;
+    const delta = e.clientY - startY;
+
+    if (!didDrag && Math.abs(delta) > 4) {
+      didDrag = true;
+      document.body.classList.add('page-dragging');
+      document.body.classList.remove('page-drag-ready');
+    }
+    if (!didDrag) return;
+
+    e.preventDefault();
+    window.scrollTo(0, startScroll - delta * 1.08);
+
+    const now = performance.now();
+    const dt = Math.max(1, now - lastTime);
+    velocity = (e.clientY - lastY) / dt;
+    lastY = e.clientY;
+    lastTime = now;
+  }, { passive:false });
+
+  document.addEventListener('mouseup', endDrag);
+  window.addEventListener('blur', endDrag);
+  document.addEventListener('mouseleave', e => {
+    if (e.relatedTarget === null) endDrag();
+  });
+
+  // После реального перетаскивания не даём случайному click сработать на карточке.
+  document.addEventListener('click', e => {
+    if (!didDrag) return;
+    e.preventDefault();
+    e.stopPropagation();
+    didDrag = false;
+  }, true);
+
+  document.addEventListener('mouseup', () => {
+    // Если браузер по какой-то причине не отправил click после drag,
+    // не блокируем следующий осознанный клик пользователя.
+    if (didDrag) setTimeout(() => { didDrag = false; }, 80);
+  });
+}
+
 // Сайт ведёт себя как приложение: текст и изображения не выделяются и не перетаскиваются.
 document.addEventListener('selectstart', e => e.preventDefault());
 document.addEventListener('dragstart', e => e.preventDefault());
@@ -242,4 +392,5 @@ initHeader();
 initCursor();
 initFaq();
 initPreviewMotion();
+initDragScroll();
 loadReleases();
