@@ -1,7 +1,6 @@
 const REPO_OWNER = 'nikolskiy-project';
 const REPO_NAME = 'ReConfig-Province';
 const RELEASES_API = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases?per_page=30`;
-const RELEASES_PAGE = `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases`;
 const EXPECTED_ASSET = 'ReConfigProvince.exe';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -47,25 +46,29 @@ function summarize(body) {
   return clean || 'Описание изменений для этой версии не указано.';
 }
 
-function setDownloadLink(anchor, asset, fallback) {
-  if (!anchor) return;
-  anchor.href = asset?.browser_download_url || fallback;
-  anchor.classList.remove('disabled');
-  anchor.removeAttribute('aria-disabled');
+function escapeHtml(str = '') {
+  return String(str).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 }
 
-function releaseRow(release, latestTag) {
+function setDownloadLink(anchor, asset) {
+  if (!anchor || !asset?.browser_download_url) return false;
+  anchor.href = asset.browser_download_url;
+  anchor.classList.remove('disabled');
+  anchor.removeAttribute('aria-disabled');
+  return true;
+}
+
+function releaseRow(release) {
   const asset = releaseAsset(release);
   const mode = updateMode(release.body || '');
   const row = document.createElement('article');
   row.className = 'release-item reveal';
-  const title = release.name || `ReConfig Province ${release.tag_name}`;
+  const title = release.name || `ReConfig Province ${release.tag_name || ''}`;
   const desc = summarize(release.body || '');
-  const isLatest = release.tag_name === latestTag;
   row.innerHTML = `
     <div class="release-ver">
-      <strong>${escapeHtml(release.tag_name || 'Без тега')}</strong>
-      ${isLatest ? '<span class="release-badge">Актуальная</span>' : mode === 'required' ? '<span class="release-badge required">Обязательная</span>' : ''}
+      <strong>${escapeHtml(release.tag_name || 'Без номера')}</strong>
+      ${mode === 'required' ? '<span class="release-badge required">Важная</span>' : ''}
     </div>
     <div class="release-info">
       <h3>${escapeHtml(title)}</h3>
@@ -73,15 +76,13 @@ function releaseRow(release, latestTag) {
     </div>
     <div class="release-actions">
       <span class="release-date">${formatDate(release.published_at)}</span>
-      <a class="release-download interactive" href="${asset?.browser_download_url || release.html_url}" ${asset ? 'download' : ''} target="_blank" rel="noreferrer" title="${asset ? 'Скачать ReConfigProvince.exe' : 'Открыть релиз'}">
+      ${asset ? `<a class="release-download interactive" href="${escapeHtml(asset.browser_download_url)}" title="Скачать эту версию" aria-label="Скачать ${escapeHtml(release.tag_name || 'версию')}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 21h14"/></svg>
-      </a>
+      </a>` : `<span class="release-download disabled" title="Файл этой версии недоступен">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 21h14"/></svg>
+      </span>`}
     </div>`;
   return row;
-}
-
-function escapeHtml(str = '') {
-  return String(str).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 }
 
 async function loadReleases() {
@@ -91,9 +92,13 @@ async function loadReleases() {
       headers: { 'Accept': 'application/vnd.github+json' },
       cache: 'no-store'
     });
-    if (!res.ok) throw new Error(`GitHub API: ${res.status}`);
-    const releases = (await res.json()).filter(r => !r.draft && !r.prerelease);
-    if (!releases.length) throw new Error('Нет опубликованных релизов');
+    if (!res.ok) throw new Error(`Update service: ${res.status}`);
+
+    const releases = (await res.json())
+      .filter(r => !r.draft && !r.prerelease)
+      .sort((a,b) => new Date(b.published_at || b.created_at || 0) - new Date(a.published_at || a.created_at || 0));
+
+    if (!releases.length) throw new Error('Нет опубликованных версий');
 
     const latest = releases[0];
     const latestAsset = releaseAsset(latest);
@@ -102,31 +107,36 @@ async function loadReleases() {
     $('#latestVersion').textContent = latest.tag_name || '—';
     $('#latestDate').textContent = formatDate(latest.published_at);
     $('#latestSize').textContent = formatBytes(latestAsset?.size);
-    $('#latestDescription').textContent = latestText.split('\n').slice(0, 5).join('\n');
-    $('#downloadSubline').textContent = latestAsset ? `${formatBytes(latestAsset.size)} · Windows EXE` : 'Официальный релиз на GitHub';
-    $('#latestReleasePage').href = latest.html_url || RELEASES_PAGE;
+    $('#latestDescription').textContent = latestText.split('\n').slice(0,5).join('\n');
+    $('#downloadSubline').textContent = latestAsset ? `${formatBytes(latestAsset.size)} · Windows` : 'Файл временно недоступен';
     $('#heroVersion').textContent = `Последняя версия: ${latest.tag_name || '—'}`;
-    setDownloadLink($('#latestDownload'), latestAsset, latest.html_url || RELEASES_PAGE);
-    setDownloadLink($('#heroDownload'), latestAsset, latest.html_url || RELEASES_PAGE);
+
+    setDownloadLink($('#latestDownload'), latestAsset);
+    if (latestAsset) setDownloadLink($('#heroDownload'), latestAsset);
 
     list.innerHTML = '';
-    releases.forEach((release, index) => {
-      const row = releaseRow(release, latest.tag_name);
-      if (index < 3) row.classList.add(`delay-${Math.min(index,2)}`);
-      list.appendChild(row);
-    });
+    const previous = releases.slice(1);
+    if (!previous.length) {
+      list.innerHTML = '<div class="empty-state">Предыдущих версий пока нет.</div>';
+    } else {
+      previous.forEach((release, index) => {
+        const row = releaseRow(release);
+        if (index < 3) row.classList.add(`delay-${Math.min(index,2)}`);
+        list.appendChild(row);
+      });
+    }
+
     observeReveals();
     bindCursorHover();
   } catch (err) {
     console.warn(err);
-    $('#latestVersion').textContent = 'GitHub';
+    $('#latestVersion').textContent = '—';
     $('#latestDate').textContent = '—';
     $('#latestSize').textContent = '—';
-    $('#latestDescription').textContent = 'Не удалось получить данные GitHub автоматически. Открой страницу Releases, чтобы скачать последнюю версию.';
-    $('#heroVersion').textContent = 'Актуальная версия — в GitHub Releases';
-    setDownloadLink($('#latestDownload'), null, RELEASES_PAGE);
-    $('#latestReleasePage').href = RELEASES_PAGE;
-    list.innerHTML = `<div class="empty-state">Не удалось загрузить историю версий. <a href="${RELEASES_PAGE}" target="_blank" rel="noreferrer" style="color:var(--accent-light)">Открыть Releases на GitHub →</a></div>`;
+    $('#latestDescription').textContent = 'Не удалось получить информацию об актуальной версии. Попробуйте обновить страницу немного позже.';
+    $('#downloadSubline').textContent = 'Информация временно недоступна';
+    $('#heroVersion').textContent = 'Не удалось проверить актуальную версию';
+    list.innerHTML = '<div class="empty-state">История версий временно недоступна. Попробуйте обновить страницу позже.</div>';
   }
 }
 
@@ -144,7 +154,7 @@ function observeReveals() {
           revealObserver.unobserve(entry.target);
         }
       });
-    }, { threshold: .12, rootMargin: '0px 0px -30px' });
+    }, { threshold:.12, rootMargin:'0px 0px -30px' });
   }
   $$('.reveal:not(.visible)').forEach(el => revealObserver.observe(el));
 }
@@ -158,7 +168,7 @@ function initHeader() {
 
 let hoverBound = new WeakSet();
 function bindCursorHover() {
-  $$('.interactive, a, button, summary, .interactive-card, .feature-row').forEach(el => {
+  $$('.interactive,a,button,summary,.interactive-card,.feature-row,.preview-frame').forEach(el => {
     if (hoverBound.has(el)) return;
     hoverBound.add(el);
     el.addEventListener('mouseenter', () => document.body.classList.add('cursor-hover'));
@@ -179,19 +189,20 @@ function initCursor() {
   let glowX = mouseX, glowY = mouseY;
 
   addEventListener('mousemove', e => {
-    mouseX = e.clientX; mouseY = e.clientY;
+    mouseX = e.clientX;
+    mouseY = e.clientY;
     document.body.classList.add('cursor-active');
   }, { passive:true });
   addEventListener('mouseleave', () => document.body.classList.remove('cursor-active'));
   addEventListener('mouseenter', () => document.body.classList.add('cursor-active'));
 
   const frame = () => {
-    dotX += (mouseX - dotX) * .46;
-    dotY += (mouseY - dotY) * .46;
-    ringX += (mouseX - ringX) * .135;
-    ringY += (mouseY - ringY) * .135;
-    glowX += (mouseX - glowX) * .045;
-    glowY += (mouseY - glowY) * .045;
+    dotX += (mouseX - dotX) * .38;
+    dotY += (mouseY - dotY) * .38;
+    ringX += (mouseX - ringX) * .115;
+    ringY += (mouseY - ringY) * .115;
+    glowX += (mouseX - glowX) * .035;
+    glowY += (mouseY - glowY) * .035;
     dot.style.transform = `translate3d(${dotX}px,${dotY}px,0)`;
     ring.style.transform = `translate3d(${ringX}px,${ringY}px,0)`;
     glow.style.transform = `translate3d(${glowX}px,${glowY}px,0)`;
@@ -210,21 +221,25 @@ function initFaq() {
   });
 }
 
-function initParallax() {
+function initPreviewMotion() {
   if (!matchMedia('(pointer:fine)').matches || innerWidth < 900 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const shell = $('.window-shell');
-  if (!shell) return;
+  const frame = $('#previewFrame');
+  if (!frame) return;
   window.addEventListener('mousemove', e => {
-    const nx = (e.clientX / innerWidth - .5);
-    const ny = (e.clientY / innerHeight - .5);
-    shell.style.transform = `rotateY(${(-4 + nx * 2.2).toFixed(2)}deg) rotateX(${(1.5 - ny * 1.5).toFixed(2)}deg) translate3d(0,0,0)`;
+    const nx = e.clientX / innerWidth - .5;
+    const ny = e.clientY / innerHeight - .5;
+    frame.style.transform = `translate3d(${(nx * 3).toFixed(2)}px,${(ny * 2).toFixed(2)}px,0)`;
   }, { passive:true });
 }
+
+// Сайт ведёт себя как приложение: текст и изображения не выделяются и не перетаскиваются.
+document.addEventListener('selectstart', e => e.preventDefault());
+document.addEventListener('dragstart', e => e.preventDefault());
 
 $('#year').textContent = new Date().getFullYear();
 observeReveals();
 initHeader();
 initCursor();
 initFaq();
-initParallax();
+initPreviewMotion();
 loadReleases();

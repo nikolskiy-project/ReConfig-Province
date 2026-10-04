@@ -4,46 +4,38 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0f0f13">
-  <meta name="description" content="ReConfig Province — современный менеджер конфигураций и биндов для MTA Province.">
+  <meta name="description" content="ReConfig Province — удобный менеджер конфигов, профилей и биндов для MTA Province.">
   <title>ReConfig Province — конфиги и бинды MTA Province</title>
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="page-noise" aria-hidden="true"></div>
   <div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
   <div class="cursor-dot" id="cursorDot" aria-hidden="true"></div>
   <div class="cursor-ring" id="cursorRing" aria-hidden="true"></div>
 
   <header class="topbar" id="topbar">
-    <a class="brand" href="#home" aria-label="ReConfig Province — на главную">
-      <img src="assets/logo.svg" alt="" class="brand-logo">
+    <a class="brand interactive" href="#home" aria-label="ReConfig Province — на главную">
+      <img src="assets/logo.svg" alt="" class="brand-logo" draggable="false">
       <span class="brand-copy">
         <strong>ReConfig Province</strong>
         <small>by Nikolskiy</small>
       </span>
     </a>
     <nav class="nav" aria-label="Навигация">
-      <a href="#about">О программе</a>
-      <a href="#features">Возможности</a>
-      <a href="#downloads">Скачать</a>
-      <a href="#versions">Версии</a>
+      <a class="interactive" href="#about">О программе</a>
+      <a class="interactive" href="#features">Возможности</a>
+      <a class="interactive" href="#downloads">Скачать</a>
+      <a class="interactive" href="#versions">Версии</a>
     </nav>
-    <a class="header-github interactive" href="https://github.com/nikolskiy-project/ReConfig-Province" target="_blank" rel="noreferrer">
-      GitHub
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>
-    </a>
   </header>
 
   <main>
     <section class="hero section" id="home">
-      <div class="hero-orb orb-one" aria-hidden="true"></div>
-      <div class="hero-orb orb-two" aria-hidden="true"></div>
-
       <div class="hero-copy reveal">
         <div class="eyebrow"><span class="status-dot"></span> Для MTA Province</div>
-        <h1>Конфиги Province.<br><span>Без лишней рутины.</span></h1>
-        <p class="hero-lead">Храни конфигурации, переключай <code>coreconfig.xml</code>, редактируй пресеты и устанавливай готовые бинды в одном аккуратном приложении.</p>
+        <h1>Твои конфиги.<br><span>В одном месте.</span></h1>
+        <p class="hero-lead">Сохраняй профили, переключай игровые конфиги, редактируй файл конфига и применяй готовые бинды через удобное приложение.</p>
         <div class="hero-actions">
           <a class="btn btn-primary interactive" id="heroDownload" href="#downloads">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 21h14"/></svg>
@@ -58,54 +50,40 @@
         </div>
       </div>
 
-      <div class="app-showcase reveal delay-1" aria-label="Превью интерфейса ReConfig Province">
-        <div class="window-shell">
-          <div class="window-titlebar">
-            <span>ReConfig Province</span>
-            <div class="window-buttons"><i></i><i></i><i class="close"></i></div>
-          </div>
-          <div class="app-head">
-            <div class="app-brand">
-              <img src="assets/logo.svg" alt="">
-              <div><strong>ReConfig Province</strong><small>by Nikolskiy</small></div>
-            </div>
-            <div class="app-tools"><button>⇩</button><button>✓</button><button>⚙</button></div>
-          </div>
-          <div class="app-grid">
-            <article class="config-card active"><span class="active-pill">Активен</span><div class="card-icon">✦</div><strong>Основной</strong></article>
-            <article class="config-card"><div class="card-icon">✚</div><strong>ОКБ</strong></article>
-            <article class="config-card add"><div class="card-icon">＋</div><strong>Добавить</strong></article>
-          </div>
-          <div class="app-glow" aria-hidden="true"></div>
+      <figure class="app-showcase reveal delay-1" aria-label="Интерфейс ReConfig Province">
+        <div class="preview-frame" id="previewFrame">
+          <img src="assets/app-preview.png" alt="Интерфейс ReConfig Province" draggable="false">
+          <div class="preview-shine" aria-hidden="true"></div>
         </div>
-      </div>
+        <figcaption>Актуальный интерфейс приложения</figcaption>
+      </figure>
     </section>
 
     <section class="section section-tight" id="about">
       <div class="section-heading reveal">
         <span class="kicker">О программе</span>
-        <h2>Настрой Province один раз.<br>Переключайся когда угодно.</h2>
-        <p>ReConfig Province избавляет от ручного поиска, копирования и замены конфигураций игры. Всё нужное хранится в одном месте и применяется за пару действий.</p>
+        <h2>Переключай рабочие профили<br>без ручной возни с файлами.</h2>
+        <p>ReConfig Province помогает держать разные варианты настроек отдельно и быстро применять нужный профиль. Всё управление собрано в одном компактном окне.</p>
       </div>
 
       <div class="about-grid">
         <article class="about-card reveal interactive-card">
           <span class="number">01</span>
           <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
-          <h3>Конфиги под рукой</h3>
-          <p>Добавляй несколько вариантов <code>coreconfig.xml</code>, назначай им имена и иконки и мгновенно переключай активный.</p>
+          <h3>Профили под рукой</h3>
+          <p>Добавляй разные конфиги, задавай им понятные имена и иконки и переключай активный профиль за пару действий.</p>
         </article>
         <article class="about-card reveal delay-1 interactive-card">
           <span class="number">02</span>
           <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="8"/></svg></div>
           <h3>Готовые бинды</h3>
-          <p>Применяй предустановки биндов с нужными параметрами персонажа без ручного редактирования десятков строк.</p>
+          <p>Применяй подготовленные наборы биндов с нужными параметрами без долгого ручного редактирования конфига.</p>
         </article>
         <article class="about-card reveal delay-2 interactive-card">
           <span class="number">03</span>
           <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M4 19h16M6 15l4-4 3 3 5-7"/></svg></div>
-          <h3>Обновляется само</h3>
-          <p>Приложение получает новые версии из GitHub Releases, показывает изменения и умеет обновляться с перезапуском.</p>
+          <h3>Всегда актуально</h3>
+          <p>Приложение само проверяет наличие новой версии, показывает изменения и при необходимости обновляется с перезапуском.</p>
         </article>
       </div>
     </section>
@@ -116,11 +94,11 @@
         <h2>Всё необходимое — в одном окне</h2>
       </div>
       <div class="feature-list">
-        <div class="feature-row reveal"><span>01</span><div><h3>Быстрое переключение конфигураций</h3><p>Сохраняй разные игровые конфиги и применяй нужный без ручной работы с папками.</p></div><i>↗</i></div>
-        <div class="feature-row reveal"><span>02</span><div><h3>Встроенный XML-редактор</h3><p>Просматривай и редактируй содержимое сохранённого конфига прямо из приложения.</p></div><i>↗</i></div>
-        <div class="feature-row reveal"><span>03</span><div><h3>Пресеты биндов</h3><p>Готовые наборы назначений с заменой конфликтующих клавиш или добавлением в существующий конфиг.</p></div><i>↗</i></div>
-        <div class="feature-row reveal"><span>04</span><div><h3>Персонализация интерфейса</h3><p>Выбирай предустановленный акцент или создавай собственный цвет через встроенную палитру.</p></div><i>↗</i></div>
-        <div class="feature-row reveal"><span>05</span><div><h3>Автоматические обновления</h3><p>Обычные и обязательные обновления загружаются из официальных GitHub Releases проекта.</p></div><i>↗</i></div>
+        <div class="feature-row reveal"><span>01</span><div><h3>Быстрое переключение конфигов</h3><p>Сохраняй разные профили и применяй нужный без ручного копирования файлов.</p></div><i>↗</i></div>
+        <div class="feature-row reveal"><span>02</span><div><h3>Встроенный редактор конфига</h3><p>Просматривай и изменяй содержимое сохранённого файла прямо внутри приложения.</p></div><i>↗</i></div>
+        <div class="feature-row reveal"><span>03</span><div><h3>Пресеты биндов</h3><p>Используй готовые наборы назначений с добавлением или заменой конфликтующих клавиш.</p></div><i>↗</i></div>
+        <div class="feature-row reveal"><span>04</span><div><h3>Персонализация интерфейса</h3><p>Выбирай готовый акцентный цвет или создавай собственный через встроенную палитру.</p></div><i>↗</i></div>
+        <div class="feature-row reveal"><span>05</span><div><h3>Автоматические обновления</h3><p>Обычные обновления можно отложить, а важные версии устанавливаются автоматически при запуске.</p></div><i>↗</i></div>
       </div>
     </section>
 
@@ -129,22 +107,21 @@
         <div class="download-copy">
           <span class="kicker">Скачать</span>
           <h2>Последняя версия<br>ReConfig Province</h2>
-          <p id="latestDescription">Получаем информацию о последнем релизе с GitHub…</p>
+          <p id="latestDescription">Получаем информацию об актуальной версии…</p>
           <div class="release-facts">
             <div><span>Версия</span><strong id="latestVersion">—</strong></div>
-            <div><span>Дата релиза</span><strong id="latestDate">—</strong></div>
-            <div><span>Файл</span><strong id="latestSize">—</strong></div>
+            <div><span>Дата выпуска</span><strong id="latestDate">—</strong></div>
+            <div><span>Размер</span><strong id="latestSize">—</strong></div>
           </div>
         </div>
         <div class="download-action-card">
-          <div class="download-icon-wrap"><img src="assets/logo.svg" alt=""></div>
+          <div class="download-icon-wrap"><img src="assets/logo.svg" alt="" draggable="false"></div>
           <strong>ReConfigProvince.exe</strong>
-          <span id="downloadSubline">Официальная сборка для Windows</span>
+          <span id="downloadSubline">Сборка для Windows</span>
           <a class="btn btn-primary btn-wide interactive disabled" id="latestDownload" href="#" aria-disabled="true">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 21h14"/></svg>
             Скачать последнюю версию
           </a>
-          <a class="release-link interactive" id="latestReleasePage" href="https://github.com/nikolskiy-project/ReConfig-Province/releases" target="_blank" rel="noreferrer">Открыть страницу релиза →</a>
         </div>
       </div>
     </section>
@@ -153,10 +130,9 @@
       <div class="versions-head reveal">
         <div>
           <span class="kicker">История версий</span>
-          <h2>Предыдущие релизы</h2>
-          <p>Список формируется автоматически из опубликованных GitHub Releases.</p>
+          <h2>Предыдущие версии</h2>
+          <p>Список обновляется автоматически после публикации новой версии программы.</p>
         </div>
-        <a class="btn btn-secondary interactive" href="https://github.com/nikolskiy-project/ReConfig-Province/releases" target="_blank" rel="noreferrer">Все релизы на GitHub</a>
       </div>
       <div class="releases-list" id="releasesList">
         <div class="release-skeleton"><i></i><div><b></b><span></span></div></div>
@@ -171,17 +147,20 @@
         <h2>Коротко о главном</h2>
       </div>
       <div class="faq-grid">
-        <details class="faq-item reveal interactive-card"><summary>Нужна ли установка?</summary><p>Нет. ReConfig Province распространяется как самостоятельный Windows EXE. Запускаешь файл и работаешь.</p></details>
-        <details class="faq-item reveal interactive-card"><summary>Где хранятся мои конфиги?</summary><p>Пользовательские настройки и конфиги хранятся отдельно в папке данных пользователя Windows, поэтому обновление приложения их не удаляет.</p></details>
-        <details class="faq-item reveal interactive-card"><summary>Откуда сайт берёт версии?</summary><p>Сайт обращается напрямую к GitHub Releases этого репозитория и автоматически строит список опубликованных версий и ссылки на EXE.</p></details>
+        <details class="faq-item reveal interactive-card"><summary>Нужна ли установка?</summary><p>Нет. ReConfig Province распространяется как самостоятельный файл для Windows. Достаточно скачать и запустить программу.</p></details>
+        <details class="faq-item reveal interactive-card"><summary>Где хранятся мои профили?</summary><p>Пользовательские настройки и сохранённые конфиги хранятся отдельно от самой программы, поэтому обновление приложения их не удаляет.</p></details>
+        <details class="faq-item reveal interactive-card"><summary>Как появляются новые версии?</summary><p>Сайт автоматически получает опубликованные версии программы. После выпуска обновления оно появляется здесь без ручного изменения страницы.</p></details>
       </div>
     </section>
   </main>
 
   <footer>
-    <div class="footer-brand"><img src="assets/logo.svg" alt=""><div><strong>ReConfig Province</strong><span>Открыл. Выбрал. Применил. Готово.</span></div></div>
-    <div class="footer-links"><a href="#home">Наверх</a><a href="https://github.com/nikolskiy-project/ReConfig-Province" target="_blank" rel="noreferrer">GitHub</a></div>
-    <span class="copyright">© <span id="year"></span> Nikolskiy</span>
+    <div class="footer-brand">
+      <img src="assets/logo.svg" alt="" draggable="false">
+      <div><strong>ReConfig Province</strong><span>by Nikolskiy</span></div>
+    </div>
+    <div class="footer-links"><a class="interactive" href="#home">Наверх</a><a class="interactive" href="#downloads">Скачать</a></div>
+    <span class="copyright">© <span id="year"></span> ReConfig Province</span>
   </footer>
 
   <script src="script.js"></script>
