@@ -92,7 +92,7 @@ ReConfig Province находится в активной разработке.
 
 ## 👤 Автор
 
-**Nikolskiy**
+**Artem_Nikolskiy**
 
 ---
 
