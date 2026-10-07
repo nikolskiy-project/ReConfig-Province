@@ -30,6 +30,70 @@ async function api(path, options={}) {
   if (!response.ok) { const err = new Error(data?.error || `HTTP ${response.status}`); err.status=response.status; err.detail=data?.detail; throw err; }
   return data;
 }
+
+const reviewFileCache = new Map();
+const reviewObjectUrlCache = new Map();
+
+function reviewFilePath(type) {
+  if (!selectedSubmission?.id || !selectedSubmission?.status) return '';
+  const status = encodeURIComponent(selectedSubmission.status);
+  return `/api/admin/submissions/${encodeURIComponent(selectedSubmission.id)}/file?status=${status}&type=${encodeURIComponent(type)}`;
+}
+
+async function fetchAdminFile(type, timeoutMs = 12000) {
+  const path = reviewFilePath(type);
+  if (!path) throw new Error('Публикация не выбрана.');
+
+  const cacheKey = `${selectedSubmission.status}:${selectedSubmission.id}:${type}`;
+  if (reviewFileCache.has(cacheKey)) return reviewFileCache.get(cacheKey);
+
+  const promise = (async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(`${API}${path}`, {
+        method: 'GET',
+        headers: headers(),
+        cache: 'no-store',
+        signal: controller.signal
+      });
+      if (!response.ok) {
+        let message = `HTTP ${response.status}`;
+        try {
+          const body = await response.json();
+          message = body?.detail || body?.error || message;
+        } catch (_) {}
+        throw new Error(message);
+      }
+      return await response.blob();
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        throw new Error('Превышено время ожидания ответа. Попробуй ещё раз.');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  })();
+
+  reviewFileCache.set(cacheKey, promise);
+  try {
+    return await promise;
+  } catch (error) {
+    reviewFileCache.delete(cacheKey);
+    throw error;
+  }
+}
+
+async function getReviewObjectUrl(type) {
+  const cacheKey = `${selectedSubmission.status}:${selectedSubmission.id}:${type}`;
+  if (reviewObjectUrlCache.has(cacheKey)) return reviewObjectUrlCache.get(cacheKey);
+  const blob = await fetchAdminFile(type);
+  const url = URL.createObjectURL(blob);
+  reviewObjectUrlCache.set(cacheKey, url);
+  return url;
+}
+
 let adminHoverBound = new WeakSet();
 
 function bindAdminCursorHover() {
@@ -282,7 +346,8 @@ function renderCommunityModeration(){
     copy.append(h,p,s);card.append(thumb,copy);card.addEventListener('click',()=>openReview(item,moderationTab));grid.appendChild(card);
   });
   bindAdminCursorHover();
-  window.syncAdminScrollbar?.();
+  requestAnimationFrame(()=>window.syncAdminScrollbar?.());
+  setTimeout(()=>window.syncAdminScrollbar?.(),80);
 }
 function setModerationTab(status){
   moderationTab=status; $$('.admin-tab').forEach(b=>b.classList.toggle('active',b.dataset.status===status)); renderCommunityModeration();
@@ -296,8 +361,7 @@ function updateReviewViewButtons(mode) {
 }
 
 async function loadReviewCode() {
-  if (!selectedSubmission?.download_url) return;
-  const url = selectedSubmission.download_url;
+  if (!selectedSubmission?.id) return;
   const code = $('#reviewCode');
   const codeText = $('#reviewCodeText');
   const loading = $('#reviewCodeLoading');
@@ -305,21 +369,67 @@ async function loadReviewCode() {
 
   code.hidden = true;
   loading.hidden = false;
+  loading.textContent = 'Загружаю XML…';
+
   try {
-    let text = reviewXmlCache.get(url);
-    if (text == null) {
-      const response = await fetch(url, { cache: 'no-store' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      text = await response.text();
-      reviewXmlCache.set(url, text);
-    }
+    const blob = await fetchAdminFile('config');
+    const text = await blob.text();
     codeText.textContent = text || 'XML-файл пуст.';
     code.hidden = false;
   } catch (error) {
-    codeText.textContent = `Не удалось загрузить XML для просмотра.\n${error?.message || error}`;
+    codeText.textContent = `Не удалось загрузить XML.\n${error?.message || error}`;
     code.hidden = false;
   } finally {
     loading.hidden = true;
+    requestAnimationFrame(() => window.syncAdminScrollbar?.());
+  }
+}
+
+async function loadReviewPreview() {
+  const preview = $('#reviewPreview');
+  const loading = $('#reviewPreviewLoading');
+  if (!preview || !loading || !selectedSubmission) return;
+
+  preview.querySelectorAll(':scope > img').forEach(node => node.remove());
+  const empty = preview.querySelector(':scope > .admin-review-preview-empty');
+
+  if (!selectedSubmission.preview_url) {
+    if (empty) {
+      empty.hidden = false;
+      empty.textContent = 'Без превью';
+    }
+    loading.hidden = true;
+    return;
+  }
+
+  if (empty) empty.hidden = true;
+  loading.classList.remove('error');
+  loading.textContent = 'Загружаю превью…';
+  loading.hidden = false;
+
+  try {
+    const objectUrl = await getReviewObjectUrl('preview');
+    // Карточка могла быть закрыта/переключена во время загрузки.
+    if (!selectedSubmission) return;
+
+    const img = document.createElement('img');
+    img.alt = `Превью: ${selectedSubmission.title || 'публикация'}`;
+    img.decoding = 'async';
+
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Превышено время загрузки изображения.')), 8000);
+      img.onload = () => { clearTimeout(timer); resolve(); };
+      img.onerror = () => { clearTimeout(timer); reject(new Error('Браузер не смог открыть изображение.')); };
+      img.src = objectUrl;
+    });
+
+    preview.prepend(img);
+    loading.hidden = true;
+  } catch (error) {
+    loading.classList.add('error');
+    loading.textContent = `Не удалось загрузить превью.\n${error?.message || error}`;
+    loading.hidden = false;
+  } finally {
     requestAnimationFrame(() => window.syncAdminScrollbar?.());
   }
 }
@@ -328,7 +438,7 @@ function setReviewMediaMode(mode) {
   const preview = $('#reviewPreview');
   if (!preview) return;
   if (mode === 'full' && !selectedSubmission?.preview_url) mode = 'cover';
-  if (mode === 'code' && !selectedSubmission?.download_url) mode = 'cover';
+  if (mode === 'code' && !selectedSubmission?.id) mode = 'cover';
 
   reviewMediaMode = mode;
   preview.classList.toggle('mode-full', mode === 'full');
@@ -355,22 +465,27 @@ function openReview(item,status){
   $('#reviewDescription').textContent=item.description||'Описание отсутствует.';
   const preview=$('#reviewPreview');
   preview.classList.remove('mode-full','mode-code');
-  preview.querySelectorAll(':scope > img, :scope > .admin-review-preview-empty').forEach(node=>node.remove());
-  if(item.preview_url){const img=document.createElement('img');img.src=item.preview_url;img.alt=`Превью: ${item.title||'публикация'}`;preview.prepend(img);}else{const f=document.createElement('div');f.className='admin-review-preview-empty';f.textContent='Без превью';preview.prepend(f);}
+  preview.querySelectorAll(':scope > img').forEach(node=>node.remove());
+  const previewEmpty=preview.querySelector(':scope > .admin-review-preview-empty');
+  if(previewEmpty){previewEmpty.hidden=!!item.preview_url;previewEmpty.textContent=item.preview_url?'':'Без превью';}
+  const previewLoading=$('#reviewPreviewLoading');if(previewLoading){previewLoading.hidden=true;previewLoading.classList.remove('error');}
   const code=$('#reviewCode');if(code)code.hidden=true;
   const loading=$('#reviewCodeLoading');if(loading)loading.hidden=true;
   const codeText=$('#reviewCodeText');if(codeText)codeText.textContent='';
   $('#reviewFullButton').disabled=!item.preview_url;
-  $('#reviewCodeButton').disabled=!item.download_url;
+  $('#reviewCodeButton').disabled=!item.id;
   reviewMediaMode='cover';updateReviewViewButtons('cover');
-  const xml=$('#reviewXmlLink');xml.href=item.download_url||'#';xml.hidden=!item.download_url;
-  const pLink=$('#reviewPreviewLink');pLink.href=item.preview_url||'#';pLink.hidden=!item.preview_url;
+  const xml=$('#reviewXmlLink');xml.href='#';xml.hidden=!item.id;
+  const pLink=$('#reviewPreviewLink');pLink.href='#';pLink.hidden=!item.preview_url;
   const reason=$('#reviewReason');reason.hidden=status!=='rejected';$('#reviewReasonText').textContent=item.rejection_reason||'Причина не указана.';
   $('#reviewActions').hidden=status!=='pending';$('#rejectBox').hidden=true;$('#rejectReasonInput').value='';
+  $('#approvedDeleteArea').hidden=status!=='approved';
+  $('#deleteConfirmBox').hidden=true;
   $('#reviewOverlay').hidden=false;document.body.classList.add('admin-review-open');bindAdminCursorHover();requestAnimationFrame(()=>window.syncAdminScrollbar?.());
+  loadReviewPreview();
 }
 function closeReview(){
-  $('#reviewOverlay').hidden=true;document.body.classList.remove('admin-review-open');selectedSubmission=null;$('#rejectBox').hidden=true;reviewMediaMode='cover';requestAnimationFrame(()=>window.syncAdminScrollbar?.());
+  $('#reviewOverlay').hidden=true;document.body.classList.remove('admin-review-open');selectedSubmission=null;$('#rejectBox').hidden=true;$('#deleteConfirmBox').hidden=true;reviewMediaMode='cover';requestAnimationFrame(()=>window.syncAdminScrollbar?.());
 }
 async function approveSelected(){
   if(!selectedSubmission||selectedSubmission.status!=='pending')return;
@@ -386,6 +501,66 @@ async function rejectSelected(){
   try{await api(`/api/admin/submissions/${selectedSubmission.id}/reject`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reason})});toast('Публикация отклонена. Причина сохранена.');closeReview();await loadCommunityModeration();}
   catch(e){toast(e.detail||e.message);}finally{btn.disabled=false;btn.textContent=old;}
 }
+
+function beginDeleteApproved(){
+  if(!selectedSubmission || selectedSubmission.status!=='approved') return;
+  $('#deleteConfirmBox').hidden=false;
+  bindAdminCursorHover();
+}
+
+async function deleteApprovedSelected(){
+  if(!selectedSubmission || selectedSubmission.status!=='approved') return;
+  const btn=$('#deleteConfirm'), old=btn.textContent;
+  btn.disabled=true;
+  btn.textContent='Удаляю…';
+  try{
+    await api(`/api/admin/submissions/${selectedSubmission.id}`, { method:'DELETE' });
+    toast('Одобренная публикация удалена из мастерской.');
+    closeReview();
+    await loadCommunityModeration();
+  }catch(e){
+    toast(e.detail||e.message);
+  }finally{
+    btn.disabled=false;
+    btn.textContent=old;
+  }
+}
+
+
+async function downloadReviewConfig(event){
+  event?.preventDefault();
+  if(!selectedSubmission?.id) return;
+  const link=$('#reviewXmlLink');
+  const old=link.textContent;
+  link.textContent='Загружаю…';
+  try{
+    const blob=await fetchAdminFile('config');
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`${selectedSubmission.title || selectedSubmission.id}.xml`.replace(/[\\/:*?"<>|]+/g,'_');
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),3000);
+  }catch(e){
+    toast(e.message||String(e));
+  }finally{
+    link.textContent=old;
+  }
+}
+
+async function openReviewPreviewOriginal(event){
+  event?.preventDefault();
+  if(!selectedSubmission?.preview_url) return;
+  try{
+    const url=await getReviewObjectUrl('preview');
+    window.open(url,'_blank','noopener');
+  }catch(e){
+    toast(e.message||String(e));
+  }
+}
+
 function bindModeration(){
   $$('.admin-review-view').forEach(b=>b.addEventListener('click',()=>setReviewMediaMode(b.dataset.reviewView)));
   $$('.admin-tab').forEach(b=>b.addEventListener('click',()=>setModerationTab(b.dataset.status)));
@@ -396,6 +571,11 @@ function bindModeration(){
   $('#reviewReject').addEventListener('click',beginReject);
   $('#rejectCancel').addEventListener('click',()=>{$('#rejectBox').hidden=true;$('#rejectReasonInput').value='';});
   $('#rejectConfirm').addEventListener('click',rejectSelected);
+  $('#reviewXmlLink').addEventListener('click',downloadReviewConfig);
+  $('#reviewPreviewLink').addEventListener('click',openReviewPreviewOriginal);
+  $('#reviewDelete').addEventListener('click',beginDeleteApproved);
+  $('#deleteCancel').addEventListener('click',()=>{$('#deleteConfirmBox').hidden=true;});
+  $('#deleteConfirm').addEventListener('click',deleteApprovedSelected);
   addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#reviewOverlay').hidden)closeReview();});
 }
 

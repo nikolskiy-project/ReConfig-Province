@@ -8,8 +8,8 @@
   <title>ReHub Admin — официальные конфиги</title>
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="rehub.css?v=6">
-  <link rel="stylesheet" href="rehub-admin.css?v=2">
+  <link rel="stylesheet" href="rehub.css?v=8">
+  <link rel="stylesheet" href="rehub-admin.css?v=6">
 </head>
 <body class="rehub-page admin-page">
   <div class="page-noise" aria-hidden="true"></div>
@@ -120,6 +120,7 @@
       <button class="admin-review-close interactive" id="reviewClose" type="button" aria-label="Закрыть">×</button>
       <div class="admin-review-preview" id="reviewPreview">
         <div class="admin-review-preview-empty">Без превью</div>
+        <div class="admin-review-media-loading" id="reviewPreviewLoading" hidden>Загружаю превью…</div>
         <pre class="admin-review-code" id="reviewCode" hidden><code id="reviewCodeText"></code></pre>
         <div class="admin-review-code-loading" id="reviewCodeLoading" hidden>Загружаю XML…</div>
       </div>
@@ -142,6 +143,18 @@
           <button class="btn btn-danger interactive" id="reviewReject" type="button">Отклонить</button>
           <button class="btn btn-primary interactive" id="reviewApprove" type="button">Одобрить</button>
         </div>
+
+        <div class="admin-approved-delete" id="approvedDeleteArea" hidden>
+          <button class="btn btn-danger interactive" id="reviewDelete" type="button">Удалить публикацию</button>
+          <div class="admin-delete-confirm" id="deleteConfirmBox" hidden>
+            <p><strong>Удалить публикацию?</strong><br>Она исчезнет из мастерской, а XML, превью и метаданные будут удалены из GitHub.</p>
+            <div class="admin-delete-confirm-actions">
+              <button class="btn btn-secondary interactive" id="deleteCancel" type="button">Отмена</button>
+              <button class="btn btn-danger interactive" id="deleteConfirm" type="button">Удалить окончательно</button>
+            </div>
+          </div>
+        </div>
+
         <div class="admin-reject-box" id="rejectBox" hidden>
           <label><span>Причина отклонения</span><textarea id="rejectReasonInput" maxlength="300" rows="4" placeholder="Например: неверный XML, не соответствует описанию, неподходящее превью…"></textarea></label>
           <div class="admin-reject-actions">
@@ -155,6 +168,6 @@
 
   <div class="hub-toast" id="hubToast" role="status" aria-live="polite"></div>
   <script src="rehub-config.js?v=1"></script>
-  <script src="rehub-admin.js?v=4"></script>
+  <script src="rehub-admin.js?v=6"></script>
 </body>
 </html>

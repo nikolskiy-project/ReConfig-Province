@@ -207,3 +207,164 @@ body.admin-review-open { overflow:hidden; }
   .admin-review-viewbar { width: 100%; display: grid; grid-template-columns: 1fr 1fr 1fr; }
   .admin-review-view { padding: 0 5px; }
 }
+
+
+/* v5 — admin page/window scrolling is always available outside review mode. */
+html {
+  min-height: 100%;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+body.admin-page {
+  min-height: 100%;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+body.admin-review-open {
+  overflow: hidden !important;
+}
+
+/* Dedicated custom page scrollbar so Admin does not depend on another stylesheet. */
+.site-scrollbar {
+  position: fixed;
+  z-index: 9000;
+  top: 10px;
+  right: 7px;
+  bottom: 10px;
+  width: 7px;
+  pointer-events: auto;
+  opacity: 1;
+  transition: opacity .18s ease;
+}
+.site-scrollbar.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.site-scrollbar-thumb {
+  position: absolute;
+  left: 1px;
+  top: 0;
+  width: 5px;
+  min-height: 52px;
+  border-radius: 999px;
+  background: rgba(183,156,255,.30);
+  box-shadow: 0 0 0 1px rgba(183,156,255,.06) inset;
+  transition: width .15s ease, left .15s ease, background .15s ease;
+}
+.site-scrollbar:hover .site-scrollbar-thumb,
+.site-scrollbar-thumb.dragging {
+  left: 0;
+  width: 7px;
+  background: rgba(183,156,255,.52);
+}
+
+/* Open moderation card scrolls internally and the preview no longer dominates it. */
+.admin-review-modal {
+  width: min(860px, 100%) !important;
+  max-height: min(82vh, 720px) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(183,156,255,.34) transparent;
+}
+.admin-review-modal::-webkit-scrollbar {
+  width: 7px;
+}
+.admin-review-modal::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 10px 0;
+}
+.admin-review-modal::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(183,156,255,.34);
+}
+.admin-review-modal::-webkit-scrollbar-thumb:hover {
+  background: rgba(183,156,255,.52);
+}
+.admin-review-preview {
+  aspect-ratio: auto !important;
+  height: clamp(190px, 28vh, 280px) !important;
+  min-height: 190px !important;
+  max-height: 280px !important;
+  flex: 0 0 auto;
+}
+.admin-review-preview.mode-full {
+  height: min(48vh, 430px) !important;
+  min-height: 280px !important;
+  max-height: 430px !important;
+}
+.admin-review-preview.mode-code {
+  height: min(48vh, 430px) !important;
+  min-height: 280px !important;
+  max-height: 430px !important;
+}
+.admin-review-body {
+  min-height: auto !important;
+}
+
+/* Approved-publication delete UI. */
+.admin-approved-delete {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.admin-approved-delete > .btn {
+  width: 100%;
+  justify-content: center;
+}
+.admin-delete-confirm {
+  margin-top: 10px;
+  padding: 13px;
+  border: 1px solid rgba(255,91,103,.23);
+  border-radius: 11px;
+  background: rgba(255,91,103,.035);
+}
+.admin-delete-confirm p {
+  color: #aaaab6;
+  font-size: 10px;
+  line-height: 1.55;
+}
+.admin-delete-confirm strong {
+  color: #ff9ca3;
+}
+.admin-delete-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 11px;
+}
+@media (max-width:620px) {
+  .admin-review-modal {
+    max-height: calc(100vh - 24px) !important;
+  }
+  .admin-review-preview {
+    height: clamp(160px, 24vh, 220px) !important;
+    min-height: 160px !important;
+    max-height: 220px !important;
+  }
+}
+
+
+/* v6 — media preview loading is explicit and can never stay visible because of CSS. */
+.admin-review-media-loading[hidden],
+.admin-review-code-loading[hidden],
+.admin-review-code[hidden] {
+  display: none !important;
+}
+.admin-review-media-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+  color: #858594;
+  font-size: 10px;
+  line-height: 1.5;
+  background: #09090f;
+}
+.admin-review-media-loading.error {
+  color: #ff9ca3;
+}
