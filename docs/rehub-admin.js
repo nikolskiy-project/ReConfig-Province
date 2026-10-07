@@ -30,13 +30,167 @@ async function api(path, options={}) {
   if (!response.ok) { const err = new Error(data?.error || `HTTP ${response.status}`); err.status=response.status; err.detail=data?.detail; throw err; }
   return data;
 }
-function initCursor() {
-  const dot=$('#cursorDot'), ring=$('#cursorRing'), glow=$('#cursorGlow'); if(!dot||!ring) return;
-  let x=innerWidth/2,y=innerHeight/2,rx=x,ry=y;
-  addEventListener('mousemove',e=>{x=e.clientX;y=e.clientY;dot.style.transform=`translate3d(${x}px,${y}px,0)`;if(glow)glow.style.transform=`translate3d(${x}px,${y}px,0)`;});
-  const frame=()=>{rx+=(x-rx)*.17;ry+=(y-ry)*.17;ring.style.transform=`translate3d(${rx}px,${ry}px,0)`;requestAnimationFrame(frame)};frame();
-  const bind=()=>$$('.interactive,a,button,input,textarea,label').forEach(el=>{if(el.dataset.cursorBound)return;el.dataset.cursorBound='1';el.addEventListener('mouseenter',()=>ring.classList.add('hover'));el.addEventListener('mouseleave',()=>ring.classList.remove('hover'));});bind();
+let adminHoverBound = new WeakSet();
+
+function bindAdminCursorHover() {
+  $$('.interactive, a, button, input, textarea, select, label').forEach(el => {
+    if (adminHoverBound.has(el)) return;
+    adminHoverBound.add(el);
+    el.addEventListener('mouseenter', () => document.body.classList.add('cursor-hover'));
+    el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-hover'));
+  });
 }
+
+function initCursor() {
+  if (!matchMedia('(pointer:fine)').matches || innerWidth < 900 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const dot = $('#cursorDot');
+  const ring = $('#cursorRing');
+  const glow = $('#cursorGlow');
+  if (!dot || !ring || !glow) return;
+
+  let mouseX = innerWidth / 2;
+  let mouseY = innerHeight / 2;
+  let dotX = mouseX;
+  let dotY = mouseY;
+  let ringX = mouseX;
+  let ringY = mouseY;
+  let glowX = mouseX;
+  let glowY = mouseY;
+
+  addEventListener('mousemove', e => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    document.body.classList.add('cursor-active');
+  }, { passive: true });
+
+  addEventListener('mouseleave', () => {
+    document.body.classList.remove('cursor-active', 'cursor-hover');
+  });
+
+  addEventListener('mouseenter', () => {
+    document.body.classList.add('cursor-active');
+  });
+
+  const frame = () => {
+    dotX += (mouseX - dotX) * .46;
+    dotY += (mouseY - dotY) * .46;
+    ringX += (mouseX - ringX) * .135;
+    ringY += (mouseY - ringY) * .135;
+    glowX += (mouseX - glowX) * .045;
+    glowY += (mouseY - glowY) * .045;
+
+    dot.style.transform = `translate3d(${dotX}px,${dotY}px,0)`;
+    ring.style.transform = `translate3d(${ringX}px,${ringY}px,0)`;
+    glow.style.transform = `translate3d(${glowX}px,${glowY}px,0)`;
+
+    requestAnimationFrame(frame);
+  };
+
+  frame();
+  bindAdminCursorHover();
+}
+
+function initCustomScrollbar() {
+  if (!matchMedia('(pointer:fine)').matches || innerWidth < 900) return;
+
+  const existing = document.querySelector('.site-scrollbar');
+  if (existing) existing.remove();
+
+  const track = document.createElement('div');
+  track.className = 'site-scrollbar';
+  track.setAttribute('aria-hidden', 'true');
+
+  const thumb = document.createElement('div');
+  thumb.className = 'site-scrollbar-thumb';
+  track.appendChild(thumb);
+  document.body.appendChild(track);
+
+  let dragging = false;
+  let grabOffset = 0;
+  let raf = 0;
+
+  const metrics = () => {
+    const viewport = innerHeight;
+    const total = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, viewport);
+    const trackHeight = track.clientHeight;
+    const thumbHeight = Math.max(52, Math.min(trackHeight, trackHeight * (viewport / total)));
+    const maxScroll = Math.max(0, total - viewport);
+    const maxThumbTop = Math.max(0, trackHeight - thumbHeight);
+    return { thumbHeight, maxScroll, maxThumbTop };
+  };
+
+  const syncNow = () => {
+    raf = 0;
+    const { thumbHeight, maxScroll, maxThumbTop } = metrics();
+    const ratio = maxScroll > 0 ? Math.max(0, Math.min(1, scrollY / maxScroll)) : 0;
+    thumb.style.height = `${thumbHeight}px`;
+    thumb.style.transform = `translate3d(0,${maxThumbTop * ratio}px,0)`;
+    track.classList.toggle('hidden', maxScroll <= 0);
+  };
+
+  const sync = () => {
+    if (raf) cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(syncNow);
+  };
+
+  window.syncAdminScrollbar = sync;
+
+  const move = clientY => {
+    const rect = track.getBoundingClientRect();
+    const { maxScroll, maxThumbTop } = metrics();
+    if (!maxScroll || !maxThumbTop) return;
+    const top = Math.max(0, Math.min(maxThumbTop, clientY - rect.top - grabOffset));
+    scrollTo(0, (top / maxThumbTop) * maxScroll);
+  };
+
+  thumb.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    grabOffset = e.clientY - thumb.getBoundingClientRect().top;
+    dragging = true;
+    thumb.classList.add('dragging');
+    thumb.setPointerCapture?.(e.pointerId);
+  });
+
+  addEventListener('pointermove', e => {
+    if (!dragging) return;
+    e.preventDefault();
+    move(e.clientY);
+  }, { passive: false });
+
+  const finish = e => {
+    if (!dragging) return;
+    dragging = false;
+    thumb.classList.remove('dragging');
+    try { thumb.releasePointerCapture?.(e.pointerId); } catch (_) {}
+  };
+
+  addEventListener('pointerup', finish);
+  addEventListener('pointercancel', finish);
+  addEventListener('scroll', sync, { passive: true });
+  addEventListener('resize', sync, { passive: true });
+
+  // Админка меняет высоту после входа, загрузки очереди и переключения вкладок.
+  // Следим за этим автоматически, чтобы ползунок не оставался скрытым/старого размера.
+  if ('ResizeObserver' in window) {
+    const ro = new ResizeObserver(sync);
+    ro.observe(document.documentElement);
+    ro.observe(document.body);
+  }
+
+  const mo = new MutationObserver(sync);
+  mo.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['hidden', 'class', 'style']
+  });
+
+  sync();
+}
+
 function canvasBlob(canvas,q){return new Promise((res,rej)=>canvas.toBlob(b=>b?res(b):rej(new Error('Не удалось сжать изображение')),'image/webp',q));}
 async function compressPreview(file) {
   if(!file) return null;
@@ -79,8 +233,8 @@ async function refreshStates() {
     for(const slot of Object.keys(defaults)){const el=$(`#slotState-${slot}`);el.textContent=published.has(slot)?'Опубликован':'Не опубликован';el.classList.toggle('ready',published.has(slot));}
   } catch(e){ if(e.status===401) logout(); else toast(e.message); }
 }
-function showWorkspace() { $('#adminLogin').hidden=true; $('#adminWorkspace').hidden=false; refreshStates(); loadSlot(currentSlot); loadCommunityModeration(); }
-function logout(){adminKey='';sessionStorage.removeItem('rehub_admin_key');$('#adminWorkspace').hidden=true;$('#adminLogin').hidden=false;$('#adminKeyInput').value='';}
+function showWorkspace() { $('#adminLogin').hidden=true; $('#adminWorkspace').hidden=false; refreshStates(); loadSlot(currentSlot); loadCommunityModeration(); bindAdminCursorHover(); requestAnimationFrame(()=>window.syncAdminScrollbar?.()); }
+function logout(){adminKey='';sessionStorage.removeItem('rehub_admin_key');$('#adminWorkspace').hidden=true;$('#adminLogin').hidden=false;$('#adminKeyInput').value='';bindAdminCursorHover();requestAnimationFrame(()=>window.syncAdminScrollbar?.());}
 async function login(key){adminKey=key.trim();if(!adminKey)return;try{await api('/api/admin/official');sessionStorage.setItem('rehub_admin_key',adminKey);$('#loginError').textContent='';showWorkspace();}catch(e){adminKey='';$('#loginError').textContent=e.status===401?'Неверный ADMIN_KEY.':e.message;}}
 function bindFiles(){
   $('#adminConfigFile').addEventListener('change',()=>{const f=$('#adminConfigFile').files[0];if(!f)return;$('#adminConfigTitle').textContent=f.name;$('#adminConfigMeta').textContent=`${Math.max(1,Math.round(f.size/1024))} КБ · XML`;});
@@ -127,10 +281,71 @@ function renderCommunityModeration(){
     const s=document.createElement('small');s.textContent=formatAdminDate(item.approved_at||item.rejected_at||item.created_at);
     copy.append(h,p,s);card.append(thumb,copy);card.addEventListener('click',()=>openReview(item,moderationTab));grid.appendChild(card);
   });
+  bindAdminCursorHover();
+  window.syncAdminScrollbar?.();
 }
 function setModerationTab(status){
   moderationTab=status; $$('.admin-tab').forEach(b=>b.classList.toggle('active',b.dataset.status===status)); renderCommunityModeration();
 }
+
+const reviewXmlCache = new Map();
+let reviewMediaMode = 'cover';
+
+function updateReviewViewButtons(mode) {
+  $$('.admin-review-view').forEach(btn => btn.classList.toggle('active', btn.dataset.reviewView === mode));
+}
+
+async function loadReviewCode() {
+  if (!selectedSubmission?.download_url) return;
+  const url = selectedSubmission.download_url;
+  const code = $('#reviewCode');
+  const codeText = $('#reviewCodeText');
+  const loading = $('#reviewCodeLoading');
+  if (!code || !codeText || !loading) return;
+
+  code.hidden = true;
+  loading.hidden = false;
+  try {
+    let text = reviewXmlCache.get(url);
+    if (text == null) {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      text = await response.text();
+      reviewXmlCache.set(url, text);
+    }
+    codeText.textContent = text || 'XML-файл пуст.';
+    code.hidden = false;
+  } catch (error) {
+    codeText.textContent = `Не удалось загрузить XML для просмотра.\n${error?.message || error}`;
+    code.hidden = false;
+  } finally {
+    loading.hidden = true;
+    requestAnimationFrame(() => window.syncAdminScrollbar?.());
+  }
+}
+
+function setReviewMediaMode(mode) {
+  const preview = $('#reviewPreview');
+  if (!preview) return;
+  if (mode === 'full' && !selectedSubmission?.preview_url) mode = 'cover';
+  if (mode === 'code' && !selectedSubmission?.download_url) mode = 'cover';
+
+  reviewMediaMode = mode;
+  preview.classList.toggle('mode-full', mode === 'full');
+  preview.classList.toggle('mode-code', mode === 'code');
+  updateReviewViewButtons(mode);
+
+  const code = $('#reviewCode');
+  const loading = $('#reviewCodeLoading');
+  if (mode !== 'code') {
+    if (code) code.hidden = true;
+    if (loading) loading.hidden = true;
+  } else {
+    loadReviewCode();
+  }
+  requestAnimationFrame(() => window.syncAdminScrollbar?.());
+}
+
 function openReview(item,status){
   selectedSubmission={...item,status};
   $('#reviewTitle').textContent=item.title||'Публикация';
@@ -138,16 +353,24 @@ function openReview(item,status){
   $('#reviewCategoryBadge').textContent=item.category||'Другое';
   $('#reviewMeta').textContent=`${item.author||'Автор неизвестен'} · ${formatAdminDate(item.approved_at||item.rejected_at||item.created_at)}`;
   $('#reviewDescription').textContent=item.description||'Описание отсутствует.';
-  const preview=$('#reviewPreview');preview.innerHTML='';
-  if(item.preview_url){const img=document.createElement('img');img.src=item.preview_url;img.alt='';preview.appendChild(img);}else{const f=document.createElement('div');f.className='admin-review-preview-empty';f.textContent='Без превью';preview.appendChild(f);}
+  const preview=$('#reviewPreview');
+  preview.classList.remove('mode-full','mode-code');
+  preview.querySelectorAll(':scope > img, :scope > .admin-review-preview-empty').forEach(node=>node.remove());
+  if(item.preview_url){const img=document.createElement('img');img.src=item.preview_url;img.alt=`Превью: ${item.title||'публикация'}`;preview.prepend(img);}else{const f=document.createElement('div');f.className='admin-review-preview-empty';f.textContent='Без превью';preview.prepend(f);}
+  const code=$('#reviewCode');if(code)code.hidden=true;
+  const loading=$('#reviewCodeLoading');if(loading)loading.hidden=true;
+  const codeText=$('#reviewCodeText');if(codeText)codeText.textContent='';
+  $('#reviewFullButton').disabled=!item.preview_url;
+  $('#reviewCodeButton').disabled=!item.download_url;
+  reviewMediaMode='cover';updateReviewViewButtons('cover');
   const xml=$('#reviewXmlLink');xml.href=item.download_url||'#';xml.hidden=!item.download_url;
   const pLink=$('#reviewPreviewLink');pLink.href=item.preview_url||'#';pLink.hidden=!item.preview_url;
   const reason=$('#reviewReason');reason.hidden=status!=='rejected';$('#reviewReasonText').textContent=item.rejection_reason||'Причина не указана.';
   $('#reviewActions').hidden=status!=='pending';$('#rejectBox').hidden=true;$('#rejectReasonInput').value='';
-  $('#reviewOverlay').hidden=false;document.body.classList.add('admin-review-open');
+  $('#reviewOverlay').hidden=false;document.body.classList.add('admin-review-open');bindAdminCursorHover();requestAnimationFrame(()=>window.syncAdminScrollbar?.());
 }
 function closeReview(){
-  $('#reviewOverlay').hidden=true;document.body.classList.remove('admin-review-open');selectedSubmission=null;$('#rejectBox').hidden=true;
+  $('#reviewOverlay').hidden=true;document.body.classList.remove('admin-review-open');selectedSubmission=null;$('#rejectBox').hidden=true;reviewMediaMode='cover';requestAnimationFrame(()=>window.syncAdminScrollbar?.());
 }
 async function approveSelected(){
   if(!selectedSubmission||selectedSubmission.status!=='pending')return;
@@ -164,6 +387,7 @@ async function rejectSelected(){
   catch(e){toast(e.detail||e.message);}finally{btn.disabled=false;btn.textContent=old;}
 }
 function bindModeration(){
+  $$('.admin-review-view').forEach(b=>b.addEventListener('click',()=>setReviewMediaMode(b.dataset.reviewView)));
   $$('.admin-tab').forEach(b=>b.addEventListener('click',()=>setModerationTab(b.dataset.status)));
   $('#reloadCommunity').addEventListener('click',loadCommunityModeration);
   $('#reviewClose').addEventListener('click',closeReview);
@@ -175,5 +399,5 @@ function bindModeration(){
   addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#reviewOverlay').hidden)closeReview();});
 }
 
-function init(){initCursor();$('#loginForm').addEventListener('submit',e=>{e.preventDefault();login($('#adminKeyInput').value);});$('#logoutBtn').addEventListener('click',logout);$$('.admin-slot').forEach(b=>b.addEventListener('click',()=>loadSlot(b.dataset.slot)));$('#reloadOfficial').addEventListener('click',()=>loadSlot(currentSlot));$('#officialForm').addEventListener('submit',submit);bindFiles();bindModeration();if(adminKey)login(adminKey);}
+function init(){initCursor();initCustomScrollbar();$('#loginForm').addEventListener('submit',e=>{e.preventDefault();login($('#adminKeyInput').value);});$('#logoutBtn').addEventListener('click',logout);$$('.admin-slot').forEach(b=>b.addEventListener('click',()=>loadSlot(b.dataset.slot)));$('#reloadOfficial').addEventListener('click',()=>loadSlot(currentSlot));$('#officialForm').addEventListener('submit',submit);bindFiles();bindModeration();if(adminKey)login(adminKey);}
 addEventListener('DOMContentLoaded',init);

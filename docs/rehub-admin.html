@@ -118,16 +118,25 @@
   <div class="admin-review-overlay" id="reviewOverlay" hidden>
     <section class="admin-review-modal" role="dialog" aria-modal="true" aria-labelledby="reviewTitle">
       <button class="admin-review-close interactive" id="reviewClose" type="button" aria-label="Закрыть">×</button>
-      <div class="admin-review-preview" id="reviewPreview"><div class="admin-review-preview-empty">Без превью</div></div>
+      <div class="admin-review-preview" id="reviewPreview">
+        <div class="admin-review-preview-empty">Без превью</div>
+        <pre class="admin-review-code" id="reviewCode" hidden><code id="reviewCodeText"></code></pre>
+        <div class="admin-review-code-loading" id="reviewCodeLoading" hidden>Загружаю XML…</div>
+      </div>
       <div class="admin-review-body">
+        <div class="admin-review-viewbar" id="reviewViewbar">
+          <button class="admin-review-view interactive active" type="button" data-review-view="cover">Превью</button>
+          <button class="admin-review-view interactive" id="reviewFullButton" type="button" data-review-view="full">Полное превью</button>
+          <button class="admin-review-view interactive" id="reviewCodeButton" type="button" data-review-view="code">Код XML</button>
+        </div>
         <div class="admin-review-badges"><span id="reviewStatusBadge"></span><span id="reviewCategoryBadge"></span></div>
         <h2 id="reviewTitle">Публикация</h2>
         <div class="admin-review-meta" id="reviewMeta"></div>
         <p class="admin-review-description" id="reviewDescription"></p>
         <div class="admin-review-reason" id="reviewReason" hidden><strong>Причина отклонения</strong><span id="reviewReasonText"></span></div>
         <div class="admin-review-links">
-          <a class="btn btn-secondary interactive" id="reviewXmlLink" href="#" target="_blank" rel="noopener">Открыть XML</a>
-          <a class="btn btn-secondary interactive" id="reviewPreviewLink" href="#" target="_blank" rel="noopener" hidden>Открыть превью</a>
+          <a class="btn btn-secondary interactive" id="reviewXmlLink" href="#" target="_blank" rel="noopener">Скачать XML</a>
+          <a class="btn btn-secondary interactive" id="reviewPreviewLink" href="#" target="_blank" rel="noopener" hidden>Открыть оригинал превью</a>
         </div>
         <div class="admin-review-actions" id="reviewActions" hidden>
           <button class="btn btn-danger interactive" id="reviewReject" type="button">Отклонить</button>
@@ -146,6 +155,6 @@
 
   <div class="hub-toast" id="hubToast" role="status" aria-live="polite"></div>
   <script src="rehub-config.js?v=1"></script>
-  <script src="rehub-admin.js?v=2"></script>
+  <script src="rehub-admin.js?v=4"></script>
 </body>
 </html>

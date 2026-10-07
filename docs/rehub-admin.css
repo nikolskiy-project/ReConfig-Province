@@ -98,3 +98,112 @@ html,body { min-height:100%; }
 body.admin-review-open { overflow:hidden; }
 @media (max-width:900px){.admin-community-grid{grid-template-columns:1fr 1fr}.admin-review-modal{grid-template-columns:1fr}.admin-review-preview{min-height:260px}.admin-review-preview img{min-height:260px}.admin-review-preview::after{background:linear-gradient(180deg,transparent 62%,rgba(17,17,25,.5))}}
 @media (max-width:620px){.admin-community-heading{align-items:flex-start;flex-direction:column}.admin-community-grid{grid-template-columns:1fr}.admin-tabs{width:100%;overflow:auto}.admin-tab{flex:0 0 auto}.admin-review-overlay{padding:12px}.admin-review-body{padding:25px 18px 20px}}
+
+
+/* v4 — review card is one vertical panel with preview attached on top. */
+.admin-review-modal {
+  width: min(920px, 100%);
+  max-height: min(880px, calc(100vh - 44px));
+  display: block !important;
+  overflow: auto;
+  border-radius: 18px;
+  background: #111119;
+}
+.admin-review-preview {
+  width: 100%;
+  min-height: 0 !important;
+  aspect-ratio: 16 / 9;
+  border-radius: 17px 17px 0 0;
+  border-bottom: 1px solid var(--border);
+  background: #08080d;
+  transition: min-height .24s cubic-bezier(.22,1,.36,1), aspect-ratio .24s ease;
+}
+.admin-review-preview img {
+  width: 100%;
+  height: 100%;
+  min-height: 0 !important;
+  object-fit: cover;
+  display: block;
+  filter: none !important;
+  background: #08080d;
+}
+.admin-review-preview::after { display: none !important; }
+.admin-review-preview.mode-full {
+  aspect-ratio: auto;
+  min-height: min(66vh, 650px) !important;
+}
+.admin-review-preview.mode-full img { object-fit: contain; }
+.admin-review-preview.mode-code {
+  aspect-ratio: auto;
+  min-height: min(62vh, 560px) !important;
+  max-height: min(62vh, 560px);
+  background: #09090f;
+}
+.admin-review-preview.mode-code > img,
+.admin-review-preview.mode-code > .admin-review-preview-empty { display: none !important; }
+.admin-review-code {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 24px 26px;
+  overflow: auto;
+  background: #09090f;
+  color: #d9d9e4;
+  font: 11px/1.65 'Consolas','SFMono-Regular','Liberation Mono',monospace;
+  white-space: pre;
+  tab-size: 2;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: none !important;
+}
+.admin-review-code::-webkit-scrollbar { width: 7px; height: 7px; }
+.admin-review-code::-webkit-scrollbar-track { background: transparent; }
+.admin-review-code::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(183,156,255,.34); }
+.admin-review-code-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #787887;
+  font-size: 10px;
+  background: #09090f;
+}
+.admin-review-body { padding: 24px 32px 30px !important; }
+.admin-review-viewbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  margin-bottom: 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #0c0c12;
+}
+.admin-review-view {
+  min-height: 29px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #777786;
+  font: inherit;
+  font-size: 9px;
+  transition: color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.admin-review-view:hover { color: #d2d2dc; }
+.admin-review-view.active {
+  color: #ececf4;
+  background: rgba(139,92,246,.11);
+  box-shadow: inset 0 0 0 1px rgba(139,92,246,.18);
+}
+.admin-review-view:disabled { opacity: .34; pointer-events: none; }
+@media (max-width: 900px) {
+  .admin-review-preview { min-height: 0 !important; aspect-ratio: 16 / 10; }
+  .admin-review-preview.mode-full { min-height: min(58vh, 520px) !important; }
+}
+@media (max-width: 620px) {
+  .admin-review-preview { aspect-ratio: 4 / 3; }
+  .admin-review-body { padding: 20px 18px 20px !important; }
+  .admin-review-viewbar { width: 100%; display: grid; grid-template-columns: 1fr 1fr 1fr; }
+  .admin-review-view { padding: 0 5px; }
+}

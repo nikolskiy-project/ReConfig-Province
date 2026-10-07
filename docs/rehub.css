@@ -387,3 +387,59 @@ label,
 @media (max-width: 720px) {
   .upload-files-grid { grid-template-columns: 1fr; }
 }
+
+
+/* v7 — opened config card: preview is attached to the top of one unified panel. */
+.hub-detail-modal {
+  width: min(900px, 100%);
+  padding: 0 !important;
+  overflow: hidden !important;
+  border-radius: 18px;
+  background: #111119;
+}
+.hub-detail-modal > .hub-modal-close {
+  right: 16px;
+  top: 16px;
+  z-index: 20;
+}
+.detail-layout {
+  display: block !important;
+  min-height: 0 !important;
+}
+.detail-preview {
+  width: 100%;
+  min-height: 0 !important;
+  aspect-ratio: 16 / 9;
+  border: 0 !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 17px 17px 0 0 !important;
+  background-color: #0b0b11;
+}
+.detail-preview-image {
+  object-fit: cover;
+  background: #08080d;
+}
+.detail-preview-badge {
+  left: 18px;
+  top: 18px;
+}
+.detail-copy {
+  min-height: 0 !important;
+  padding: 27px 30px 30px !important;
+  background: #111119;
+}
+.detail-copy h2 {
+  padding-right: 50px;
+}
+.detail-actions {
+  margin-top: 22px !important;
+  padding-top: 0 !important;
+}
+@media (max-width: 720px) {
+  .detail-preview { aspect-ratio: 16 / 10; min-height: 0 !important; }
+  .detail-copy { padding: 23px 18px 21px !important; }
+}
+@media (max-width: 460px) {
+  .hub-detail-modal { padding: 0 !important; }
+  .detail-preview { aspect-ratio: 4 / 3; }
+}
