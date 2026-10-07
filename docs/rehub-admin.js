@@ -4,14 +4,16 @@ const $$ = (s, r=document) => [...r.querySelectorAll(s)];
 const API = String(window.REHUB_API || '').replace(/\/$/, '');
 const SOURCE_MAX = 8 * 1024 * 1024;
 const PREVIEW_MAX = 600 * 1024;
-const defaults = {
-  okb: { title:'ОКБ г. Мирный' },
-  uvd: { title:'УВД' },
-  gibdd: { title:'ГИБДД' },
-  army: { title:'Армия' }
-};
+const seededOfficials = [
+  { slot:'okb', faction:'ОКБ', title:'ОКБ г. Мирный' },
+  { slot:'uvd', faction:'УВД', title:'УВД' },
+  { slot:'gibdd', faction:'ГИБДД', title:'ГИБДД' },
+  { slot:'army', faction:'Армия', title:'Армия' }
+];
+let officialCatalog = [];
 let adminKey = sessionStorage.getItem('rehub_admin_key') || '';
 let currentSlot = 'okb';
+let creatingOfficial = false;
 let currentMeta = null;
 let compressedPreview = null;
 let preparedOfficialConfig = null;
@@ -139,6 +141,14 @@ async function extractBindsFile(file) {
     exportedBytes: block.length
   };
 }
+
+const PROGRAM_SELECT_MS = 330;
+const programSelectTimers = new WeakMap();
+function setProgramSelectOpen(wrap, open){if(!wrap)return;const old=programSelectTimers.get(wrap);if(old)clearTimeout(old);wrap.classList.add('animating');wrap.classList.toggle('open',open);const timer=setTimeout(()=>{wrap.classList.remove('animating');programSelectTimers.delete(wrap);},PROGRAM_SELECT_MS);programSelectTimers.set(wrap,timer);}
+function closeProgramSelects(except=null){$$('.program-select.open').forEach(w=>{if(w!==except)setProgramSelectOpen(w,false);});}
+function refreshProgramSelect(select){if(!select)return;let wrap=select.nextElementSibling;if(!wrap||!wrap.classList.contains('program-select')){wrap=document.createElement('div');wrap.className='program-select';wrap.innerHTML='<button type="button" class="program-select-trigger interactive"><span class="program-select-value"></span><span class="program-select-arrow" aria-hidden="true"></span></button><div class="program-select-dropdown"><div class="program-select-options"></div></div>';select.classList.add('animated-native-select');select.insertAdjacentElement('afterend',wrap);wrap.querySelector('.program-select-trigger').addEventListener('click',e=>{e.stopPropagation();const will=!wrap.classList.contains('open');closeProgramSelects(wrap);setProgramSelectOpen(wrap,will);});}const value=wrap.querySelector('.program-select-value'),options=wrap.querySelector('.program-select-options');options.innerHTML='';[...select.options].forEach((option,index)=>{const item=document.createElement('div');item.className='program-select-option';if(option.disabled)item.classList.add('disabled');if(option.value===select.value)item.classList.add('selected');item.textContent=option.textContent;item.style.setProperty('--option-index',index);item.addEventListener('click',e=>{e.stopPropagation();if(option.disabled)return;select.value=option.value;select.dispatchEvent(new Event('change',{bubbles:true}));refreshProgramSelect(select);setProgramSelectOpen(wrap,false);});options.appendChild(item);});const selected=select.options[select.selectedIndex]||select.options[0];value.textContent=selected?selected.textContent:'Выберите значение';bindAdminCursorHover();}
+function initProgramSelects(root=document){$$('select[data-program-select]',root).forEach(refreshProgramSelect);}
+document.addEventListener('click',()=>closeProgramSelects());
 
 let adminHoverBound = new WeakSet();
 
@@ -302,20 +312,15 @@ function initCustomScrollbar() {
 }
 
 
-function observeAdminReveals() {
-  const items = [$('#adminLogin'), $('.admin-heading'), $('#slotGrid'), $('.admin-editor'), $('#communityModeration')].filter(Boolean);
-  items.forEach((el, index) => {
-    el.classList.add('admin-reveal');
-    el.style.transitionDelay = `${Math.min(index * 45, 180)}ms`;
-  });
-  const show = el => requestAnimationFrame(() => el.classList.add('visible'));
-  if (!('IntersectionObserver' in window)) { items.forEach(show); return; }
-  const observer = new IntersectionObserver(entries => entries.forEach(entry => {
-    if (!entry.isIntersecting) return;
-    entry.target.classList.add('visible');
-    observer.unobserve(entry.target);
-  }), { threshold:.08, rootMargin:'0px 0px -5% 0px' });
-  items.forEach(el => observer.observe(el));
+let adminRevealObserver;
+const adminRevealBound = new WeakSet();
+function observeAdminReveals(root=document) {
+  const items=$$('.reveal',root).filter(el=>!adminRevealBound.has(el));
+  items.forEach((el,index)=>{adminRevealBound.add(el);el.style.setProperty('--reveal-delay',`${Math.min(index*42,190)}ms`);});
+  if(!items.length)return;
+  if(!('IntersectionObserver' in window)){items.forEach(el=>el.classList.add('visible'));return;}
+  if(!adminRevealObserver){adminRevealObserver=new IntersectionObserver(entries=>entries.forEach(entry=>{if(!entry.isIntersecting)return;entry.target.classList.add('visible');adminRevealObserver.unobserve(entry.target);}),{threshold:.08,rootMargin:'0px 0px -5% 0px'});}
+  items.forEach(el=>adminRevealObserver.observe(el));
 }
 
 function initAdminHeader() {
@@ -366,46 +371,48 @@ function resetFiles() {
   if(currentMeta?.preview_url){img.hidden=false;img.src=currentMeta.preview_url;drop.classList.add('has-preview');$('#adminPreviewTitle').textContent='Текущее превью';$('#adminPreviewMeta').textContent='Новый файл заменит его';}
   else {img.hidden=true;img.removeAttribute('src');drop.classList.remove('has-preview');$('#adminPreviewTitle').textContent='Добавить превью';$('#adminPreviewMeta').textContent='JPG / PNG / WebP · авто ≤ 600 КБ';}
 }
-function fillForm(meta) {
-  currentMeta=meta||null;
-  $('#officialTitle').value=meta?.title||defaults[currentSlot].title;
-  $('#officialAuthor').value=meta?.author||'ReConfig Province';
-  $('#officialDescription').value=meta?.description||'';
-  $('#adminEditorTitle').textContent=meta?.title||defaults[currentSlot].title;
-  $('#editorState').textContent=meta?`Опубликован · обновлён ${new Date(meta.updated_at||meta.created_at).toLocaleString('ru-RU')}`:'Новая публикация';
-  $('#officialSubmit').textContent=meta?'Обновить официальный конфиг':'Опубликовать официальный';
-  $('#adminNoticeText').textContent=meta?'Поля без нового XML или превью сохранят текущие файлы. Обновление сразу появится в закреплённой карточке.':'Официальная публикация сразу появится в закреплённой карточке без модерации.';
-  resetFiles();
+function seededFor(slot){return seededOfficials.find(item=>item.slot===slot)||null;}
+function slugifyFaction(value){
+  const map={а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'e',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'c',ч:'ch',ш:'sh',щ:'sch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya'};
+  let out='';for(const ch of String(value||'').toLocaleLowerCase('ru-RU'))out+=map[ch]??ch;
+  out=out.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,42);
+  return out||`faction-${Date.now().toString(36)}`;
+}
+function rebuildOfficialSelect(items){
+  officialCatalog=Array.isArray(items)?items:[];
+  const select=$('#officialFactionSelect');if(!select)return;
+  const bySlot=new Map();seededOfficials.forEach(item=>bySlot.set(item.slot,{...item,published:false}));officialCatalog.forEach(item=>bySlot.set(item.slot,{slot:item.slot,faction:item.category||item.title||item.slot,title:item.title||item.category||item.slot,published:true}));
+  select.innerHTML='';[...bySlot.values()].forEach(item=>{const option=document.createElement('option');option.value=item.slot;option.textContent=`${item.faction}${item.published?' · опубликован':' · не опубликован'}`;select.appendChild(option);});
+  if(currentSlot&&[...select.options].some(o=>o.value===currentSlot))select.value=currentSlot;else if(select.options.length){currentSlot=select.options[0].value;select.value=currentSlot;}
+  refreshProgramSelect(select);
+}
+function fillForm(meta, seed=seededFor(currentSlot)) {
+  currentMeta=meta||null;creatingOfficial=false;
+  const faction=meta?.category||seed?.faction||'';
+  const title=meta?.title||seed?.title||faction||'';
+  $('#officialFaction').value=faction;$('#officialTitle').value=title;$('#officialAuthor').value=meta?.author||'ReConfig Province';$('#officialDescription').value=meta?.description||'';
+  $('#adminEditorTitle').textContent=title||'Официальный конфиг';$('#editorState').textContent=meta?`Опубликован · обновлён ${new Date(meta.updated_at||meta.created_at).toLocaleString('ru-RU')}`:'Новая публикация';
+  $('#officialSubmit').textContent=meta?'Обновить официальный конфиг':'Опубликовать официальный';$('#adminNoticeText').textContent=meta?'Поля без нового XML или превью сохранят текущие файлы. Фракцию и название можно изменить.':'Официальная публикация сразу появится в закреплённой секции без модерации.';resetFiles();
+}
+function beginNewOfficial(){
+  creatingOfficial=true;currentSlot='';currentMeta=null;$('#officialFaction').value='';$('#officialTitle').value='';$('#officialAuthor').value='ReConfig Province';$('#officialDescription').value='';$('#adminEditorTitle').textContent='Новая фракция';$('#editorState').textContent='Новая официальная публикация';$('#officialSubmit').textContent='Опубликовать официальный';$('#adminNoticeText').textContent='Укажи фракцию — ReHub создаст для неё отдельную закреплённую карточку.';resetFiles();$('#officialFaction').focus();
 }
 async function loadSlot(slot) {
-  currentSlot=slot; $$('.admin-slot').forEach(b=>b.classList.toggle('active',b.dataset.slot===slot));
-  try { fillForm(await api(`/api/admin/official/${slot}`)); }
-  catch(e){ if(e.status===404) fillForm(null); else { toast(e.message); if(e.status===401) logout(); } }
+  if(!slot)return;currentSlot=slot;creatingOfficial=false;$('#officialFactionSelect').value=slot;refreshProgramSelect($('#officialFactionSelect'));
+  try { fillForm(await api(`/api/admin/official/${slot}`),seededFor(slot)); }
+  catch(e){ if(e.status===404)fillForm(null,seededFor(slot)); else {toast(e.message);if(e.status===401)logout();} }
 }
 async function refreshStates() {
-  try {
-    const items=await api('/api/admin/official');
-    const published=new Set((items||[]).map(x=>x.slot));
-    for(const slot of Object.keys(defaults)){const el=$(`#slotState-${slot}`);el.textContent=published.has(slot)?'Опубликован':'Не опубликован';el.classList.toggle('ready',published.has(slot));}
-  } catch(e){ if(e.status===401) logout(); else toast(e.message); }
+  try {const items=await api('/api/admin/official');rebuildOfficialSelect(items);return items;}
+  catch(e){if(e.status===401)logout();else toast(e.message);return[];}
 }
-function playAdminWorkspaceAnimations() {
-  const items = [
-    $('.admin-heading'),
-    ...$$('.admin-slot'),
-    $('.admin-editor'),
-    $('#communityModeration')
-  ].filter(Boolean);
-
-  items.forEach((el, index) => {
-    el.classList.remove('admin-enter-play');
-    el.style.setProperty('--admin-enter-delay', `${Math.min(index * 48, 260)}ms`);
-    void el.offsetWidth;
-    el.classList.add('admin-enter-play');
-  });
+function showWorkspace() {
+  $('#adminLogin').hidden=true;$('#adminWorkspace').hidden=false;
+  initProgramSelects($('#adminWorkspace'));
+  refreshStates().then(()=>{if(currentSlot)loadSlot(currentSlot);});
+  loadCommunityModeration();bindAdminCursorHover();
+  requestAnimationFrame(()=>{observeAdminReveals($('#adminWorkspace'));window.syncAdminScrollbar?.();});
 }
-
-function showWorkspace() { $('#adminLogin').hidden=true; $('#adminWorkspace').hidden=false; playAdminWorkspaceAnimations(); refreshStates(); loadSlot(currentSlot); loadCommunityModeration(); bindAdminCursorHover(); requestAnimationFrame(()=>window.syncAdminScrollbar?.()); }
 function logout(){adminKey='';sessionStorage.removeItem('rehub_admin_key');$('#adminWorkspace').hidden=true;$('#adminLogin').hidden=false;$('#adminKeyInput').value='';bindAdminCursorHover();requestAnimationFrame(()=>window.syncAdminScrollbar?.());}
 async function login(key){adminKey=key.trim();if(!adminKey)return;try{await api('/api/admin/official');sessionStorage.setItem('rehub_admin_key',adminKey);$('#loginError').textContent='';showWorkspace();}catch(e){adminKey='';$('#loginError').textContent=e.status===401?'Неверный ADMIN_KEY.':e.message;}}
 function bindFiles(){
@@ -429,10 +436,12 @@ function bindFiles(){
 }
 async function submit(e){
   e.preventDefault(); if(!API){toast('Не указан REHUB_API.');return;}
-  const xml=preparedOfficialConfig; if(!currentMeta&&!xml){toast('Для первой публикации выбери XML.');return;}
-  const fd=new FormData();fd.set('title',$('#officialTitle').value);fd.set('author',$('#officialAuthor').value);fd.set('description',$('#officialDescription').value);if(xml)fd.set('config',xml,xml.name);if(compressedPreview)fd.set('preview',compressedPreview,'preview.webp');
+  const faction=$('#officialFaction').value.trim();if(!faction){toast('Укажи фракцию.');return;}
+  const xml=preparedOfficialConfig;if(!currentMeta&&!xml){toast('Для первой публикации выбери XML.');return;}
+  let targetSlot=currentSlot;if(!targetSlot){targetSlot=slugifyFaction(faction);const used=new Set([...seededOfficials,...officialCatalog].map(x=>x.slot));let base=targetSlot,n=2;while(used.has(targetSlot))targetSlot=`${base}-${n++}`;}
+  const fd=new FormData();fd.set('faction',faction);fd.set('title',$('#officialTitle').value);fd.set('author',$('#officialAuthor').value);fd.set('description',$('#officialDescription').value);if(xml)fd.set('config',xml,xml.name);if(compressedPreview)fd.set('preview',compressedPreview,'preview.webp');
   const form=$('#officialForm'),btn=$('#officialSubmit'),old=btn.textContent;form.classList.add('submitting');btn.disabled=true;btn.textContent=currentMeta?'Обновляю…':'Публикую…';
-  try{const result=await api(`/api/admin/official/${currentSlot}`,{method:'POST',body:fd});fillForm(result.item);await refreshStates();toast(result.mode==='updated'?'Официальный конфиг обновлён.':'Официальный конфиг опубликован.');}
+  try{const result=await api(`/api/admin/official/${targetSlot}`,{method:'POST',body:fd});currentSlot=result.item.slot;creatingOfficial=false;fillForm(result.item);await refreshStates();$('#officialFactionSelect').value=currentSlot;refreshProgramSelect($('#officialFactionSelect'));toast(result.mode==='updated'?'Официальный конфиг обновлён.':'Официальный конфиг опубликован.');}
   catch(e){toast(e.detail||e.message);}
   finally{form.classList.remove('submitting');btn.disabled=false;btn.textContent=currentMeta?'Обновить официальный конфиг':'Опубликовать официальный';}
 }
@@ -458,8 +467,7 @@ function renderCommunityModeration(){
   const grid=$('#communityAdminGrid'), empty=$('#communityAdminEmpty'); if(!grid||!empty)return;
   grid.innerHTML=''; const items=moderationItems(); empty.hidden=items.length>0;
   items.forEach((item,index)=>{
-    const card=document.createElement('button'); card.type='button'; card.className='admin-community-card interactive admin-card-enter';
-    card.style.setProperty('--admin-card-delay', `${Math.min(index * 48, 240)}ms`);
+    const card=document.createElement('button'); card.type='button'; card.className='admin-community-card interactive reveal';
     const thumb=document.createElement('div'); thumb.className='admin-community-thumb';
     if(item.preview_url){const img=document.createElement('img');img.src=item.preview_url;img.alt='';img.loading='lazy';thumb.appendChild(img);}else{const f=document.createElement('div');f.className='admin-community-thumb-empty';f.textContent='Без превью';thumb.appendChild(f);}
     const status=document.createElement('span');status.className=`admin-community-status ${moderationTab}`;status.textContent=statusLabel(moderationTab);thumb.appendChild(status);
@@ -470,18 +478,19 @@ function renderCommunityModeration(){
     copy.append(h,p,s);card.append(thumb,copy);card.addEventListener('click',()=>openReview(item,moderationTab));grid.appendChild(card);
   });
   bindAdminCursorHover();
+  observeAdminReveals(grid);
   requestAnimationFrame(()=>window.syncAdminScrollbar?.());
   setTimeout(()=>window.syncAdminScrollbar?.(),80);
 }
 function setModerationTab(status){
-  moderationTab=status; $$('.admin-tab').forEach(b=>b.classList.toggle('active',b.dataset.status===status)); renderCommunityModeration();
+  moderationTab=status;let idx=0;$$('.admin-tab').forEach((b,i)=>{const active=b.dataset.status===status;b.classList.toggle('active',active);if(active)idx=i;});$('#moderationSegments')?.setAttribute('data-index',String(idx));renderCommunityModeration();
 }
 
 const reviewXmlCache = new Map();
 let reviewMediaMode = 'cover';
 
 function updateReviewViewButtons(mode) {
-  $$('.admin-review-view').forEach(btn => btn.classList.toggle('active', btn.dataset.reviewView === mode));
+  let idx=0;$$('.admin-review-view').forEach((btn,i)=>{const active=btn.dataset.reviewView===mode;btn.classList.toggle('active',active);if(active)idx=i;});$('#reviewViewbar')?.setAttribute('data-index',String(idx));
 }
 
 async function loadReviewCode() {
@@ -715,5 +724,5 @@ function bindModeration(){
   addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#reviewOverlay').hidden)closeReview();});
 }
 
-function init(){initCursor();initAdminHeader();initAdminDragScroll();initCustomScrollbar();observeAdminReveals();$('#loginForm').addEventListener('submit',e=>{e.preventDefault();login($('#adminKeyInput').value);});$('#logoutBtn').addEventListener('click',logout);$$('.admin-slot').forEach(b=>b.addEventListener('click',()=>loadSlot(b.dataset.slot)));$('#reloadOfficial').addEventListener('click',()=>loadSlot(currentSlot));$('#officialForm').addEventListener('submit',submit);bindFiles();bindModeration();if(adminKey)login(adminKey);}
+function init(){initCursor();initAdminHeader();initAdminDragScroll();initCustomScrollbar();initProgramSelects();observeAdminReveals();$('#loginForm').addEventListener('submit',e=>{e.preventDefault();login($('#adminKeyInput').value);});$('#logoutBtn').addEventListener('click',logout);$('#officialFactionSelect').addEventListener('change',e=>loadSlot(e.target.value));$('#newOfficialFaction').addEventListener('click',beginNewOfficial);$('#reloadOfficial').addEventListener('click',()=>currentSlot?loadSlot(currentSlot):beginNewOfficial());$('#officialForm').addEventListener('submit',submit);bindFiles();bindModeration();if(adminKey)login(adminKey);}
 addEventListener('DOMContentLoaded',init);

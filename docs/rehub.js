@@ -61,24 +61,29 @@ const iconMap = {
 };
 
 let revealObserver;
-function observeReveals() {
-  const items = $$('.reveal');
+const revealBound = new WeakSet();
+function observeReveals(root = document) {
+  const items = $$('.reveal', root).filter(el => !revealBound.has(el));
   items.forEach((el, index) => {
+    revealBound.add(el);
     if (!el.classList.contains('delay-1') && !el.classList.contains('delay-2')) {
       el.style.setProperty('--reveal-delay', `${Math.min(index * 38, 190)}ms`);
     }
   });
+  if (!items.length) return;
   if (!('IntersectionObserver' in window)) {
     items.forEach(el => el.classList.add('visible'));
     return;
   }
-  revealObserver = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting) return;
-      entry.target.classList.add('visible');
-      revealObserver.unobserve(entry.target);
-    });
-  }, { threshold: .09, rootMargin: '0px 0px -6% 0px' });
+  if (!revealObserver) {
+    revealObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('visible');
+        revealObserver.unobserve(entry.target);
+      });
+    }, { threshold: .09, rootMargin: '0px 0px -6% 0px' });
+  }
   items.forEach(el => revealObserver.observe(el));
 }
 
@@ -506,8 +511,6 @@ function openCard(card) {
 
 function initCards() {
   $$('.hub-video-card').forEach((card, index) => {
-    card.classList.add('card-enter');
-    card.style.setProperty('--card-enter-delay', `${Math.min(index * 55, 220)}ms`);
     card.addEventListener('click', () => openCard(card));
     card.addEventListener('keydown', e => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -517,49 +520,57 @@ function initCards() {
   });
 }
 
+
+const PROGRAM_SELECT_MS = 330;
+const programSelectTimers = new WeakMap();
+function setProgramSelectOpen(wrap, open) {
+  if (!wrap) return;
+  const old = programSelectTimers.get(wrap); if (old) clearTimeout(old);
+  wrap.classList.add('animating');
+  wrap.classList.toggle('open', open);
+  const timer = setTimeout(() => { wrap.classList.remove('animating'); programSelectTimers.delete(wrap); }, PROGRAM_SELECT_MS);
+  programSelectTimers.set(wrap, timer);
+}
+function closeProgramSelects(except=null) {
+  $$('.program-select.open').forEach(wrap => { if (wrap !== except) setProgramSelectOpen(wrap,false); });
+}
+function refreshProgramSelect(select) {
+  if (!select) return;
+  let wrap = select.nextElementSibling;
+  if (!wrap || !wrap.classList.contains('program-select')) {
+    wrap=document.createElement('div'); wrap.className='program-select';
+    wrap.innerHTML='<button type="button" class="program-select-trigger interactive"><span class="program-select-value"></span><span class="program-select-arrow" aria-hidden="true"></span></button><div class="program-select-dropdown"><div class="program-select-options"></div></div>';
+    select.classList.add('animated-native-select'); select.insertAdjacentElement('afterend',wrap);
+    wrap.querySelector('.program-select-trigger').addEventListener('click',e=>{e.stopPropagation();const will=!wrap.classList.contains('open');closeProgramSelects(wrap);setProgramSelectOpen(wrap,will);});
+  }
+  const value=wrap.querySelector('.program-select-value'), options=wrap.querySelector('.program-select-options'); options.innerHTML='';
+  [...select.options].forEach((option,index)=>{const item=document.createElement('div');item.className='program-select-option';if(option.disabled)item.classList.add('disabled');if(option.value===select.value)item.classList.add('selected');item.textContent=option.textContent;item.style.setProperty('--option-index',index);item.addEventListener('click',e=>{e.stopPropagation();if(option.disabled)return;select.value=option.value;select.dispatchEvent(new Event('change',{bubbles:true}));refreshProgramSelect(select);setProgramSelectOpen(wrap,false);});options.appendChild(item);});
+  const selected=select.options[select.selectedIndex]||select.options[0];value.textContent=selected?selected.textContent:'Выберите значение';
+  bindCursorHover();
+}
+function initProgramSelects(root=document) { $$('select[data-program-select]',root).forEach(refreshProgramSelect); }
+document.addEventListener('click',()=>closeProgramSelects());
+
 function initSearch() {
   const search = $('#hubSearch');
-  const filters = $$('#hubFilters .hub-filter');
+  const category = $('#communityCategoryFilter');
   const empty = $('#hubNoResults');
-  let activeFilter = 'all';
-
   const apply = () => {
-    const query = (search?.value || '').trim().toLocaleLowerCase('ru-RU');
-    const cards = $$('.hub-video-card');
-    let shown = 0;
-
-    cards.forEach(card => {
-      const category = (card.dataset.category || '').toLocaleLowerCase('ru-RU');
-      const haystack = [
-        card.dataset.search || '',
-        card.dataset.title || '',
-        card.dataset.label || '',
-        card.dataset.author || '',
-        card.dataset.description || ''
-      ].join(' ').toLocaleLowerCase('ru-RU');
-
-      const matchesFilter = activeFilter === 'all' || category.includes(activeFilter);
-      const matchesQuery = !query || haystack.includes(query);
-      const visible = matchesFilter && matchesQuery;
-
-      card.hidden = !visible;
-      if (visible) shown++;
+    const query=(search?.value||'').trim().toLocaleLowerCase('ru-RU');
+    const selected=(category?.value||'all').toLocaleLowerCase('ru-RU');
+    const cards=$$('#communityGrid .hub-video-card');
+    let shown=0;
+    cards.forEach(card=>{
+      const cardCategory=(card.dataset.category||'').toLocaleLowerCase('ru-RU');
+      const haystack=[card.dataset.search||'',card.dataset.title||'',card.dataset.label||'',card.dataset.author||'',card.dataset.description||''].join(' ').toLocaleLowerCase('ru-RU');
+      const visible=(!query||haystack.includes(query))&&(selected==='all'||cardCategory.includes(selected));
+      card.hidden=!visible; if(visible)shown++;
     });
-
-    if (empty) empty.hidden = shown !== 0;
+    if(empty) empty.hidden = shown !== 0 || cards.length === 0;
   };
-
-  // API-loaded community cards can call the same search after being inserted.
-  window.rehubApplySearch = apply;
-
-  search?.addEventListener('input', apply);
-  filters.forEach(button => button.addEventListener('click', () => {
-    filters.forEach(item => item.classList.remove('active'));
-    button.classList.add('active');
-    activeFilter = button.dataset.filter || 'all';
-    apply();
-  }));
-
+  window.rehubApplySearch=apply;
+  search?.addEventListener('input',apply);
+  category?.addEventListener('change',apply);
   apply();
 }
 
@@ -603,8 +614,7 @@ function escapeText(value) {
 
 function makeCommunityCard(item, index = 0) {
   const card = document.createElement('article');
-  card.className = 'hub-video-card community-card interactive-card card-enter';
-  card.style.setProperty('--card-enter-delay', `${Math.min(index * 55, 275)}ms`);
+  card.className = 'hub-video-card community-card interactive-card reveal';
   card.tabIndex = 0;
   card.setAttribute('role', 'button');
   card.dataset.category = `community ${escapeText(item.category).toLocaleLowerCase('ru-RU')}`;
@@ -672,59 +682,63 @@ function makeCommunityCard(item, index = 0) {
 }
 
 
+function makeOfficialCard(item) {
+  const card=document.createElement('article');
+  card.className='hub-video-card interactive-card reveal';
+  card.tabIndex=0; card.setAttribute('role','button');
+  card.dataset.officialSlot=item.slot||'';
+  card.dataset.category=`official ${(item.category||'').toLocaleLowerCase('ru-RU')}`;
+  card.dataset.search=`${item.title||''} ${item.category||''} ${item.author||''} ${item.description||''} официальный reconfig province`;
+  card.dataset.title=item.title||item.category||'Официальный конфиг';
+  card.dataset.label=(item.category||'ReHub').toUpperCase();
+  card.dataset.description=item.description||'';
+  card.dataset.status='Доступен'; card.dataset.statusKind='ready';
+  card.dataset.tags=`${item.category||'Официальный'}|Официальный|ReConfig`;
+  card.dataset.author=item.author||'ReConfig Province';
+  card.dataset.previewUrl=item.preview_url||''; card.dataset.downloadUrl=item.download_url||'';
+  card.dataset.symbol='star';
+  const thumb=document.createElement('div'); thumb.className='config-thumb';
+  if(item.preview_url){const img=document.createElement('img');img.className='community-preview official-preview-image';img.src=item.preview_url;img.alt='';img.loading='lazy';thumb.appendChild(img);}
+  const grid=document.createElement('div');grid.className='thumb-grid';thumb.appendChild(grid);
+  const follow=document.createElement('div');follow.className='thumb-follow';follow.innerHTML=`<span class="thumb-symbol">${iconMap.star}</span><div class="thumb-copy"><small>ReConfig Province</small><strong>${escapeText((item.category||'ReHub').toUpperCase())}</strong><span>${escapeText(item.title||'Официальный конфиг')}</span></div>`;thumb.appendChild(follow);
+  const pin=document.createElement('span');pin.className='thumb-pin';pin.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m9 3 6 6-2 2 4 4-2 2-4-4-2 2-6-6 6-6Z"/><path d="m8 16-5 5"/></svg>Закреплено';thumb.appendChild(pin);
+  const state=document.createElement('span');state.className='thumb-state ready';state.textContent='Доступен';thumb.appendChild(state);
+  const shine=document.createElement('div');shine.className='thumb-shine';thumb.appendChild(shine);
+  const meta=document.createElement('div');meta.className='video-card-meta';meta.innerHTML=`<img class="video-avatar" src="assets/logo.png" alt=""><div class="video-card-copy"><h3>${escapeText(item.title||item.category||'Официальный конфиг')} <span class="verified-dot">✓</span></h3><p>${escapeText(item.author||'ReConfig Province')} <span>✓</span></p><small>Официальный конфиг · ${escapeText(item.category||'ReHub')}</small></div>`;
+  card.append(thumb,meta);
+  card.addEventListener('click',()=>openCard(card));
+  card.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;e.preventDefault();openCard(card);});
+  return card;
+}
+
 function applyOfficialConfig(item) {
-  if (!item || !item.official || !item.slot) return;
-  const labels = { okb: 'ОКБ', uvd: 'УВД', gibdd: 'ГИБДД', army: 'АРМИЯ' };
-  const label = labels[item.slot];
-  if (!label) return;
-  const card = $$('.hub-video-card').find(el => !(el.dataset.category || '').includes('community') && el.dataset.label === label);
-  if (!card) return;
+  if(!item||!item.official||!item.slot)return;
+  let card=$(`#hubGrid .hub-video-card[data-official-slot="${CSS.escape(item.slot)}"]`);
+  if(!card){card=makeOfficialCard(item);$('#hubGrid')?.appendChild(card);observeReveals(card.parentElement);return;}
+  const label=item.category||card.dataset.label||'Официальный';
+  card.dataset.title=item.title||label; card.dataset.description=item.description||''; card.dataset.status='Доступен'; card.dataset.statusKind='ready'; card.dataset.tags=`${label}|Официальный|ReConfig`; card.dataset.author=item.author||'ReConfig Province'; card.dataset.previewUrl=item.preview_url||''; card.dataset.downloadUrl=item.download_url||''; card.dataset.search=`${card.dataset.search||''} ${item.title||''} ${label} ${item.description||''} ${item.author||''}`;
+  const thumb=card.querySelector('.config-thumb');
+  if(thumb&&item.preview_url){let image=thumb.querySelector('.official-preview-image');if(!image){image=document.createElement('img');image.className='community-preview official-preview-image';image.alt='';image.loading='lazy';thumb.insertBefore(image,thumb.firstChild);}image.src=item.preview_url;}
+  const state=card.querySelector('.thumb-state');if(state){state.textContent='Доступен';state.classList.remove('soon');state.classList.add('ready');}
+  const title=card.querySelector('.video-card-copy h3');if(title)title.innerHTML=`${escapeText(item.title||label)} <span class="verified-dot">✓</span>`;
+  const author=card.querySelector('.video-card-copy p');if(author)author.innerHTML=`${escapeText(item.author||'ReConfig Province')} <span>✓</span>`;
+  const small=card.querySelector('.video-card-copy small');if(small)small.textContent=`Официальный конфиг · ${label}`;
+}
 
-  card.dataset.title = escapeText(item.title || label);
-  card.dataset.description = escapeText(item.description || '');
-  card.dataset.status = 'Доступен';
-  card.dataset.statusKind = 'ready';
-  card.dataset.tags = `${escapeText(item.category || label)}|Официальный|ReConfig`;
-  card.dataset.author = escapeText(item.author || 'ReConfig Province');
-  card.dataset.previewUrl = escapeText(item.preview_url || '');
-  card.dataset.downloadUrl = escapeText(item.download_url || '');
-  card.dataset.search = `${card.dataset.search || ''} ${card.dataset.title} ${card.dataset.description} ${card.dataset.author}`;
-
-  const thumb = card.querySelector('.config-thumb');
-  if (thumb && item.preview_url) {
-    let image = thumb.querySelector('.official-preview-image');
-    if (!image) {
-      image = document.createElement('img');
-      image.className = 'community-preview official-preview-image';
-      image.alt = '';
-      image.loading = 'lazy';
-      thumb.insertBefore(image, thumb.firstChild);
-    }
-    image.src = item.preview_url;
+function rebuildCategorySelect(items, allCatalogItems = []) {
+  const select=$('#communityCategoryFilter'); if(!select)return;
+  const current=select.value||'all';
+  const categories=[...new Set(items.map(item=>String(item?.category||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru'));
+  select.innerHTML='<option value="all">Все фракции</option>';
+  categories.forEach(name=>{const o=document.createElement('option');o.value=name.toLocaleLowerCase('ru-RU');o.textContent=name;select.appendChild(o);});
+  select.value=[...select.options].some(o=>o.value===current)?current:'all'; refreshProgramSelect(select);
+  const uploadSelect=$('#uploadForm select[name="category"]');
+  if(uploadSelect){
+    const uploadCategories=[...new Set(allCatalogItems.map(item=>String(item?.category||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru'));
+    const existing=new Set([...uploadSelect.options].map(o=>o.value));
+    uploadCategories.forEach(name=>{if(existing.has(name))return;const o=document.createElement('option');o.value=name;o.textContent=name;uploadSelect.insertBefore(o,uploadSelect.lastElementChild);});
+    refreshProgramSelect(uploadSelect);
   }
-  const state = card.querySelector('.thumb-state');
-  if (state) {
-    state.textContent = 'Доступен';
-    state.classList.remove('soon');
-    state.classList.add('ready');
-  }
-  const title = card.querySelector('.video-card-copy h3');
-  if (title) {
-    title.textContent = item.title || label;
-    const check = document.createElement('span');
-    check.className = 'verified-dot';
-    check.textContent = '✓';
-    title.append(' ', check);
-  }
-  const author = card.querySelector('.video-card-copy p');
-  if (author) {
-    author.textContent = item.author || 'ReConfig Province';
-    const check = document.createElement('span');
-    check.textContent = '✓';
-    author.append(' ', check);
-  }
-  const small = card.querySelector('.video-card-copy small');
-  if (small) small.textContent = `Официальный конфиг · ${item.category || label}`;
 }
 
 async function loadCommunityConfigs() {
@@ -749,6 +763,8 @@ async function loadCommunityConfigs() {
     const communityItems = items.filter(item => item && item.official !== true);
     grid.innerHTML = '';
     communityItems.forEach((item, index) => grid.appendChild(makeCommunityCard(item, index)));
+    rebuildCategorySelect(communityItems, items);
+    observeReveals(grid);
 
     // The "no configs yet" panel must never coexist with real community cards.
     empty.hidden = communityItems.length > 0;
@@ -926,6 +942,7 @@ initCardParallax();
 initDragScroll();
 initCustomScrollbar();
 initCards();
+initProgramSelects();
 initSearch();
 initModals();
 initUpload();

@@ -8,7 +8,7 @@
   <title>ReHub — мастерская конфигов</title>
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="rehub.css?v=9">
+  <link rel="stylesheet" href="rehub.css?v=10">
 
   <style>
     #openUploadTop {
@@ -108,23 +108,11 @@
         </span>
       </div>
 
-      <div class="hub-toolbar reveal">
-        <label class="hub-search interactive">
-          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-          <input id="hubSearch" type="search" autocomplete="off" placeholder="Поиск конфигов">
-          <span>Название, фракция или автор</span>
-        </label>
-        <div class="hub-filters" id="hubFilters" aria-label="Фильтры мастерской">
-          <button class="hub-filter interactive active" type="button" data-filter="all">Все</button>
-          <button class="hub-filter interactive" type="button" data-filter="official">Официальные</button>
-          <button class="hub-filter interactive" type="button" data-filter="community">Сообщество</button>
-        </div>
-      </div>
-
       <div class="hub-grid" id="hubGrid">
         <article class="hub-video-card interactive-card reveal" tabindex="0" role="button"
           data-category="official okb"
           data-search="окб мирный медицина медицинский reconfig province официальный"
+          data-official-slot="okb"
           data-title="ОКБ г. Мирный"
           data-label="ОКБ"
           data-description="Официальный набор биндов для сотрудников Областной клинической больницы г. Мирный."
@@ -157,6 +145,7 @@
         <article class="hub-video-card interactive-card reveal delay-1" tabindex="0" role="button"
           data-category="official uvd"
           data-search="увд полиция управление внутренних дел reconfig province официальный"
+          data-official-slot="uvd"
           data-title="УВД"
           data-label="УВД"
           data-description="Официальный раздел наборов биндов для сотрудников Управления внутренних дел."
@@ -189,6 +178,7 @@
         <article class="hub-video-card interactive-card reveal delay-2" tabindex="0" role="button"
           data-category="official gibdd"
           data-search="гибдд дорожная полиция reconfig province официальный"
+          data-official-slot="gibdd"
           data-title="ГИБДД"
           data-label="ГИБДД"
           data-description="Официальный раздел конфигураций для Государственной инспекции безопасности дорожного движения."
@@ -221,6 +211,7 @@
         <article class="hub-video-card interactive-card reveal" tabindex="0" role="button"
           data-category="official armia"
           data-search="армия военные военнослужащие reconfig province официальный"
+          data-official-slot="army"
           data-title="Армия"
           data-label="АРМИЯ"
           data-description="Официальный раздел конфигураций и биндов для военнослужащих Province."
@@ -250,11 +241,6 @@
           </div>
         </article>
       </div>
-
-      <div class="hub-no-results" id="hubNoResults" hidden>
-        <strong>Ничего не найдено</strong>
-        <span>Попробуй изменить запрос или фильтр.</span>
-      </div>
     </section>
 
     <section class="section community-section" id="community">
@@ -270,7 +256,25 @@
         </button>
       </div>
 
+      <div class="hub-toolbar community-toolbar reveal">
+        <label class="hub-search interactive">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <input id="hubSearch" type="search" autocomplete="off" placeholder="Поиск пользовательских конфигов">
+          <span>Название, фракция или автор</span>
+        </label>
+        <div class="community-filter-select">
+          <select id="communityCategoryFilter" data-program-select aria-label="Фильтр по фракции">
+            <option value="all">Все фракции</option>
+          </select>
+        </div>
+      </div>
+
       <div class="hub-grid community-grid" id="communityGrid" aria-live="polite"></div>
+
+      <div class="hub-no-results" id="hubNoResults" hidden>
+        <strong>Ничего не найдено</strong>
+        <span>Попробуй изменить запрос или выбрать другую фракцию.</span>
+      </div>
 
       <div class="community-empty reveal" id="communityEmpty">
         <span class="community-empty-mark" aria-hidden="true">
@@ -358,7 +362,7 @@
           <label><span>Название</span><input type="text" name="title" placeholder="Например: ОКБ — ночная смена" maxlength="70" required></label>
           <label><span>Автор</span><input type="text" name="author" placeholder="Ник на Province" maxlength="40" required></label>
           <label><span>Категория</span>
-            <select name="category" required>
+            <select name="category" data-program-select required>
               <option value="ОКБ">ОКБ</option>
               <option value="ГИБДД">ГИБДД</option>
               <option value="УВД">УВД</option>
@@ -383,6 +387,6 @@
   <div class="hub-toast" id="hubToast" role="status" aria-live="polite"></div>
 
   <script src="rehub-config.js?v=1"></script>
-  <script src="rehub.js?v=9"></script>
+  <script src="rehub.js?v=10"></script>
 </body>
 </html>
