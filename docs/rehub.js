@@ -1,6 +1,11 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
+const REHUB_API = String(window.REHUB_API || '').replace(/\/$/, '');
+const PREVIEW_MAX_SOURCE = 8 * 1024 * 1024;
+const PREVIEW_MAX_BYTES = 600 * 1024;
+const CONFIG_MAX_BYTES = 1024 * 1024;
+
 const iconMap = {
   medical: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65"><circle cx="12" cy="12" r="8.6"/><path d="M12 7v10M7 12h10"/></svg>',
   shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65"><path d="M12 3 19 6v5c0 4.8-2.9 8-7 10-4.1-2-7-5.2-7-10V6l7-3Z"/><path d="m9.5 12 1.7 1.7 3.7-4"/></svg>',
@@ -400,17 +405,35 @@ function openCard(card) {
   const modal = $('#detailModal');
   if (!modal) return;
   const preview = $('#detailPreview');
+  const previewImage = $('#detailPreviewImage');
   const symbol = $('#detailSymbol');
   const title = card.dataset.title || 'Конфиг';
   const status = card.dataset.status || '—';
   const ready = card.dataset.statusKind === 'ready';
+  const isCommunity = (card.dataset.category || '').includes('community');
+  const previewUrl = card.dataset.previewUrl || '';
+  const downloadUrl = card.dataset.downloadUrl || '';
 
   $('#detailTitle').textContent = title;
   $('#detailPreviewLabel').textContent = card.dataset.label || title;
   $('#detailDescription').textContent = card.dataset.description || '';
   $('#detailStatus').textContent = status;
-  symbol.innerHTML = iconMap[card.dataset.symbol] || iconMap.medical;
-  preview.className = `detail-preview detail-preview-${previewClassFor(card)}`;
+  $('#detailAuthorName').textContent = card.dataset.author || (isCommunity ? 'Пользователь ReHub' : 'ReConfig Province');
+  $('#detailAuthorMeta').textContent = isCommunity ? 'Автор сообщества' : 'Официальный автор · ✓';
+  $('#detailPreviewSmall').textContent = isCommunity ? 'ReHub Community' : 'ReConfig Province';
+  $('#detailPreviewKind').textContent = isCommunity ? 'Пользовательский конфиг' : 'Официальный конфиг';
+  $('#detailPreviewBadge').textContent = isCommunity ? 'Сообщество' : 'Закреплено';
+
+  preview.className = isCommunity ? 'detail-preview detail-preview-community' : `detail-preview detail-preview-${previewClassFor(card)}`;
+  if (previewUrl) {
+    preview.classList.add('has-image');
+    previewImage.hidden = false;
+    previewImage.src = previewUrl;
+  } else {
+    previewImage.hidden = true;
+    previewImage.removeAttribute('src');
+    symbol.innerHTML = iconMap[card.dataset.symbol] || iconMap.medical;
+  }
 
   const tags = $('#detailTags');
   tags.innerHTML = '';
@@ -421,12 +444,13 @@ function openCard(card) {
   });
 
   const primary = $('#detailPrimary');
-  primary.textContent = ready ? 'Открыть в ReConfig' : 'В разработке';
-  primary.disabled = !ready;
-  primary.classList.toggle('disabled', !ready);
-  $('#detailNote').textContent = ready
-    ? 'Прямая установка из ReHub будет подключена вместе с API мастерской.'
-    : 'Этот официальный набор уже закреплён в мастерской, но его содержимое ещё готовится.';
+  primary.dataset.downloadUrl = downloadUrl;
+  primary.textContent = downloadUrl ? 'Скачать XML' : (ready ? 'Открыть в ReConfig' : 'В разработке');
+  primary.disabled = !downloadUrl && !ready;
+  primary.classList.toggle('disabled', primary.disabled);
+  $('#detailNote').textContent = isCommunity
+    ? 'Пользовательский конфиг прошёл модерацию ReHub. Перед импортом ReConfig обработает только поддерживаемые бинды.'
+    : (ready ? 'Прямая установка из ReHub будет подключена вместе с API мастерской.' : 'Этот официальный набор уже закреплён в мастерской, но его содержимое ещё готовится.');
 
   setModal(modal, true);
 }
@@ -491,7 +515,11 @@ function initModals() {
     setModal(detail, false);
   });
 
-  $('#detailPrimary')?.addEventListener('click', () => showToast('Прямая установка появится вместе с API ReHub.'));
+  $('#detailPrimary')?.addEventListener('click', e => {
+    const url = e.currentTarget.dataset.downloadUrl || '';
+    if (url) { window.open(url, '_blank', 'noopener'); return; }
+    showToast('Прямая установка появится в следующем этапе ReHub.');
+  });
   $('#detailSecondary')?.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(location.href.split('#')[0]);
@@ -502,36 +530,251 @@ function initModals() {
   });
 }
 
-function initUpload() {
-  const input = $('#configFile');
-  const drop = $('#uploadDrop');
-  const title = $('#uploadFileTitle');
-  const meta = $('#uploadFileMeta');
-  if (!input || !drop) return;
 
-  const setFile = file => {
-    if (!file) return;
-    const xml = file.name.toLowerCase().endsWith('.xml');
-    if (!xml) {
-      showToast('Для ReHub нужен XML-конфиг.');
-      return;
+function escapeText(value) {
+  return String(value ?? '');
+}
+
+function makeCommunityCard(item) {
+  const card = document.createElement('article');
+  card.className = 'hub-video-card community-card interactive-card reveal visible';
+  card.tabIndex = 0;
+  card.setAttribute('role', 'button');
+  card.dataset.category = `community ${escapeText(item.category).toLocaleLowerCase('ru-RU')}`;
+  card.dataset.search = `${escapeText(item.title)} ${escapeText(item.author)} ${escapeText(item.category)} ${escapeText(item.description)}`;
+  card.dataset.title = escapeText(item.title || 'Конфиг сообщества');
+  card.dataset.label = escapeText(item.category || 'ReHub');
+  card.dataset.description = escapeText(item.description || '');
+  card.dataset.status = 'Опубликован';
+  card.dataset.statusKind = 'ready';
+  card.dataset.tags = `${escapeText(item.category || 'Другое')}|Сообщество|ReHub`;
+  card.dataset.symbol = 'star';
+  card.dataset.author = escapeText(item.author || 'Пользователь');
+  card.dataset.previewUrl = escapeText(item.preview_url || '');
+  card.dataset.downloadUrl = escapeText(item.download_url || '');
+
+  const thumb = document.createElement('div');
+  thumb.className = 'config-thumb';
+  if (item.preview_url) {
+    const img = document.createElement('img');
+    img.className = 'community-preview';
+    img.src = item.preview_url;
+    img.alt = '';
+    img.loading = 'lazy';
+    thumb.appendChild(img);
+  } else {
+    const fallback = document.createElement('div');
+    fallback.className = 'community-preview-fallback';
+    fallback.innerHTML = iconMap.star;
+    thumb.appendChild(fallback);
+  }
+  const state = document.createElement('span');
+  state.className = 'thumb-state ready';
+  state.textContent = 'Сообщество';
+  const shine = document.createElement('div');
+  shine.className = 'thumb-shine';
+  shine.setAttribute('aria-hidden', 'true');
+  thumb.append(state, shine);
+
+  const meta = document.createElement('div');
+  meta.className = 'video-card-meta';
+  const avatar = document.createElement('img');
+  avatar.className = 'video-avatar';
+  avatar.src = 'assets/logo.png';
+  avatar.alt = '';
+  const copy = document.createElement('div');
+  copy.className = 'video-card-copy';
+  const h3 = document.createElement('h3');
+  h3.textContent = item.title || 'Конфиг сообщества';
+  const p = document.createElement('p');
+  p.textContent = item.author || 'Пользователь';
+  const small = document.createElement('small');
+  small.textContent = `Сообщество · ${item.category || 'Другое'}`;
+  copy.append(h3, p, small);
+  meta.append(avatar, copy);
+  card.append(thumb, meta);
+
+  card.addEventListener('click', () => openCard(card));
+  card.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    openCard(card);
+  });
+  return card;
+}
+
+async function loadCommunityConfigs() {
+  const grid = $('#communityGrid');
+  const empty = $('#communityEmpty');
+  const emptyTitle = $('#communityEmptyTitle');
+  const emptyText = $('#communityEmptyText');
+  if (!grid || !empty) return;
+
+  if (!REHUB_API || REHUB_API.includes('YOUR-WORKER')) {
+    emptyTitle.textContent = 'API ReHub ещё не подключён';
+    emptyText.textContent = 'Укажи адрес Cloudflare Worker в rehub-config.js — после этого опубликованные конфиги загрузятся автоматически.';
+    return;
+  }
+
+  try {
+    const response = await fetch(`${REHUB_API}/api/configs`, { headers: { 'Accept': 'application/json' } });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    const items = Array.isArray(data) ? data : (Array.isArray(data.configs) ? data.configs : []);
+    grid.innerHTML = '';
+    items.forEach(item => grid.appendChild(makeCommunityCard(item)));
+    empty.hidden = items.length > 0;
+    initCardParallax();
+    bindCursorHover();
+  } catch (error) {
+    emptyTitle.textContent = 'Не удалось загрузить мастерскую';
+    emptyText.textContent = 'Проверь адрес API и настройки CORS в Cloudflare Worker.';
+    console.error('ReHub API:', error);
+  }
+}
+
+function canvasToBlob(canvas, type, quality) {
+  return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Не удалось сжать изображение')), type, quality));
+}
+
+async function compressPreview(file) {
+  if (!file) return null;
+  if (!['image/jpeg','image/png','image/webp'].includes(file.type)) throw new Error('Превью должно быть JPG, PNG или WebP.');
+  if (file.size > PREVIEW_MAX_SOURCE) throw new Error('Исходное превью не должно быть больше 8 МБ.');
+
+  const bitmap = await createImageBitmap(file);
+  const maxW = 1280, maxH = 720;
+  const baseScale = Math.min(1, maxW / bitmap.width, maxH / bitmap.height);
+  let width = Math.max(1, Math.round(bitmap.width * baseScale));
+  let height = Math.max(1, Math.round(bitmap.height * baseScale));
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  if (!ctx) throw new Error('Браузер не поддерживает обработку изображения.');
+
+  let blob = null;
+  const qualities = [.86,.78,.70,.62,.54];
+  for (let pass = 0; pass < 4; pass++) {
+    canvas.width = width;
+    canvas.height = height;
+    ctx.fillStyle = '#101017';
+    ctx.fillRect(0,0,width,height);
+    ctx.drawImage(bitmap,0,0,width,height);
+    for (const quality of qualities) {
+      blob = await canvasToBlob(canvas, 'image/webp', quality);
+      if (blob.size <= PREVIEW_MAX_BYTES) break;
     }
-    title.textContent = file.name;
-    meta.textContent = `${Math.max(1, Math.round(file.size / 1024))} КБ · XML`;
+    if (blob && blob.size <= PREVIEW_MAX_BYTES) break;
+    width = Math.max(640, Math.round(width * .86));
+    height = Math.max(360, Math.round(height * .86));
+  }
+  bitmap.close?.();
+  if (!blob || blob.size > PREVIEW_MAX_BYTES) throw new Error('Не удалось ужать превью до 600 КБ. Выбери более простое изображение.');
+  return new File([blob], 'preview.webp', { type: 'image/webp' });
+}
+
+function initUpload() {
+  const configInput = $('#configFile');
+  const previewInput = $('#previewFile');
+  const configDrop = $('#uploadDrop');
+  const previewDrop = $('#previewDrop');
+  const configTitle = $('#uploadFileTitle');
+  const configMeta = $('#uploadFileMeta');
+  const previewTitle = $('#previewFileTitle');
+  const previewMeta = $('#previewFileMeta');
+  const previewImage = $('#previewImage');
+  const form = $('#uploadForm');
+  const submit = $('#uploadSubmit');
+  if (!configInput || !previewInput || !configDrop || !previewDrop || !form) return;
+
+  let selectedConfig = null;
+  let selectedPreview = null;
+  let previewObjectUrl = '';
+
+  const setConfig = file => {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.xml')) { showToast('Для ReHub нужен XML-конфиг.'); return; }
+    if (file.size > CONFIG_MAX_BYTES) { showToast('XML не должен быть больше 1 МБ.'); return; }
+    selectedConfig = file;
+    configTitle.textContent = file.name;
+    configMeta.textContent = `${Math.max(1, Math.round(file.size / 1024))} КБ · XML`;
   };
-  input.addEventListener('change', () => setFile(input.files?.[0]));
-  ['dragenter','dragover'].forEach(type => drop.addEventListener(type, e => {
+
+  const setPreview = async file => {
+    if (!file) return;
+    previewTitle.textContent = 'Обрабатываю превью…';
+    previewMeta.textContent = 'Сжатие выполняется локально в браузере';
+    try {
+      selectedPreview = await compressPreview(file);
+      if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+      previewObjectUrl = URL.createObjectURL(selectedPreview);
+      previewImage.src = previewObjectUrl;
+      previewImage.hidden = false;
+      previewDrop.classList.add('has-preview');
+      previewTitle.textContent = 'Превью готово';
+      previewMeta.textContent = `${Math.round(selectedPreview.size / 1024)} КБ · WebP · до 1280×720`;
+    } catch (error) {
+      selectedPreview = null;
+      previewDrop.classList.remove('has-preview');
+      previewImage.hidden = true;
+      previewTitle.textContent = 'Добавить превью';
+      previewMeta.textContent = 'JPG / PNG / WebP · авто до 1280×720 и 600 КБ';
+      showToast(error.message || 'Не удалось обработать превью.');
+    }
+  };
+
+  configInput.addEventListener('change', () => setConfig(configInput.files?.[0]));
+  previewInput.addEventListener('change', () => setPreview(previewInput.files?.[0]));
+
+  const setupDrop = (drop, handler) => {
+    ['dragenter','dragover'].forEach(type => drop.addEventListener(type, e => { e.preventDefault(); drop.classList.add('dragover'); }));
+    ['dragleave','drop'].forEach(type => drop.addEventListener(type, e => { e.preventDefault(); drop.classList.remove('dragover'); }));
+    drop.addEventListener('drop', e => handler(e.dataTransfer?.files?.[0]));
+  };
+  setupDrop(configDrop, setConfig);
+  setupDrop(previewDrop, setPreview);
+
+  form.addEventListener('submit', async e => {
     e.preventDefault();
-    drop.classList.add('dragover');
-  }));
-  ['dragleave','drop'].forEach(type => drop.addEventListener(type, e => {
-    e.preventDefault();
-    drop.classList.remove('dragover');
-  }));
-  drop.addEventListener('drop', e => setFile(e.dataTransfer?.files?.[0]));
-  $('#uploadForm')?.addEventListener('submit', e => {
-    e.preventDefault();
-    showToast('Карточка подготовлена. Для публикации подключим API ReHub.');
+    if (!selectedConfig) { showToast('Сначала выбери XML-конфиг.'); return; }
+    if (!REHUB_API || REHUB_API.includes('YOUR-WORKER')) { showToast('Сначала укажи адрес API в rehub-config.js.'); return; }
+
+    const fields = new FormData(form);
+    const payload = new FormData();
+    payload.append('title', String(fields.get('title') || '').trim());
+    payload.append('author', String(fields.get('author') || '').trim());
+    payload.append('category', String(fields.get('category') || 'Другое'));
+    payload.append('description', String(fields.get('description') || '').trim());
+    payload.append('config', selectedConfig, selectedConfig.name);
+    if (selectedPreview) payload.append('preview', selectedPreview, 'preview.webp');
+
+    form.classList.add('submitting');
+    submit.disabled = true;
+    const oldText = submit.textContent;
+    submit.textContent = 'Отправляю…';
+    try {
+      const response = await fetch(`${REHUB_API}/api/submissions`, { method: 'POST', body: payload });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || `Ошибка API ${response.status}`);
+      showToast(`Отправлено на модерацию · ID ${result.id}`);
+      form.reset();
+      selectedConfig = null;
+      selectedPreview = null;
+      configTitle.textContent = 'Выбрать XML-конфиг';
+      configMeta.textContent = 'До 1 МБ · перетащи файл или нажми';
+      previewTitle.textContent = 'Добавить превью';
+      previewMeta.textContent = 'JPG / PNG / WebP · авто до 1280×720 и 600 КБ';
+      previewDrop.classList.remove('has-preview');
+      previewImage.hidden = true;
+      if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+      previewObjectUrl = '';
+      setModal($('#uploadModal'), false);
+    } catch (error) {
+      showToast(error.message || 'Не удалось отправить конфиг.');
+    } finally {
+      form.classList.remove('submitting');
+      submit.disabled = false;
+      submit.textContent = oldText;
+    }
   });
 }
 
@@ -546,4 +789,5 @@ initCards();
 initSearch();
 initModals();
 initUpload();
+loadCommunityConfigs();
 bindCursorHover();

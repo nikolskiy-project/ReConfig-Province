@@ -356,3 +356,34 @@ label,
   color: #b79cff !important;
   -webkit-text-fill-color: #b79cff !important;
 }
+
+
+/* ReHub API v1 */
+.community-grid { margin-bottom: 28px; }
+.community-grid:empty { display: none; }
+.community-card .config-thumb { background: #111118; }
+.community-preview { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scale(1.001); }
+.community-preview-fallback { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(circle at 65% 25%,rgba(139,92,246,.18),transparent 32%),linear-gradient(145deg,#191625,#101017 65%); color: var(--accent-light); }
+.community-preview-fallback svg { width: 54px; height: 54px; opacity: .9; }
+.community-card .thumb-state { right: 10px; bottom: 10px; }
+
+.detail-preview-image { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; object-fit: cover; }
+.detail-preview.has-image .detail-preview-grid,
+.detail-preview.has-image .detail-preview-symbol,
+.detail-preview.has-image .detail-preview-copy { display: none; }
+.detail-preview.has-image .detail-preview-badge { z-index: 3; }
+
+.upload-files-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.preview-upload-drop { position: relative; overflow: hidden; }
+.preview-upload-drop.has-preview { border-style: solid; }
+.preview-upload-drop #previewImage { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .44; filter: saturate(.82) brightness(.63); }
+.preview-upload-drop.has-preview::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg,rgba(10,10,15,.13),rgba(10,10,15,.72)); pointer-events:none; }
+.preview-upload-drop > *:not(input):not(img) { position: relative; z-index: 2; }
+.upload-fields select { width: 100%; min-height: 38px; border: 1px solid var(--border); border-radius: 9px; outline: 0; background: #101017; color: var(--text); font: inherit; font-size: 11px; padding: 8px 11px; }
+.upload-fields select:focus { border-color: rgba(139,92,246,.62); box-shadow: 0 0 0 3px rgba(139,92,246,.06); }
+.upload-form.submitting { pointer-events: none; opacity: .72; }
+#uploadSubmit[disabled] { opacity: .58; }
+
+@media (max-width: 720px) {
+  .upload-files-grid { grid-template-columns: 1fr; }
+}
