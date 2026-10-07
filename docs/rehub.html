@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f0f13">
+  <meta name="description" content="ReHub — мастерская конфигураций и биндов сообщества ReConfig Province.">
+  <title>ReHub — ReConfig Province</title>
+  <link rel="icon" href="assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="rehub.css">
+</head>
+<body class="rehub-page">
+  <div class="page-noise" aria-hidden="true"></div>
+  <div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
+  <div class="cursor-dot" id="cursorDot" aria-hidden="true"></div>
+  <div class="cursor-ring" id="cursorRing" aria-hidden="true"></div>
+
+  <header class="topbar" id="topbar">
+    <a class="brand" href="index.html" aria-label="ReConfig Province — на главную">
+      <img src="assets/logo.png" alt="" class="brand-logo">
+      <span class="brand-copy">
+        <strong>ReConfig Province</strong>
+        <small>by Nikolskiy</small>
+      </span>
+    </a>
+
+    <nav class="nav" aria-label="Навигация ReHub">
+      <a href="#official">Официальные</a>
+      <a href="#community">Сообщество</a>
+      <a href="#about-rehub">О ReHub</a>
+    </nav>
+
+    <button class="header-github interactive rehub-upload-head" id="openUploadTop" type="button" title="Загрузить конфиг в ReHub" aria-label="Загрузить конфиг в ReHub">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 16V4m0 0-4 4m4-4 4 4"/>
+        <path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>
+      </svg>
+      <span>Загрузить</span>
+    </button>
+  </header>
+
+  <main>
+    <section class="section rehub-hero" id="home">
+      <div class="rehub-orb rehub-orb-one" aria-hidden="true"></div>
+      <div class="rehub-orb rehub-orb-two" aria-hidden="true"></div>
+
+      <div class="rehub-hero-copy reveal">
+        <div class="eyebrow"><span class="status-dot"></span> Мастерская сообщества</div>
+        <h1><span>ReHub.</span><br>Конфиги, которыми делятся.</h1>
+        <p>Находи готовые наборы биндов для Province, сохраняй понравившиеся и делись собственными конфигурациями с другими пользователями ReConfig.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary interactive" href="#official">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5zM9 9h6M9 13h6M9 17h3"/></svg>
+            Смотреть конфиги
+          </a>
+          <button class="btn btn-secondary interactive" id="openUploadHero" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0-4 4m4-4 4 4M5 20h14"/></svg>
+            Загрузить свой
+          </button>
+        </div>
+        <div class="rehub-stats" aria-label="Возможности ReHub">
+          <span><strong>4</strong><small>официальных раздела</small></span>
+          <i></i>
+          <span><strong>XML</strong><small>конфиги MTA</small></span>
+          <i></i>
+          <span><strong>ReConfig</strong><small>единая экосистема</small></span>
+        </div>
+      </div>
+
+      <div class="rehub-showcase reveal delay-1" aria-hidden="true">
+        <div class="hub-preview">
+          <div class="hub-preview-head">
+            <span class="hub-logo-mark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7.5 12 3l8 4.5-8 4.5-8-4.5Z"/><path d="m4 12 8 4.5 8-4.5M4 16.5 12 21l8-4.5"/></svg>
+            </span>
+            <div><strong>ReHub</strong><small>Мастерская ReConfig</small></div>
+            <span class="hub-live"><i></i> online</span>
+          </div>
+          <div class="hub-preview-search"><span>Поиск конфигов...</span><kbd>⌘ K</kbd></div>
+          <div class="hub-mini-grid">
+            <div class="hub-mini-card active"><span>ОКБ</span><strong>ОКБ г. Мирный</strong><small>Официальный конфиг</small></div>
+            <div class="hub-mini-card"><span>ГИБДД</span><strong>ГИБДД</strong><small>В разработке</small></div>
+            <div class="hub-mini-card"><span>УВД</span><strong>УВД</strong><small>В разработке</small></div>
+            <div class="hub-mini-card"><span>АРМ</span><strong>Армия</strong><small>В разработке</small></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section rehub-section" id="official">
+      <div class="rehub-section-head reveal">
+        <div>
+          <span class="kicker">Закреплено</span>
+          <h2>Официальные конфиги</h2>
+          <p>Наборы, подготовленные для ReConfig Province. Они всегда находятся в начале мастерской и помечены как официальные.</p>
+        </div>
+        <span class="official-note">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.2 4.5 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L4.8 8.2l5-.7L12 3Z"/></svg>
+          Официально от ReConfig
+        </span>
+      </div>
+
+      <div class="official-grid">
+        <article class="hub-card official-card reveal interactive-card" data-category="official okb" data-search="окб мирный медицина медицинский официальный">
+          <div class="hub-card-top">
+            <span class="hub-card-icon okb-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="9"/></svg>
+            </span>
+            <span class="pin-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m9 3 6 6-2 2 4 4-2 2-4-4-2 2-6-6 6-6Z"/><path d="m8 16-5 5"/></svg>
+              Закреплено
+            </span>
+          </div>
+          <div class="hub-card-body">
+            <div class="hub-card-title"><h3>ОКБ г. Мирный</h3><span class="verified-dot" title="Официальный конфиг">✓</span></div>
+            <p>Официальный набор биндов для сотрудников Областной клинической больницы г. Мирный.</p>
+            <div class="hub-card-tags"><span>ОКБ</span><span>Официальный</span><span>ReConfig</span></div>
+          </div>
+          <div class="hub-card-footer">
+            <div class="hub-author"><img src="assets/logo.png" alt=""><span><small>Автор</small><strong>ReConfig Province</strong></span></div>
+            <button class="hub-card-action interactive" type="button" data-detail="okb">Подробнее <span>↗</span></button>
+          </div>
+        </article>
+
+        <article class="hub-card official-card reveal delay-1 interactive-card" data-category="official gibdd" data-search="гибдд полиция дорожная официальный">
+          <div class="hub-card-top">
+            <span class="hub-card-icon gibdd-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 17h14l-1-6-3-3H9l-3 3-1 6Z"/><path d="M7 17v2M17 17v2M8 13h8"/><circle cx="8" cy="16" r="1"/><circle cx="16" cy="16" r="1"/></svg>
+            </span>
+            <span class="pin-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m9 3 6 6-2 2 4 4-2 2-4-4-2 2-6-6 6-6Z"/><path d="m8 16-5 5"/></svg>Закреплено</span>
+          </div>
+          <div class="hub-card-body">
+            <div class="hub-card-title"><h3>ГИБДД</h3><span class="verified-dot">✓</span></div>
+            <p>Официальный раздел конфигураций для Государственной инспекции безопасности дорожного движения.</p>
+            <div class="hub-card-tags"><span>ГИБДД</span><span>Официальный</span><span class="tag-muted">В разработке</span></div>
+          </div>
+          <div class="hub-card-footer">
+            <div class="hub-author"><img src="assets/logo.png" alt=""><span><small>Автор</small><strong>ReConfig Province</strong></span></div>
+            <button class="hub-card-action disabled" type="button" disabled>Скоро</button>
+          </div>
+        </article>
+
+        <article class="hub-card official-card reveal interactive-card" data-category="official uvd" data-search="увд полиция официальный">
+          <div class="hub-card-top">
+            <span class="hub-card-icon uvd-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 19 6v5c0 4.8-2.9 8-7 10-4.1-2-7-5.2-7-10V6l7-3Z"/><path d="m9.5 12 1.7 1.7 3.7-4"/></svg>
+            </span>
+            <span class="pin-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m9 3 6 6-2 2 4 4-2 2-4-4-2 2-6-6 6-6Z"/><path d="m8 16-5 5"/></svg>Закреплено</span>
+          </div>
+          <div class="hub-card-body">
+            <div class="hub-card-title"><h3>УВД</h3><span class="verified-dot">✓</span></div>
+            <p>Официальный раздел наборов биндов для сотрудников Управления внутренних дел.</p>
+            <div class="hub-card-tags"><span>УВД</span><span>Официальный</span><span class="tag-muted">В разработке</span></div>
+          </div>
+          <div class="hub-card-footer">
+            <div class="hub-author"><img src="assets/logo.png" alt=""><span><small>Автор</small><strong>ReConfig Province</strong></span></div>
+            <button class="hub-card-action disabled" type="button" disabled>Скоро</button>
+          </div>
+        </article>
+
+        <article class="hub-card official-card reveal delay-1 interactive-card" data-category="official armia" data-search="армия военные официальный">
+          <div class="hub-card-top">
+            <span class="hub-card-icon army-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8L12 3Z"/></svg>
+            </span>
+            <span class="pin-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m9 3 6 6-2 2 4 4-2 2-4-4-2 2-6-6 6-6Z"/><path d="m8 16-5 5"/></svg>Закреплено</span>
+          </div>
+          <div class="hub-card-body">
+            <div class="hub-card-title"><h3>Армия</h3><span class="verified-dot">✓</span></div>
+            <p>Официальный раздел конфигураций и биндов для военнослужащих Province.</p>
+            <div class="hub-card-tags"><span>Армия</span><span>Официальный</span><span class="tag-muted">В разработке</span></div>
+          </div>
+          <div class="hub-card-footer">
+            <div class="hub-author"><img src="assets/logo.png" alt=""><span><small>Автор</small><strong>ReConfig Province</strong></span></div>
+            <button class="hub-card-action disabled" type="button" disabled>Скоро</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section community-section" id="community">
+      <div class="rehub-section-head community-head reveal">
+        <div>
+          <span class="kicker">Сообщество</span>
+          <h2>Конфиги игроков</h2>
+          <p>Здесь будут появляться опубликованные пользователями наборы биндов.</p>
+        </div>
+        <button class="btn btn-primary interactive" id="openUploadCommunity" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0-4 4m4-4 4 4M5 20h14"/></svg>
+          Загрузить конфиг
+        </button>
+      </div>
+
+      <div class="hub-toolbar reveal">
+        <label class="hub-search">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <input id="hubSearch" type="search" autocomplete="off" placeholder="Поиск по ReHub">
+          <span id="searchHint">По названию, фракции или автору</span>
+        </label>
+        <div class="hub-filters" id="hubFilters" aria-label="Фильтры">
+          <button class="hub-filter active" type="button" data-filter="all">Все</button>
+          <button class="hub-filter" type="button" data-filter="official">Официальные</button>
+          <button class="hub-filter" type="button" data-filter="community">Сообщество</button>
+        </div>
+      </div>
+
+      <div class="community-empty reveal" id="communityEmpty">
+        <span class="empty-orbit" aria-hidden="true"><i></i><b></b></span>
+        <h3>Сообщество ReHub только открывается</h3>
+        <p>Стань одним из первых авторов. Подготовь XML-конфиг, добавь название и описание — интерфейс публикации уже здесь.</p>
+        <button class="btn btn-secondary interactive" id="openUploadEmpty" type="button">Подготовить публикацию</button>
+      </div>
+    </section>
+
+    <section class="section rehub-about" id="about-rehub">
+      <div class="rehub-about-panel reveal">
+        <div>
+          <span class="kicker">О ReHub</span>
+          <h2>Одна мастерская.<br>Много готовых решений.</h2>
+        </div>
+        <div class="rehub-about-copy">
+          <p>ReHub задуман как дополнение к ReConfig Province: официальные и пользовательские конфиги находятся в одном месте, а дальше их можно будет передавать в приложение без ручной возни с файлами.</p>
+          <div class="rehub-principles">
+            <span><i>01</i> Официальные наборы закреплены сверху</span>
+            <span><i>02</i> Пользовательские работы отделены от официальных</span>
+            <span><i>03</i> XML проходит проверку перед публикацией</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-brand"><img src="assets/logo.png" alt=""><div><strong>ReConfig Province</strong><span>ReHub — мастерская сообщества</span></div></div>
+    <div class="footer-links"><a href="index.html">Главная</a><a href="#home">Наверх</a><a href="https://github.com/nikolskiy-project/ReConfig-Province" target="_blank" rel="noreferrer">GitHub</a></div>
+    <span class="copyright">© <span id="year"></span> Nikolskiy</span>
+  </footer>
+
+  <div class="hub-modal-backdrop" id="uploadModal" aria-hidden="true">
+    <div class="hub-modal" role="dialog" aria-modal="true" aria-labelledby="uploadTitle">
+      <div class="hub-modal-head">
+        <div><span class="kicker">ReHub</span><h2 id="uploadTitle">Загрузить конфиг</h2></div>
+        <button class="hub-modal-close interactive" id="closeUpload" type="button" aria-label="Закрыть">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <form class="upload-form" id="uploadForm">
+        <label class="upload-drop interactive" id="uploadDrop">
+          <input id="configFile" type="file" accept=".xml,text/xml,application/xml">
+          <span class="upload-drop-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4m0 0-4 4m4-4 4 4M5 20h14"/></svg></span>
+          <strong id="uploadFileTitle">Выбрать XML-конфиг</strong>
+          <small id="uploadFileMeta">Перетащи файл сюда или нажми для выбора</small>
+        </label>
+        <div class="upload-fields">
+          <label><span>Название</span><input type="text" name="title" placeholder="Например: ОКБ — ночная смена" maxlength="70"></label>
+          <label><span>Автор</span><input type="text" name="author" placeholder="Ник на Province" maxlength="40"></label>
+          <label class="wide"><span>Описание</span><textarea name="description" rows="4" placeholder="Коротко расскажи, для чего этот набор биндов"></textarea></label>
+        </div>
+        <div class="upload-notice">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+          <span>Сейчас это интерфейс подготовки публикации. Для реальной общей загрузки файлов нужно подключить сервер/API ReHub.</span>
+        </div>
+        <div class="upload-actions">
+          <button class="btn btn-secondary interactive" id="cancelUpload" type="button">Отмена</button>
+          <button class="btn btn-primary interactive" type="submit">Подготовить карточку</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="hub-modal-backdrop" id="detailModal" aria-hidden="true">
+    <div class="hub-modal hub-detail-modal" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+      <div class="hub-modal-head">
+        <div><span class="kicker">Официальный конфиг</span><h2 id="detailTitle">ОКБ г. Мирный</h2></div>
+        <button class="hub-modal-close interactive" id="closeDetail" type="button" aria-label="Закрыть">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <div class="detail-content">
+        <div class="detail-badge"><img src="assets/logo.png" alt=""><span><small>Источник</small><strong>ReConfig Province</strong></span><b>✓ Проверено</b></div>
+        <p>Официальный набор биндов ОКБ г. Мирный из текущего списка предустановок ReConfig Province.</p>
+        <div class="detail-info"><span><small>Категория</small><strong>ОКБ</strong></span><span><small>Тип</small><strong>XML / бинды</strong></span><span><small>Статус</small><strong>Официальный</strong></span></div>
+        <div class="upload-notice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span>Файл для отдельной загрузки на сайт пока не подключён. Карточка подготовлена под будущую интеграцию с ReConfig.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hub-toast" id="hubToast" role="status" aria-live="polite"></div>
+
+  <script src="rehub.js"></script>
+</body>
+</html>
