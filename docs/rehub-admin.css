@@ -497,3 +497,62 @@ body.page-dragging { cursor: none !important; }
   .admin-review-preview.mode-code { height: min(55vh,390px) !important; min-height: 260px !important; }
   .admin-review-body { padding: 20px 17px 22px !important; }
 }
+
+
+/* v8 — unified rounded scrolling and guaranteed admin panel animations. */
+.admin-page,
+.admin-page * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(183,156,255,.42) transparent;
+}
+.admin-page *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.admin-page *::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 999px;
+  margin: 5px;
+}
+.admin-page *::-webkit-scrollbar-thumb {
+  min-height: 34px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(183,156,255,.42);
+  background-clip: padding-box;
+}
+.admin-page *::-webkit-scrollbar-thumb:hover {
+  background: rgba(183,156,255,.62);
+  background-clip: padding-box;
+}
+.admin-page .site-scrollbar,
+.admin-page .site-scrollbar-thumb {
+  border-radius: 999px !important;
+}
+
+@keyframes adminPanelEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(.99);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+.admin-enter-play {
+  animation: adminPanelEnter .42s cubic-bezier(.22,1,.36,1) both;
+  animation-delay: var(--admin-enter-delay, 0ms);
+}
+.admin-community-card.admin-card-enter {
+  animation: adminPanelEnter .38s cubic-bezier(.22,1,.36,1) both;
+  animation-delay: var(--admin-card-delay, 0ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-enter-play,
+  .admin-community-card.admin-card-enter {
+    animation: none !important;
+  }
+}

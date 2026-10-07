@@ -505,7 +505,9 @@ function openCard(card) {
 }
 
 function initCards() {
-  $$('.hub-video-card').forEach(card => {
+  $$('.hub-video-card').forEach((card, index) => {
+    card.classList.add('card-enter');
+    card.style.setProperty('--card-enter-delay', `${Math.min(index * 55, 220)}ms`);
     card.addEventListener('click', () => openCard(card));
     card.addEventListener('keydown', e => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -518,24 +520,37 @@ function initCards() {
 function initSearch() {
   const search = $('#hubSearch');
   const filters = $$('#hubFilters .hub-filter');
-  const cards = $$('.hub-video-card');
   const empty = $('#hubNoResults');
   let activeFilter = 'all';
 
   const apply = () => {
     const query = (search?.value || '').trim().toLocaleLowerCase('ru-RU');
+    const cards = $$('.hub-video-card');
     let shown = 0;
+
     cards.forEach(card => {
-      const category = card.dataset.category || '';
-      const haystack = `${card.dataset.search || ''} ${card.dataset.title || ''}`.toLocaleLowerCase('ru-RU');
+      const category = (card.dataset.category || '').toLocaleLowerCase('ru-RU');
+      const haystack = [
+        card.dataset.search || '',
+        card.dataset.title || '',
+        card.dataset.label || '',
+        card.dataset.author || '',
+        card.dataset.description || ''
+      ].join(' ').toLocaleLowerCase('ru-RU');
+
       const matchesFilter = activeFilter === 'all' || category.includes(activeFilter);
       const matchesQuery = !query || haystack.includes(query);
       const visible = matchesFilter && matchesQuery;
+
       card.hidden = !visible;
       if (visible) shown++;
     });
+
     if (empty) empty.hidden = shown !== 0;
   };
+
+  // API-loaded community cards can call the same search after being inserted.
+  window.rehubApplySearch = apply;
 
   search?.addEventListener('input', apply);
   filters.forEach(button => button.addEventListener('click', () => {
@@ -544,6 +559,8 @@ function initSearch() {
     activeFilter = button.dataset.filter || 'all';
     apply();
   }));
+
+  apply();
 }
 
 function initModals() {
@@ -584,9 +601,10 @@ function escapeText(value) {
   return String(value ?? '');
 }
 
-function makeCommunityCard(item) {
+function makeCommunityCard(item, index = 0) {
   const card = document.createElement('article');
-  card.className = 'hub-video-card community-card interactive-card reveal visible';
+  card.className = 'hub-video-card community-card interactive-card card-enter';
+  card.style.setProperty('--card-enter-delay', `${Math.min(index * 55, 275)}ms`);
   card.tabIndex = 0;
   card.setAttribute('role', 'button');
   card.dataset.category = `community ${escapeText(item.category).toLocaleLowerCase('ru-RU')}`;
@@ -728,12 +746,17 @@ async function loadCommunityConfigs() {
     const data = await response.json();
     const items = Array.isArray(data) ? data : (Array.isArray(data.configs) ? data.configs : []);
     items.filter(item => item && item.official === true).forEach(applyOfficialConfig);
-    const communityItems = items.filter(item => !item || item.official !== true);
+    const communityItems = items.filter(item => item && item.official !== true);
     grid.innerHTML = '';
-    communityItems.forEach(item => grid.appendChild(makeCommunityCard(item)));
+    communityItems.forEach((item, index) => grid.appendChild(makeCommunityCard(item, index)));
+
+    // The "no configs yet" panel must never coexist with real community cards.
     empty.hidden = communityItems.length > 0;
+    empty.setAttribute('aria-hidden', communityItems.length > 0 ? 'true' : 'false');
+
     initCardParallax();
     bindCursorHover();
+    window.rehubApplySearch?.();
   } catch (error) {
     emptyTitle.textContent = 'Не удалось загрузить мастерскую';
     emptyText.textContent = 'Проверь адрес API и настройки CORS в Cloudflare Worker.';

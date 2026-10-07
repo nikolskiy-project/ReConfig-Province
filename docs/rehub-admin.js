@@ -389,7 +389,23 @@ async function refreshStates() {
     for(const slot of Object.keys(defaults)){const el=$(`#slotState-${slot}`);el.textContent=published.has(slot)?'Опубликован':'Не опубликован';el.classList.toggle('ready',published.has(slot));}
   } catch(e){ if(e.status===401) logout(); else toast(e.message); }
 }
-function showWorkspace() { $('#adminLogin').hidden=true; $('#adminWorkspace').hidden=false; refreshStates(); loadSlot(currentSlot); loadCommunityModeration(); bindAdminCursorHover(); requestAnimationFrame(()=>window.syncAdminScrollbar?.()); }
+function playAdminWorkspaceAnimations() {
+  const items = [
+    $('.admin-heading'),
+    ...$$('.admin-slot'),
+    $('.admin-editor'),
+    $('#communityModeration')
+  ].filter(Boolean);
+
+  items.forEach((el, index) => {
+    el.classList.remove('admin-enter-play');
+    el.style.setProperty('--admin-enter-delay', `${Math.min(index * 48, 260)}ms`);
+    void el.offsetWidth;
+    el.classList.add('admin-enter-play');
+  });
+}
+
+function showWorkspace() { $('#adminLogin').hidden=true; $('#adminWorkspace').hidden=false; playAdminWorkspaceAnimations(); refreshStates(); loadSlot(currentSlot); loadCommunityModeration(); bindAdminCursorHover(); requestAnimationFrame(()=>window.syncAdminScrollbar?.()); }
 function logout(){adminKey='';sessionStorage.removeItem('rehub_admin_key');$('#adminWorkspace').hidden=true;$('#adminLogin').hidden=false;$('#adminKeyInput').value='';bindAdminCursorHover();requestAnimationFrame(()=>window.syncAdminScrollbar?.());}
 async function login(key){adminKey=key.trim();if(!adminKey)return;try{await api('/api/admin/official');sessionStorage.setItem('rehub_admin_key',adminKey);$('#loginError').textContent='';showWorkspace();}catch(e){adminKey='';$('#loginError').textContent=e.status===401?'Неверный ADMIN_KEY.':e.message;}}
 function bindFiles(){
@@ -441,8 +457,9 @@ async function loadCommunityModeration(){
 function renderCommunityModeration(){
   const grid=$('#communityAdminGrid'), empty=$('#communityAdminEmpty'); if(!grid||!empty)return;
   grid.innerHTML=''; const items=moderationItems(); empty.hidden=items.length>0;
-  items.forEach(item=>{
-    const card=document.createElement('button'); card.type='button'; card.className='admin-community-card interactive';
+  items.forEach((item,index)=>{
+    const card=document.createElement('button'); card.type='button'; card.className='admin-community-card interactive admin-card-enter';
+    card.style.setProperty('--admin-card-delay', `${Math.min(index * 48, 240)}ms`);
     const thumb=document.createElement('div'); thumb.className='admin-community-thumb';
     if(item.preview_url){const img=document.createElement('img');img.src=item.preview_url;img.alt='';img.loading='lazy';thumb.appendChild(img);}else{const f=document.createElement('div');f.className='admin-community-thumb-empty';f.textContent='Без превью';thumb.appendChild(f);}
     const status=document.createElement('span');status.className=`admin-community-status ${moderationTab}`;status.textContent=statusLabel(moderationTab);thumb.appendChild(status);
@@ -586,7 +603,15 @@ function openReview(item,status){
   const pLink=$('#reviewPreviewLink');pLink.href='#';pLink.hidden=!item.preview_url;
   const reason=$('#reviewReason');reason.hidden=status!=='rejected';$('#reviewReasonText').textContent=item.rejection_reason||'Причина не указана.';
   $('#reviewActions').hidden=status!=='pending';$('#rejectBox').hidden=true;$('#rejectReasonInput').value='';
-  $('#approvedDeleteArea').hidden=status!=='approved';
+  const canDelete = status==='approved' || status==='rejected';
+  $('#approvedDeleteArea').hidden=!canDelete;
+  $('#reviewDelete').textContent = status==='rejected' ? 'Удалить отклонённую публикацию' : 'Удалить публикацию';
+  const deleteText = $('#deleteConfirmText');
+  if (deleteText) {
+    deleteText.innerHTML = status==='rejected'
+      ? '<strong>Удалить отклонённую публикацию?</strong><br>Она исчезнет из истории модерации, а XML, превью и метаданные будут полностью удалены из GitHub.'
+      : '<strong>Удалить публикацию?</strong><br>Она исчезнет из мастерской, а XML, превью и метаданные будут полностью удалены из GitHub.';
+  }
   $('#deleteConfirmBox').hidden=true;
   const reviewScroll=$('#reviewScroll');if(reviewScroll)reviewScroll.scrollTop=0;
   $('#reviewOverlay').hidden=false;document.body.classList.add('admin-review-open');bindAdminCursorHover();requestAnimationFrame(()=>window.syncAdminScrollbar?.());
@@ -611,19 +636,22 @@ async function rejectSelected(){
 }
 
 function beginDeleteApproved(){
-  if(!selectedSubmission || selectedSubmission.status!=='approved') return;
+  if(!selectedSubmission || !['approved','rejected'].includes(selectedSubmission.status)) return;
   $('#deleteConfirmBox').hidden=false;
   bindAdminCursorHover();
 }
 
 async function deleteApprovedSelected(){
-  if(!selectedSubmission || selectedSubmission.status!=='approved') return;
+  if(!selectedSubmission || !['approved','rejected'].includes(selectedSubmission.status)) return;
   const btn=$('#deleteConfirm'), old=btn.textContent;
+  const status=selectedSubmission.status;
   btn.disabled=true;
   btn.textContent='Удаляю…';
   try{
-    await api(`/api/admin/submissions/${selectedSubmission.id}`, { method:'DELETE' });
-    toast('Одобренная публикация удалена из мастерской.');
+    await api(`/api/admin/submissions/${selectedSubmission.id}?status=${encodeURIComponent(status)}`, { method:'DELETE' });
+    toast(status==='rejected'
+      ? 'Отклонённая публикация полностью удалена.'
+      : 'Одобренная публикация удалена из мастерской.');
     closeReview();
     await loadCommunityModeration();
   }catch(e){

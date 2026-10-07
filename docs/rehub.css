@@ -563,3 +563,67 @@ label,
   background: rgba(139,92,246,.58);
   color: #fff;
 }
+
+
+/* v8 — empty state, rounded scrollbars and explicit card motion. */
+.community-empty[hidden],
+.hub-no-results[hidden] {
+  display: none !important;
+}
+
+/* All ReHub scroll controls use the same rounded language as the main site. */
+.rehub-page,
+.rehub-page * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(183,156,255,.42) transparent;
+}
+.rehub-page *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.rehub-page *::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 999px;
+  margin: 5px;
+}
+.rehub-page *::-webkit-scrollbar-thumb {
+  min-height: 34px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(183,156,255,.42);
+  background-clip: padding-box;
+}
+.rehub-page *::-webkit-scrollbar-thumb:hover {
+  background: rgba(183,156,255,.62);
+  background-clip: padding-box;
+}
+.rehub-page .site-scrollbar {
+  border-radius: 999px;
+  overflow: hidden;
+}
+.rehub-page .site-scrollbar-thumb {
+  border-radius: 999px !important;
+}
+
+/* Cards now have a guaranteed entrance animation independent of shared styles.css. */
+@keyframes rehubCardEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 15px, 0) scale(.986);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+.hub-video-card.card-enter {
+  animation: rehubCardEnter .44s cubic-bezier(.22,1,.36,1) both;
+  animation-delay: var(--card-enter-delay, 0ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hub-video-card.card-enter {
+    animation: none !important;
+  }
+}
