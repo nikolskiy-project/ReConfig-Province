@@ -8,7 +8,7 @@
   <title>ReHub — мастерская конфигов</title>
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="rehub.css?v=7">
+  <link rel="stylesheet" href="rehub.css?v=9">
 
   <style>
     #openUploadTop {
@@ -297,8 +297,9 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
 
-      <div class="detail-layout">
-        <div class="detail-preview" id="detailPreview">
+      <div class="hub-detail-scroll" id="detailScroll">
+        <div class="detail-layout">
+          <div class="detail-preview" id="detailPreview">
           <img class="detail-preview-image" id="detailPreviewImage" alt="" hidden>
           <div class="detail-preview-grid" id="detailPreviewGrid" aria-hidden="true"></div>
           <span class="detail-preview-symbol" id="detailSymbol" aria-hidden="true"></span>
@@ -323,6 +324,7 @@
           <p class="detail-note" id="detailNote">Прямая установка из ReHub будет подключена вместе с API мастерской.</p>
         </div>
       </div>
+      </div>
     </div>
   </div>
 
@@ -340,7 +342,7 @@
             <input id="configFile" type="file" accept=".xml,text/xml,application/xml">
             <span class="upload-drop-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4m0 0-4 4m4-4 4 4M5 20h14"/></svg></span>
             <strong id="uploadFileTitle">Выбрать XML-конфиг</strong>
-            <small id="uploadFileMeta">До 1 МБ · перетащи файл или нажми</small>
+            <small id="uploadFileMeta">До 1 МБ · будет экспортирован только блок <binds></small>
           </label>
 
           <label class="upload-drop preview-upload-drop interactive" id="previewDrop">
@@ -368,7 +370,7 @@
         </div>
         <div class="upload-notice">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
-          <span>Публикация сначала попадёт на модерацию. Превью сжимается прямо в браузере до WebP ≤ 600 КБ, а XML ограничен 1 МБ.</span>
+          <span>Публикация сначала попадёт на модерацию. Из XML в ReHub отправляется только блок <binds>…</binds>; превью сжимается в браузере до WebP ≤ 600 КБ.</span>
         </div>
         <div class="upload-actions">
           <button class="btn btn-secondary interactive" id="cancelUpload" type="button">Отмена</button>
@@ -381,6 +383,6 @@
   <div class="hub-toast" id="hubToast" role="status" aria-live="polite"></div>
 
   <script src="rehub-config.js?v=1"></script>
-  <script src="rehub.js?v=7"></script>
+  <script src="rehub.js?v=9"></script>
 </body>
 </html>

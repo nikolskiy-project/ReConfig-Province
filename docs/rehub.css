@@ -443,3 +443,123 @@ label,
   .hub-detail-modal { padding: 0 !important; }
   .detail-preview { aspect-ratio: 4 / 3; }
 }
+
+
+/* v8 — compact opened card: smaller attached preview + internal scroll. */
+.hub-detail-modal {
+  width: min(860px, 100%) !important;
+  max-height: min(82vh, 720px) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(183,156,255,.34) transparent !important;
+  overscroll-behavior: contain;
+}
+.hub-detail-modal::-webkit-scrollbar {
+  width: 7px;
+}
+.hub-detail-modal::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 10px 0;
+}
+.hub-detail-modal::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(183,156,255,.34);
+}
+.hub-detail-modal::-webkit-scrollbar-thumb:hover {
+  background: rgba(183,156,255,.52);
+}
+.hub-detail-modal .detail-preview {
+  aspect-ratio: auto !important;
+  height: clamp(190px, 28vh, 280px) !important;
+  min-height: 190px !important;
+  max-height: 280px !important;
+  flex: 0 0 auto;
+}
+.hub-detail-modal .detail-preview-image {
+  object-fit: cover !important;
+}
+.hub-detail-modal .detail-copy {
+  min-height: auto !important;
+}
+@media (max-width:720px) {
+  .hub-detail-modal {
+    max-height: calc(100vh - 20px) !important;
+  }
+  .hub-detail-modal .detail-preview {
+    height: clamp(165px, 25vh, 230px) !important;
+    min-height: 165px !important;
+    max-height: 230px !important;
+  }
+}
+
+
+/* v9 — real opened-card layout: compact attached preview + inner scrolling. */
+.hub-modal.hub-detail-modal {
+  width: min(820px, calc(100vw - 34px)) !important;
+  max-height: min(84vh, 700px) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border-radius: 18px !important;
+  background: #111119 !important;
+}
+.hub-detail-scroll {
+  width: 100%;
+  max-height: min(84vh, 700px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139,92,246,.48) transparent;
+}
+.hub-detail-scroll::-webkit-scrollbar { width: 7px; }
+.hub-detail-scroll::-webkit-scrollbar-track { background: transparent; margin: 10px 0; }
+.hub-detail-scroll::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(139,92,246,.38); }
+.hub-detail-scroll::-webkit-scrollbar-thumb:hover { background: rgba(139,92,246,.58); }
+.hub-detail-modal .detail-layout { display: block !important; min-height: 0 !important; }
+.hub-detail-modal .detail-preview {
+  width: 100% !important;
+  height: 210px !important;
+  min-height: 210px !important;
+  max-height: 210px !important;
+  aspect-ratio: auto !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 17px 17px 0 0 !important;
+  overflow: hidden !important;
+}
+.hub-detail-modal .detail-preview-image {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+.hub-detail-modal .detail-copy { min-height: 0 !important; padding: 24px 27px 28px !important; }
+.hub-detail-modal > .hub-modal-close { position: absolute !important; top: 14px !important; right: 14px !important; z-index: 50 !important; }
+@media (max-width:720px) {
+  .hub-modal.hub-detail-modal { width: min(100% - 18px, 820px) !important; max-height: calc(100vh - 18px) !important; }
+  .hub-detail-scroll { max-height: calc(100vh - 18px); }
+  .hub-detail-modal .detail-preview { height: 175px !important; min-height: 175px !important; max-height: 175px !important; }
+  .hub-detail-modal .detail-copy { padding: 20px 17px 22px !important; }
+}
+
+/* Text remains selectable in editable fields; custom cursor stays active. */
+.rehub-page input,
+.rehub-page textarea,
+.rehub-page [contenteditable="true"],
+.rehub-page pre,
+.rehub-page code {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+.rehub-page input::selection,
+.rehub-page textarea::selection,
+.rehub-page [contenteditable="true"]::selection,
+.rehub-page pre::selection,
+.rehub-page code::selection,
+.rehub-page pre *::selection,
+.rehub-page code *::selection {
+  background: rgba(139,92,246,.58);
+  color: #fff;
+}

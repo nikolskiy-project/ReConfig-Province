@@ -9,7 +9,7 @@
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="rehub.css?v=8">
-  <link rel="stylesheet" href="rehub-admin.css?v=6">
+  <link rel="stylesheet" href="rehub-admin.css?v=7">
 </head>
 <body class="rehub-page admin-page">
   <div class="page-noise" aria-hidden="true"></div>
@@ -65,7 +65,7 @@
               <input id="adminConfigFile" type="file" accept=".xml,text/xml,application/xml">
               <span class="upload-drop-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4m0 0-4 4m4-4 4 4M5 20h14"/></svg></span>
               <strong id="adminConfigTitle">Выбрать XML-конфиг</strong>
-              <small id="adminConfigMeta">Для первой публикации обязателен · до 1 МБ</small>
+              <small id="adminConfigMeta">Для первой публикации обязателен · экспортируется только <binds></small>
             </label>
 
             <label class="upload-drop preview-upload-drop interactive" id="adminPreviewDrop">
@@ -118,6 +118,7 @@
   <div class="admin-review-overlay" id="reviewOverlay" hidden>
     <section class="admin-review-modal" role="dialog" aria-modal="true" aria-labelledby="reviewTitle">
       <button class="admin-review-close interactive" id="reviewClose" type="button" aria-label="Закрыть">×</button>
+      <div class="admin-review-scroll" id="reviewScroll">
       <div class="admin-review-preview" id="reviewPreview">
         <div class="admin-review-preview-empty">Без превью</div>
         <div class="admin-review-media-loading" id="reviewPreviewLoading" hidden>Загружаю превью…</div>
@@ -168,6 +169,6 @@
 
   <div class="hub-toast" id="hubToast" role="status" aria-live="polite"></div>
   <script src="rehub-config.js?v=1"></script>
-  <script src="rehub-admin.js?v=6"></script>
+  <script src="rehub-admin.js?v=7"></script>
 </body>
 </html>

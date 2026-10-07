@@ -6,6 +6,53 @@ const PREVIEW_MAX_SOURCE = 8 * 1024 * 1024;
 const PREVIEW_MAX_BYTES = 600 * 1024;
 const CONFIG_MAX_BYTES = 1024 * 1024;
 
+function asciiLower(byte) {
+  return byte >= 65 && byte <= 90 ? byte + 32 : byte;
+}
+
+function findAscii(bytes, needle, from = 0) {
+  const pattern = [...needle].map(ch => ch.charCodeAt(0));
+  outer: for (let i = Math.max(0, from); i <= bytes.length - pattern.length; i++) {
+    for (let j = 0; j < pattern.length; j++) {
+      if (asciiLower(bytes[i + j]) !== asciiLower(pattern[j])) continue outer;
+    }
+    return i;
+  }
+  return -1;
+}
+
+function countBindEntries(bytes) {
+  let count = 0, at = 0;
+  while ((at = findAscii(bytes, '<bind', at)) !== -1) {
+    const next = bytes[at + 5];
+    if (next !== 115 && next !== 83) count++;
+    at += 5;
+  }
+  return count;
+}
+
+async function extractBindsFile(file) {
+  if (!file?.name?.toLowerCase().endsWith('.xml')) throw new Error('Для ReHub нужен XML-конфиг.');
+  if (file.size > CONFIG_MAX_BYTES) throw new Error('XML не должен быть больше 1 МБ.');
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const start = findAscii(bytes, '<binds');
+  if (start < 0) throw new Error('В XML не найден блок <binds>…</binds>.');
+  const openEnd = bytes.indexOf(62, start); // >
+  if (openEnd < 0) throw new Error('Блок <binds> повреждён.');
+  const close = findAscii(bytes, '</binds>', openEnd + 1);
+  if (close < 0) throw new Error('В XML не найден закрывающий </binds>.');
+  const end = close + 8;
+  const block = bytes.slice(start, end);
+  const bindCount = countBindEntries(block);
+  if (!bindCount) throw new Error('В блоке <binds> нет ни одного bind.');
+  return {
+    file: new File([block], file.name, { type: 'application/xml' }),
+    bindCount,
+    sourceBytes: bytes.length,
+    exportedBytes: block.length
+  };
+}
+
 const iconMap = {
   medical: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65"><circle cx="12" cy="12" r="8.6"/><path d="M12 7v10M7 12h10"/></svg>',
   shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65"><path d="M12 3 19 6v5c0 4.8-2.9 8-7 10-4.1-2-7-5.2-7-10V6l7-3Z"/><path d="m9.5 12 1.7 1.7 3.7-4"/></svg>',
@@ -452,6 +499,8 @@ function openCard(card) {
     ? 'Пользовательский конфиг прошёл модерацию ReHub. Перед импортом ReConfig обработает только поддерживаемые бинды.'
     : (ready ? 'Прямая установка из ReHub будет подключена вместе с API мастерской.' : 'Этот официальный набор уже закреплён в мастерской, но его содержимое ещё готовится.');
 
+  const detailScroll = $('#detailScroll');
+  if (detailScroll) detailScroll.scrollTop = 0;
   setModal(modal, true);
 }
 
@@ -749,13 +798,22 @@ function initUpload() {
   let selectedPreview = null;
   let previewObjectUrl = '';
 
-  const setConfig = file => {
+  const setConfig = async file => {
     if (!file) return;
-    if (!file.name.toLowerCase().endsWith('.xml')) { showToast('Для ReHub нужен XML-конфиг.'); return; }
-    if (file.size > CONFIG_MAX_BYTES) { showToast('XML не должен быть больше 1 МБ.'); return; }
-    selectedConfig = file;
-    configTitle.textContent = file.name;
-    configMeta.textContent = `${Math.max(1, Math.round(file.size / 1024))} КБ · XML`;
+    configTitle.textContent = 'Извлекаю блок биндов…';
+    configMeta.textContent = 'В ReHub попадёт только <binds>…</binds>';
+    try {
+      const extracted = await extractBindsFile(file);
+      selectedConfig = extracted.file;
+      configTitle.textContent = file.name;
+      configMeta.textContent = `${extracted.bindCount} биндов · экспорт ${Math.max(1, Math.round(extracted.exportedBytes / 1024))} КБ · только <binds>`;
+    } catch (error) {
+      selectedConfig = null;
+      configInput.value = '';
+      configTitle.textContent = 'Выбрать XML-конфиг';
+      configMeta.textContent = 'До 1 МБ · будет экспортирован только блок <binds>';
+      showToast(error.message || 'Не удалось прочитать XML.');
+    }
   };
 
   const setPreview = async file => {
@@ -781,7 +839,7 @@ function initUpload() {
     }
   };
 
-  configInput.addEventListener('change', () => setConfig(configInput.files?.[0]));
+  configInput.addEventListener('change', () => { void setConfig(configInput.files?.[0]); });
   previewInput.addEventListener('change', () => setPreview(previewInput.files?.[0]));
 
   const setupDrop = (drop, handler) => {
@@ -789,7 +847,7 @@ function initUpload() {
     ['dragleave','drop'].forEach(type => drop.addEventListener(type, e => { e.preventDefault(); drop.classList.remove('dragover'); }));
     drop.addEventListener('drop', e => handler(e.dataTransfer?.files?.[0]));
   };
-  setupDrop(configDrop, setConfig);
+  setupDrop(configDrop, file => { void setConfig(file); });
   setupDrop(previewDrop, setPreview);
 
   form.addEventListener('submit', async e => {
@@ -819,7 +877,7 @@ function initUpload() {
       selectedConfig = null;
       selectedPreview = null;
       configTitle.textContent = 'Выбрать XML-конфиг';
-      configMeta.textContent = 'До 1 МБ · перетащи файл или нажми';
+      configMeta.textContent = 'До 1 МБ · будет экспортирован только блок <binds>';
       previewTitle.textContent = 'Добавить превью';
       previewMeta.textContent = 'JPG / PNG / WebP · авто до 1280×720 и 600 КБ';
       previewDrop.classList.remove('has-preview');

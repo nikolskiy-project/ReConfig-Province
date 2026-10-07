@@ -368,3 +368,132 @@ body.admin-review-open {
 .admin-review-media-loading.error {
   color: #ff9ca3;
 }
+
+
+/* v7 — admin uses the same visual/motion language as ReHub. */
+.admin-page {
+  background:
+    radial-gradient(circle at 16% 8%, rgba(139,92,246,.09), transparent 27%),
+    radial-gradient(circle at 82% 28%, rgba(98,76,190,.045), transparent 25%),
+    #0c0c11;
+}
+.admin-page .topbar,
+.admin-login,
+.admin-heading,
+.admin-slot,
+.admin-editor,
+.admin-community-section,
+.admin-community-card {
+  transition:
+    transform .28s cubic-bezier(.22,1,.36,1),
+    opacity .25s ease,
+    border-color .18s ease,
+    background-color .18s ease,
+    box-shadow .22s ease;
+}
+.admin-reveal {
+  opacity: 0;
+  transform: translateY(14px);
+}
+.admin-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.admin-slot:hover,
+.admin-community-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(0,0,0,.20), 0 0 0 1px rgba(139,92,246,.05) inset;
+}
+.admin-editor,
+.admin-community-section {
+  box-shadow: 0 22px 60px rgba(0,0,0,.18), 0 0 70px rgba(139,92,246,.018);
+}
+html.page-dragging,
+html.page-dragging body,
+body.page-dragging { cursor: none !important; }
+
+/* Review card: one attached preview on top, inner card scrolling. */
+.admin-review-overlay { padding: 20px !important; }
+.admin-review-modal {
+  display: block !important;
+  width: min(840px, calc(100vw - 40px)) !important;
+  max-height: min(86vh, 730px) !important;
+  overflow: hidden !important;
+  border-radius: 18px !important;
+  background: #111119 !important;
+  box-shadow: 0 34px 95px rgba(0,0,0,.58), 0 0 70px rgba(139,92,246,.05) !important;
+}
+.admin-review-scroll {
+  max-height: min(86vh, 730px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139,92,246,.48) transparent;
+}
+.admin-review-scroll::-webkit-scrollbar { width: 7px; }
+.admin-review-scroll::-webkit-scrollbar-track { background: transparent; margin: 10px 0; }
+.admin-review-scroll::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(139,92,246,.38); }
+.admin-review-scroll::-webkit-scrollbar-thumb:hover { background: rgba(139,92,246,.58); }
+.admin-review-preview {
+  width: 100% !important;
+  height: 210px !important;
+  min-height: 210px !important;
+  max-height: 210px !important;
+  aspect-ratio: auto !important;
+  border-bottom: 1px solid var(--border) !important;
+  background: #09090f !important;
+}
+.admin-review-preview img {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  object-fit: cover !important;
+  filter: none !important;
+}
+.admin-review-preview.mode-full {
+  height: min(52vh, 430px) !important;
+  min-height: 300px !important;
+  max-height: 430px !important;
+}
+.admin-review-preview.mode-full img { object-fit: contain !important; background: #09090f; }
+.admin-review-preview.mode-code {
+  height: min(52vh, 430px) !important;
+  min-height: 300px !important;
+  max-height: 430px !important;
+}
+.admin-review-body { padding: 24px 28px 28px !important; }
+.admin-review-close { top: 14px !important; right: 14px !important; z-index: 80 !important; backdrop-filter: blur(9px); }
+
+/* Fields and XML code are selectable/copyable, with purple selection. */
+.admin-page input,
+.admin-page textarea,
+.admin-page [contenteditable="true"],
+.admin-page pre,
+.admin-page code,
+.admin-review-code,
+.admin-review-code * {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+.admin-page input::selection,
+.admin-page textarea::selection,
+.admin-page [contenteditable="true"]::selection,
+.admin-page pre::selection,
+.admin-page code::selection,
+.admin-page pre *::selection,
+.admin-page code *::selection,
+.admin-review-code::selection,
+.admin-review-code *::selection {
+  background: rgba(139,92,246,.58);
+  color: #fff;
+}
+@media (max-width:720px) {
+  .admin-review-overlay { padding: 9px !important; }
+  .admin-review-modal { width: calc(100vw - 18px) !important; max-height: calc(100vh - 18px) !important; }
+  .admin-review-scroll { max-height: calc(100vh - 18px); }
+  .admin-review-preview { height: 175px !important; min-height: 175px !important; max-height: 175px !important; }
+  .admin-review-preview.mode-full,
+  .admin-review-preview.mode-code { height: min(55vh,390px) !important; min-height: 260px !important; }
+  .admin-review-body { padding: 20px 17px 22px !important; }
+}

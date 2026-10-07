@@ -14,6 +14,7 @@ let adminKey = sessionStorage.getItem('rehub_admin_key') || '';
 let currentSlot = 'okb';
 let currentMeta = null;
 let compressedPreview = null;
+let preparedOfficialConfig = null;
 let moderationData = { pending:[], approved:[], rejected:[] };
 let moderationTab = 'pending';
 let selectedSubmission = null;
@@ -92,6 +93,51 @@ async function getReviewObjectUrl(type) {
   const url = URL.createObjectURL(blob);
   reviewObjectUrlCache.set(cacheKey, url);
   return url;
+}
+
+function asciiLower(byte) {
+  return byte >= 65 && byte <= 90 ? byte + 32 : byte;
+}
+
+function findAscii(bytes, needle, from = 0) {
+  const pattern = [...needle].map(ch => ch.charCodeAt(0));
+  outer: for (let i = Math.max(0, from); i <= bytes.length - pattern.length; i++) {
+    for (let j = 0; j < pattern.length; j++) {
+      if (asciiLower(bytes[i + j]) !== asciiLower(pattern[j])) continue outer;
+    }
+    return i;
+  }
+  return -1;
+}
+
+function countBindEntries(bytes) {
+  let count = 0, at = 0;
+  while ((at = findAscii(bytes, '<bind', at)) !== -1) {
+    const next = bytes[at + 5];
+    if (next !== 115 && next !== 83) count++;
+    at += 5;
+  }
+  return count;
+}
+
+async function extractBindsFile(file) {
+  if (!file?.name?.toLowerCase().endsWith('.xml')) throw new Error('Нужен XML-конфиг.');
+  if (file.size > 1024 * 1024) throw new Error('XML не должен быть больше 1 МБ.');
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const start = findAscii(bytes, '<binds');
+  if (start < 0) throw new Error('В XML не найден блок <binds>…</binds>.');
+  const openEnd = bytes.indexOf(62, start);
+  if (openEnd < 0) throw new Error('Блок <binds> повреждён.');
+  const close = findAscii(bytes, '</binds>', openEnd + 1);
+  if (close < 0) throw new Error('В XML не найден закрывающий </binds>.');
+  const block = bytes.slice(start, close + 8);
+  const bindCount = countBindEntries(block);
+  if (!bindCount) throw new Error('В блоке <binds> нет ни одного bind.');
+  return {
+    file: new File([block], file.name, { type:'application/xml' }),
+    bindCount,
+    exportedBytes: block.length
+  };
 }
 
 let adminHoverBound = new WeakSet();
@@ -255,6 +301,52 @@ function initCustomScrollbar() {
   sync();
 }
 
+
+function observeAdminReveals() {
+  const items = [$('#adminLogin'), $('.admin-heading'), $('#slotGrid'), $('.admin-editor'), $('#communityModeration')].filter(Boolean);
+  items.forEach((el, index) => {
+    el.classList.add('admin-reveal');
+    el.style.transitionDelay = `${Math.min(index * 45, 180)}ms`;
+  });
+  const show = el => requestAnimationFrame(() => el.classList.add('visible'));
+  if (!('IntersectionObserver' in window)) { items.forEach(show); return; }
+  const observer = new IntersectionObserver(entries => entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    entry.target.classList.add('visible');
+    observer.unobserve(entry.target);
+  }), { threshold:.08, rootMargin:'0px 0px -5% 0px' });
+  items.forEach(el => observer.observe(el));
+}
+
+function initAdminHeader() {
+  const topbar = $('.admin-topbar');
+  const sync = () => topbar?.classList.toggle('scrolled', scrollY > 18);
+  sync();
+  addEventListener('scroll', sync, { passive:true });
+}
+
+function initAdminDragScroll() {
+  if (!matchMedia('(pointer:fine)').matches || innerWidth < 900) return;
+  let dragging=false,moved=false,startY=0,startScroll=0,lastY=0,lastTime=0,lastMoveTime=0,velocity=0,inertiaFrame=0,suppressClick=false;
+  const root=document.documentElement;
+  const interactiveSelector='a,button,input,textarea,select,[contenteditable="true"],pre,code,.site-scrollbar-thumb,.admin-review-modal,.admin-community-card,.admin-slot,.upload-drop';
+  const maxScroll=()=>Math.max(0,root.scrollHeight-innerHeight);
+  const setState=enabled=>{root.classList.toggle('page-kinetic',enabled);document.body.classList.toggle('page-kinetic',enabled);};
+  const cancel=()=>{if(inertiaFrame)cancelAnimationFrame(inertiaFrame);inertiaFrame=0;velocity=0;if(!dragging)setState(false);};
+  window.cancelPageInertia=cancel;
+  const begin=()=>{if(inertiaFrame)cancelAnimationFrame(inertiaFrame);const idle=performance.now()-lastMoveTime;if(idle>85)velocity*=Math.max(0,1-(idle-85)/150);velocity=Math.max(-2.7,Math.min(2.7,velocity*1.22));if(Math.abs(velocity)<.055){setState(false);return;}setState(true);let prev=performance.now();const tick=now=>{const dt=Math.min(32,Math.max(1,now-prev));prev=now;const limit=maxScroll(),before=scrollY,next=Math.max(0,Math.min(limit,before+velocity*dt));scrollTo(0,next);velocity*=Math.pow(.946,dt/16.667);if(next<=0||next>=limit)velocity*=.34;if(Math.abs(velocity)>.014)inertiaFrame=requestAnimationFrame(tick);else{inertiaFrame=0;velocity=0;setState(false);}};inertiaFrame=requestAnimationFrame(tick);};
+  document.addEventListener('mousedown',e=>{if(e.button!==0||e.target.closest(interactiveSelector)||document.body.classList.contains('admin-review-open'))return;cancel();dragging=true;moved=false;suppressClick=false;startY=lastY=e.clientY;startScroll=scrollY;lastTime=lastMoveTime=performance.now();velocity=0;root.classList.add('page-dragging');document.body.classList.add('page-dragging');setState(true);});
+  addEventListener('mousemove',e=>{if(!dragging)return;const now=performance.now(),dy=e.clientY-startY;if(Math.abs(dy)>3)moved=true;scrollTo(0,Math.max(0,Math.min(maxScroll(),startScroll-dy)));const dt=Math.max(1,now-lastTime),instant=(lastY-e.clientY)/dt;velocity=velocity*.58+instant*.42;lastY=e.clientY;lastTime=now;lastMoveTime=now;e.preventDefault();},{passive:false});
+  const finish=()=>{if(!dragging)return;dragging=false;root.classList.remove('page-dragging');document.body.classList.remove('page-dragging');if(moved){suppressClick=true;begin();setTimeout(()=>suppressClick=false,110);}else setState(false);};
+  addEventListener('mouseup',finish);addEventListener('blur',finish);
+  document.addEventListener('click',e=>{if(!suppressClick)return;e.preventDefault();e.stopPropagation();suppressClick=false;},true);
+  const ownScroller=(target,dy)=>{let node=target instanceof Element?target:null;while(node&&node!==document.body&&node!==root){const st=getComputedStyle(node),scrollable=(st.overflowY==='auto'||st.overflowY==='scroll')&&node.scrollHeight>node.clientHeight+1;if(scrollable){const up=node.scrollTop>0,down=node.scrollTop+node.clientHeight<node.scrollHeight-1;if((dy<0&&up)||(dy>0&&down))return true;}node=node.parentElement;}return false;};
+  const norm=e=>{let d=e.deltaY;if(e.deltaMode===1)d*=16;else if(e.deltaMode===2)d*=innerHeight;return Math.max(-190,Math.min(190,d));};
+  const wheelStart=()=>{if(inertiaFrame)return;setState(true);let prev=performance.now();const tick=now=>{const dt=Math.min(32,Math.max(1,now-prev));prev=now;const limit=maxScroll(),before=scrollY,next=Math.max(0,Math.min(limit,before+velocity*dt));scrollTo(0,next);velocity*=Math.pow(.885,dt/16.667);if(next<=0||next>=limit)velocity*=.28;if(Math.abs(velocity)>.012)inertiaFrame=requestAnimationFrame(tick);else{inertiaFrame=0;velocity=0;setState(false);}};inertiaFrame=requestAnimationFrame(tick);};
+  addEventListener('wheel',e=>{if(e.ctrlKey||e.metaKey||dragging||document.body.classList.contains('admin-review-open'))return;if(Math.abs(e.deltaY)<Math.abs(e.deltaX)||ownScroller(e.target,e.deltaY))return;e.preventDefault();velocity+=norm(e)*.0078;velocity=Math.max(-3.4,Math.min(3.4,velocity));wheelStart();},{passive:false});
+  addEventListener('keydown',cancel);
+}
+
 function canvasBlob(canvas,q){return new Promise((res,rej)=>canvas.toBlob(b=>b?res(b):rej(new Error('Не удалось сжать изображение')),'image/webp',q));}
 async function compressPreview(file) {
   if(!file) return null;
@@ -267,9 +359,9 @@ async function compressPreview(file) {
   return new File([blob],'preview.webp',{type:'image/webp'});
 }
 function resetFiles() {
-  $('#adminConfigFile').value=''; $('#adminPreviewFile').value=''; compressedPreview=null;
+  $('#adminConfigFile').value=''; $('#adminPreviewFile').value=''; compressedPreview=null; preparedOfficialConfig=null;
   $('#adminConfigTitle').textContent=currentMeta?'Оставить текущий XML':'Выбрать XML-конфиг';
-  $('#adminConfigMeta').textContent=currentMeta?'Выбери файл только если нужно заменить XML':'Для первой публикации обязателен · до 1 МБ';
+  $('#adminConfigMeta').textContent=currentMeta?'Выбери файл только если нужно заменить XML':'Для первой публикации обязателен · экспортируется только <binds>';
   const img=$('#adminPreviewImage'),drop=$('#adminPreviewDrop');
   if(currentMeta?.preview_url){img.hidden=false;img.src=currentMeta.preview_url;drop.classList.add('has-preview');$('#adminPreviewTitle').textContent='Текущее превью';$('#adminPreviewMeta').textContent='Новый файл заменит его';}
   else {img.hidden=true;img.removeAttribute('src');drop.classList.remove('has-preview');$('#adminPreviewTitle').textContent='Добавить превью';$('#adminPreviewMeta').textContent='JPG / PNG / WebP · авто ≤ 600 КБ';}
@@ -301,12 +393,27 @@ function showWorkspace() { $('#adminLogin').hidden=true; $('#adminWorkspace').hi
 function logout(){adminKey='';sessionStorage.removeItem('rehub_admin_key');$('#adminWorkspace').hidden=true;$('#adminLogin').hidden=false;$('#adminKeyInput').value='';bindAdminCursorHover();requestAnimationFrame(()=>window.syncAdminScrollbar?.());}
 async function login(key){adminKey=key.trim();if(!adminKey)return;try{await api('/api/admin/official');sessionStorage.setItem('rehub_admin_key',adminKey);$('#loginError').textContent='';showWorkspace();}catch(e){adminKey='';$('#loginError').textContent=e.status===401?'Неверный ADMIN_KEY.':e.message;}}
 function bindFiles(){
-  $('#adminConfigFile').addEventListener('change',()=>{const f=$('#adminConfigFile').files[0];if(!f)return;$('#adminConfigTitle').textContent=f.name;$('#adminConfigMeta').textContent=`${Math.max(1,Math.round(f.size/1024))} КБ · XML`;});
+  $('#adminConfigFile').addEventListener('change',async()=>{
+    const f=$('#adminConfigFile').files[0];if(!f)return;
+    $('#adminConfigTitle').textContent='Извлекаю блок биндов…';
+    $('#adminConfigMeta').textContent='На GitHub попадёт только <binds>…</binds>';
+    try{
+      const extracted=await extractBindsFile(f);
+      preparedOfficialConfig=extracted.file;
+      $('#adminConfigTitle').textContent=f.name;
+      $('#adminConfigMeta').textContent=`${extracted.bindCount} биндов · экспорт ${Math.max(1,Math.round(extracted.exportedBytes/1024))} КБ · только <binds>`;
+    }catch(e){
+      preparedOfficialConfig=null;$('#adminConfigFile').value='';
+      $('#adminConfigTitle').textContent=currentMeta?'Оставить текущий XML':'Выбрать XML-конфиг';
+      $('#adminConfigMeta').textContent=currentMeta?'Выбери файл только если нужно заменить XML':'Для первой публикации обязателен · экспортируется только <binds>';
+      toast(e.message||'Не удалось прочитать XML.');
+    }
+  });
   $('#adminPreviewFile').addEventListener('change',async()=>{const f=$('#adminPreviewFile').files[0];if(!f)return;try{compressedPreview=await compressPreview(f);const url=URL.createObjectURL(compressedPreview),img=$('#adminPreviewImage');img.hidden=false;img.src=url;$('#adminPreviewDrop').classList.add('has-preview');$('#adminPreviewTitle').textContent='Новое превью готово';$('#adminPreviewMeta').textContent=`${Math.round(compressedPreview.size/1024)} КБ · WebP`; }catch(e){$('#adminPreviewFile').value='';compressedPreview=null;toast(e.message);}});
 }
 async function submit(e){
   e.preventDefault(); if(!API){toast('Не указан REHUB_API.');return;}
-  const xml=$('#adminConfigFile').files[0]; if(!currentMeta&&!xml){toast('Для первой публикации выбери XML.');return;}
+  const xml=preparedOfficialConfig; if(!currentMeta&&!xml){toast('Для первой публикации выбери XML.');return;}
   const fd=new FormData();fd.set('title',$('#officialTitle').value);fd.set('author',$('#officialAuthor').value);fd.set('description',$('#officialDescription').value);if(xml)fd.set('config',xml,xml.name);if(compressedPreview)fd.set('preview',compressedPreview,'preview.webp');
   const form=$('#officialForm'),btn=$('#officialSubmit'),old=btn.textContent;form.classList.add('submitting');btn.disabled=true;btn.textContent=currentMeta?'Обновляю…':'Публикую…';
   try{const result=await api(`/api/admin/official/${currentSlot}`,{method:'POST',body:fd});fillForm(result.item);await refreshStates();toast(result.mode==='updated'?'Официальный конфиг обновлён.':'Официальный конфиг опубликован.');}
@@ -481,6 +588,7 @@ function openReview(item,status){
   $('#reviewActions').hidden=status!=='pending';$('#rejectBox').hidden=true;$('#rejectReasonInput').value='';
   $('#approvedDeleteArea').hidden=status!=='approved';
   $('#deleteConfirmBox').hidden=true;
+  const reviewScroll=$('#reviewScroll');if(reviewScroll)reviewScroll.scrollTop=0;
   $('#reviewOverlay').hidden=false;document.body.classList.add('admin-review-open');bindAdminCursorHover();requestAnimationFrame(()=>window.syncAdminScrollbar?.());
   loadReviewPreview();
 }
@@ -579,5 +687,5 @@ function bindModeration(){
   addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#reviewOverlay').hidden)closeReview();});
 }
 
-function init(){initCursor();initCustomScrollbar();$('#loginForm').addEventListener('submit',e=>{e.preventDefault();login($('#adminKeyInput').value);});$('#logoutBtn').addEventListener('click',logout);$$('.admin-slot').forEach(b=>b.addEventListener('click',()=>loadSlot(b.dataset.slot)));$('#reloadOfficial').addEventListener('click',()=>loadSlot(currentSlot));$('#officialForm').addEventListener('submit',submit);bindFiles();bindModeration();if(adminKey)login(adminKey);}
+function init(){initCursor();initAdminHeader();initAdminDragScroll();initCustomScrollbar();observeAdminReveals();$('#loginForm').addEventListener('submit',e=>{e.preventDefault();login($('#adminKeyInput').value);});$('#logoutBtn').addEventListener('click',logout);$$('.admin-slot').forEach(b=>b.addEventListener('click',()=>loadSlot(b.dataset.slot)));$('#reloadOfficial').addEventListener('click',()=>loadSlot(currentSlot));$('#officialForm').addEventListener('submit',submit);bindFiles();bindModeration();if(adminKey)login(adminKey);}
 addEventListener('DOMContentLoaded',init);
