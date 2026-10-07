@@ -760,3 +760,76 @@ label,
     width: 100%;
   }
 }
+
+
+/* v12 — keep the original ReConfig select look, but let the whole select open as an overlay shutter. */
+.community-toolbar {
+  position: relative;
+  z-index: 35;
+  align-items: start !important;
+}
+.community-toolbar .hub-search {
+  height: 46px;
+  min-height: 46px;
+  align-self: start;
+}
+.community-filter-select {
+  position: relative;
+  z-index: 45;
+  height: 46px;
+  min-width: 210px;
+  align-self: start;
+}
+.community-filter-select .program-select {
+  position: absolute;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: auto !important;
+  min-height: 46px;
+  overflow: hidden !important;
+  border-radius: 7px !important;
+  background: #101017 !important;
+}
+.community-filter-select .program-select.open {
+  background: #12121c !important;
+}
+.community-filter-select .program-select-trigger {
+  min-height: 44px;
+  border-radius: 0 !important;
+}
+.community-filter-select .program-select.open .program-select-trigger {
+  border-bottom: 1px solid var(--border) !important;
+}
+.community-filter-select .program-select-dropdown {
+  position: static !important;
+  inset: auto !important;
+  z-index: auto !important;
+  display: grid !important;
+  grid-template-rows: 0fr !important;
+  max-height: none !important;
+  opacity: 0 !important;
+  transform: translateY(-5px) !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transition: grid-template-rows .300s cubic-bezier(.22,1,.36,1), opacity .180s ease, transform .300s cubic-bezier(.22,1,.36,1) !important;
+}
+.community-filter-select .program-select.open .program-select-dropdown {
+  grid-template-rows: 1fr !important;
+  max-height: none !important;
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  pointer-events: auto !important;
+}
+.community-filter-select .program-select-options {
+  max-height: 251px !important;
+}
+@media (max-width:700px) {
+  .community-filter-select { width: 100%; min-width: 0; }
+}

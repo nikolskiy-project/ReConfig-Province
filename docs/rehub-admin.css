@@ -799,3 +799,130 @@ body.page-dragging { cursor: none !important; }
     width: 100%;
   }
 }
+
+
+/* v12 — perfectly aligned 3-way switches: one marker, three exact equal cells. */
+.program-segmented {
+  --segment-pad: 3px;
+  --segment-gap: 0px;
+  grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+  gap: 0 !important;
+  padding: var(--segment-pad) !important;
+}
+.program-segmented::before {
+  left: var(--segment-pad) !important;
+  top: var(--segment-pad) !important;
+  bottom: var(--segment-pad) !important;
+  width: calc((100% - var(--segment-pad) * 2) / 3) !important;
+  border-radius: 6px !important;
+  transform: translate3d(0,0,0) !important;
+  transition: transform .38s cubic-bezier(.2,1.08,.32,1), box-shadow .22s ease !important;
+}
+.program-segmented[data-index="1"]::before {
+  left: var(--segment-pad) !important;
+  transform: translate3d(100%,0,0) !important;
+}
+.program-segmented[data-index="2"]::before {
+  left: var(--segment-pad) !important;
+  transform: translate3d(200%,0,0) !important;
+}
+.program-segmented .segment-btn {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.program-segmented .segment-btn.active {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Official faction select: same connected shutter as before, but overlayed as a whole control. */
+.admin-official-toolbar {
+  position: relative;
+  z-index: 55;
+  grid-template-columns: minmax(0,1fr) auto !important;
+  align-items: end !important;
+}
+.admin-official-picker {
+  position: relative;
+  z-index: 60;
+  height: 65px;
+  min-height: 65px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.admin-official-picker > span {
+  flex: 0 0 auto;
+}
+.admin-official-picker .program-select {
+  position: absolute;
+  z-index: 65;
+  top: 22px;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: auto !important;
+  min-height: 42px;
+  overflow: hidden !important;
+  border-radius: 7px !important;
+  background: #101017 !important;
+}
+.admin-official-picker .program-select.open {
+  background: #12121c !important;
+}
+.admin-official-picker .program-select-trigger {
+  min-height: 40px;
+  border-radius: 0 !important;
+}
+.admin-official-picker .program-select.open .program-select-trigger {
+  border-bottom: 1px solid var(--border) !important;
+}
+.admin-official-picker .program-select-dropdown {
+  position: static !important;
+  inset: auto !important;
+  z-index: auto !important;
+  display: grid !important;
+  grid-template-rows: 0fr !important;
+  max-height: none !important;
+  opacity: 0 !important;
+  transform: translateY(-5px) !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transition: grid-template-rows .300s cubic-bezier(.22,1,.36,1), opacity .180s ease, transform .300s cubic-bezier(.22,1,.36,1) !important;
+}
+.admin-official-picker .program-select.open .program-select-dropdown {
+  grid-template-rows: 1fr !important;
+  max-height: none !important;
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  pointer-events: auto !important;
+}
+.admin-official-picker .program-select-options {
+  max-height: 251px !important;
+}
+#newOfficialFaction {
+  min-height: 42px;
+  align-self: end !important;
+  margin: 0 !important;
+}
+.admin-editor {
+  position: relative;
+  z-index: 1;
+}
+@media (max-width:700px) {
+  .admin-official-toolbar { grid-template-columns: 1fr !important; }
+  .admin-official-picker { height: 65px; }
+  #newOfficialFaction { width: 100%; }
+}
