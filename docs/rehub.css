@@ -298,3 +298,54 @@ body.modal-open { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .config-thumb,.thumb-follow { transform: none !important; }
 }
+
+
+/* Upload CTA — keep the workshop accent style, never the browser/default black button. */
+.rehub-upload-btn,
+.upload-config-btn,
+button[data-action="upload"],
+label[for="config-upload"] {
+    background:
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--accent) 92%, white 8%),
+            color-mix(in srgb, var(--accent) 72%, black 28%));
+    color: #fff;
+    border: 1px solid color-mix(in srgb, var(--accent) 72%, white 12%);
+    box-shadow:
+        0 8px 22px color-mix(in srgb, var(--accent) 24%, transparent),
+        inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.rehub-upload-btn:hover,
+.upload-config-btn:hover,
+button[data-action="upload"]:hover,
+label[for="config-upload"]:hover {
+    background:
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--accent) 100%, white 0%),
+            color-mix(in srgb, var(--accent) 82%, black 18%));
+    border-color: color-mix(in srgb, var(--accent) 88%, white 12%);
+    box-shadow:
+        0 10px 28px color-mix(in srgb, var(--accent) 32%, transparent),
+        inset 0 1px 0 rgba(255,255,255,.16);
+}
+
+
+/* ReHub uses the site's custom cursor everywhere. */
+body,
+a,
+button,
+input,
+textarea,
+select,
+label,
+[role="button"],
+.config-card,
+.filter-chip,
+.search-box,
+.upload-zone,
+.modal,
+.modal * {
+    cursor: none !important;
+}
+
