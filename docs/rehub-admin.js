@@ -214,9 +214,9 @@ function initCursor() {
 function initCustomScrollbar() {
   if (!matchMedia('(pointer:fine)').matches || innerWidth < 900) return;
 
-  const existing = document.querySelector('.site-scrollbar');
-  if (existing) existing.remove();
+  document.querySelector('.site-scrollbar')?.remove();
 
+  const scroller = document.scrollingElement || document.documentElement;
   const track = document.createElement('div');
   track.className = 'site-scrollbar';
   track.setAttribute('aria-hidden', 'true');
@@ -227,14 +227,15 @@ function initCustomScrollbar() {
   document.body.appendChild(track);
 
   let dragging = false;
+  let pointerId = null;
   let grabOffset = 0;
   let raf = 0;
 
-  const metrics = () => {
-    const viewport = innerHeight;
-    const total = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, viewport);
-    const trackHeight = track.clientHeight;
-    const thumbHeight = Math.max(52, Math.min(trackHeight, trackHeight * (viewport / total)));
+  const getMetrics = () => {
+    const viewport = Math.max(1, window.innerHeight);
+    const total = Math.max(scroller.scrollHeight, document.body.scrollHeight, viewport);
+    const trackHeight = Math.max(1, track.clientHeight);
+    const thumbHeight = Math.max(48, Math.min(trackHeight, trackHeight * (viewport / total)));
     const maxScroll = Math.max(0, total - viewport);
     const maxThumbTop = Math.max(0, trackHeight - thumbHeight);
     return { thumbHeight, maxScroll, maxThumbTop };
@@ -242,61 +243,80 @@ function initCustomScrollbar() {
 
   const syncNow = () => {
     raf = 0;
-    const { thumbHeight, maxScroll, maxThumbTop } = metrics();
-    const ratio = maxScroll > 0 ? Math.max(0, Math.min(1, scrollY / maxScroll)) : 0;
+    const { thumbHeight, maxScroll, maxThumbTop } = getMetrics();
+    const current = scroller.scrollTop || window.scrollY || 0;
+    const ratio = maxScroll > 0 ? Math.max(0, Math.min(1, current / maxScroll)) : 0;
     thumb.style.height = `${thumbHeight}px`;
     thumb.style.transform = `translate3d(0,${maxThumbTop * ratio}px,0)`;
-    track.classList.toggle('hidden', maxScroll <= 0);
+    track.classList.toggle('hidden', maxScroll <= 1);
   };
 
   const sync = () => {
     if (raf) cancelAnimationFrame(raf);
     raf = requestAnimationFrame(syncNow);
   };
-
   window.syncAdminScrollbar = sync;
 
-  const move = clientY => {
+  const setScrollFromPointer = clientY => {
     const rect = track.getBoundingClientRect();
-    const { maxScroll, maxThumbTop } = metrics();
-    if (!maxScroll || !maxThumbTop) return;
-    const top = Math.max(0, Math.min(maxThumbTop, clientY - rect.top - grabOffset));
-    scrollTo(0, (top / maxThumbTop) * maxScroll);
+    const { maxScroll, maxThumbTop } = getMetrics();
+    if (maxScroll <= 0 || maxThumbTop <= 0) return;
+    const thumbTop = Math.max(0, Math.min(maxThumbTop, clientY - rect.top - grabOffset));
+    scroller.scrollTop = (thumbTop / maxThumbTop) * maxScroll;
+    sync();
   };
 
   thumb.addEventListener('pointerdown', e => {
     if (e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
-    grabOffset = e.clientY - thumb.getBoundingClientRect().top;
+    window.cancelPageInertia?.();
     dragging = true;
+    pointerId = e.pointerId;
+    grabOffset = e.clientY - thumb.getBoundingClientRect().top;
     thumb.classList.add('dragging');
-    thumb.setPointerCapture?.(e.pointerId);
+    try { track.setPointerCapture(pointerId); } catch (_) {}
   });
 
-  addEventListener('pointermove', e => {
-    if (!dragging) return;
+  track.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || e.target === thumb) return;
     e.preventDefault();
-    move(e.clientY);
+    e.stopPropagation();
+    window.cancelPageInertia?.();
+    const { thumbHeight } = getMetrics();
+    grabOffset = thumbHeight / 2;
+    dragging = true;
+    pointerId = e.pointerId;
+    thumb.classList.add('dragging');
+    try { track.setPointerCapture(pointerId); } catch (_) {}
+    setScrollFromPointer(e.clientY);
+  });
+
+  track.addEventListener('pointermove', e => {
+    if (!dragging || (pointerId !== null && e.pointerId !== pointerId)) return;
+    e.preventDefault();
+    setScrollFromPointer(e.clientY);
   }, { passive: false });
 
   const finish = e => {
     if (!dragging) return;
+    if (pointerId !== null && e?.pointerId != null && e.pointerId !== pointerId) return;
     dragging = false;
     thumb.classList.remove('dragging');
-    try { thumb.releasePointerCapture?.(e.pointerId); } catch (_) {}
+    try { if (pointerId !== null) track.releasePointerCapture(pointerId); } catch (_) {}
+    pointerId = null;
+    sync();
   };
 
-  addEventListener('pointerup', finish);
-  addEventListener('pointercancel', finish);
-  addEventListener('scroll', sync, { passive: true });
-  addEventListener('resize', sync, { passive: true });
+  track.addEventListener('pointerup', finish);
+  track.addEventListener('pointercancel', finish);
+  window.addEventListener('blur', finish);
+  window.addEventListener('scroll', sync, { passive: true });
+  window.addEventListener('resize', sync, { passive: true });
 
-  // Админка меняет высоту после входа, загрузки очереди и переключения вкладок.
-  // Следим за этим автоматически, чтобы ползунок не оставался скрытым/старого размера.
   if ('ResizeObserver' in window) {
     const ro = new ResizeObserver(sync);
-    ro.observe(document.documentElement);
+    ro.observe(scroller);
     ro.observe(document.body);
   }
 
@@ -308,7 +328,7 @@ function initCustomScrollbar() {
     attributeFilter: ['hidden', 'class', 'style']
   });
 
-  sync();
+  requestAnimationFrame(sync);
 }
 
 

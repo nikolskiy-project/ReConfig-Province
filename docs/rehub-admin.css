@@ -643,3 +643,159 @@ body.page-dragging { cursor: none !important; }
 .program-select-option.selected{background:rgba(183,156,255,.18);color:#b79cff}
 .program-select-option.disabled{opacity:.42;pointer-events:none}
 
+
+
+/* v11 — remove stale active-cell outlines; keep one clean moving marker. */
+.program-segmented .segment-btn.active {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+.program-segmented::before {
+  top: 3px !important;
+  bottom: 3px !important;
+  border-radius: 6px !important;
+}
+.admin-tabs.program-segmented,
+.review-segmented {
+  align-items: stretch;
+}
+.program-segmented .segment-btn {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Moderation panel uses the exact same glass language as the official editor. */
+.admin-community-section.hub-modal {
+  width: 100% !important;
+  max-height: none !important;
+  overflow: visible !important;
+  margin-top: 72px !important;
+  padding: 25px !important;
+  opacity: 1 !important;
+  transform: none !important;
+  border: 1px solid var(--border-bright) !important;
+  border-radius: 17px !important;
+  background: rgba(19,19,28,.965) !important;
+  box-shadow: 0 28px 80px rgba(0,0,0,.28), 0 0 48px rgba(139,92,246,.04) !important;
+}
+.admin-community-heading {
+  align-items: center !important;
+  padding-bottom: 18px;
+  margin-bottom: 18px !important;
+  border-bottom: 1px solid var(--border);
+}
+.admin-community-heading h2 {
+  font-size: 25px !important;
+  letter-spacing: -.8px !important;
+}
+.admin-tabs.program-segmented {
+  margin-top: 0 !important;
+}
+
+/* Faction dropdown is an overlay: it never pushes "Добавить фракцию" down. */
+.admin-official-toolbar {
+  grid-template-columns: minmax(0,1fr) auto !important;
+  align-items: start !important;
+}
+.admin-official-picker {
+  position: relative;
+  min-height: 65px;
+  z-index: 30;
+}
+.admin-official-picker .program-select {
+  position: relative;
+  z-index: 30;
+  overflow: visible !important;
+  border-radius: 10px;
+}
+.admin-official-picker .program-select-trigger {
+  min-height: 42px;
+  border-radius: 9px;
+}
+.admin-official-picker .program-select.open .program-select-trigger {
+  border-bottom: 0 !important;
+}
+.admin-official-picker .program-select-dropdown {
+  position: absolute;
+  z-index: 100;
+  top: calc(100% + 7px);
+  left: -1px;
+  right: -1px;
+  display: block !important;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px) scale(.985);
+  overflow: hidden;
+  pointer-events: none;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: rgba(18,18,28,.99);
+  box-shadow: 0 18px 42px rgba(0,0,0,.36), 0 0 26px rgba(183,156,255,.035);
+  transition:
+    max-height .30s cubic-bezier(.22,1,.36,1),
+    opacity .18s ease,
+    transform .30s cubic-bezier(.22,1,.36,1),
+    border-color .18s ease;
+}
+.admin-official-picker .program-select.open .program-select-dropdown {
+  max-height: 270px;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+  border-color: var(--border);
+}
+#newOfficialFaction {
+  min-height: 42px;
+  align-self: end;
+  margin-bottom: 0;
+}
+
+/* Admin page scrollbar: larger hit area and reliable rounded dragging. */
+.admin-page .site-scrollbar {
+  right: 5px !important;
+  top: 9px !important;
+  bottom: 9px !important;
+  width: 12px !important;
+  overflow: visible !important;
+  touch-action: none;
+  cursor: none !important;
+}
+.admin-page .site-scrollbar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.018);
+}
+.admin-page .site-scrollbar-thumb {
+  left: 3px !important;
+  width: 6px !important;
+  min-height: 48px !important;
+  border-radius: 999px !important;
+  background: rgba(183,156,255,.40) !important;
+  box-shadow: 0 0 0 1px rgba(183,156,255,.06) inset;
+  touch-action: none;
+  cursor: none !important;
+  transition: width .15s ease, left .15s ease, background .15s ease, box-shadow .15s ease !important;
+}
+.admin-page .site-scrollbar:hover .site-scrollbar-thumb,
+.admin-page .site-scrollbar-thumb.dragging {
+  left: 2px !important;
+  width: 8px !important;
+  background: rgba(183,156,255,.62) !important;
+  box-shadow: 0 0 14px rgba(183,156,255,.10);
+}
+@media (max-width:700px) {
+  .admin-official-toolbar {
+    grid-template-columns: 1fr !important;
+  }
+  #newOfficialFaction {
+    width: 100%;
+  }
+}
