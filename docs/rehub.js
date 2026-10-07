@@ -547,7 +547,7 @@ function makeCommunityCard(item) {
   card.dataset.description = escapeText(item.description || '');
   card.dataset.status = 'Опубликован';
   card.dataset.statusKind = 'ready';
-  card.dataset.tags = `${escapeText(item.category || 'Другое')}|Сообщество|ReHub`;
+  card.dataset.tags = `${escapeText(item.category || 'Другое')}|Сообщество|${item.verified ? 'Проверено|' : ''}ReHub`;
   card.dataset.symbol = 'star';
   card.dataset.author = escapeText(item.author || 'Пользователь');
   card.dataset.previewUrl = escapeText(item.preview_url || '');
@@ -570,7 +570,7 @@ function makeCommunityCard(item) {
   }
   const state = document.createElement('span');
   state.className = 'thumb-state ready';
-  state.textContent = 'Сообщество';
+  state.textContent = item.verified ? 'Проверено' : 'Сообщество';
   const shine = document.createElement('div');
   shine.className = 'thumb-shine';
   shine.setAttribute('aria-hidden', 'true');
@@ -588,8 +588,9 @@ function makeCommunityCard(item) {
   h3.textContent = item.title || 'Конфиг сообщества';
   const p = document.createElement('p');
   p.textContent = item.author || 'Пользователь';
+  if (item.verified) { const check=document.createElement('span'); check.className='verified-dot'; check.textContent='✓'; p.append(' ',check); }
   const small = document.createElement('small');
-  small.textContent = `Сообщество · ${item.category || 'Другое'}`;
+  small.textContent = `${item.verified ? 'Проверенный конфиг' : 'Сообщество'} · ${item.category || 'Другое'}`;
   copy.append(h3, p, small);
   meta.append(avatar, copy);
   card.append(thumb, meta);
@@ -601,6 +602,62 @@ function makeCommunityCard(item) {
     openCard(card);
   });
   return card;
+}
+
+
+function applyOfficialConfig(item) {
+  if (!item || !item.official || !item.slot) return;
+  const labels = { okb: 'ОКБ', uvd: 'УВД', gibdd: 'ГИБДД', army: 'АРМИЯ' };
+  const label = labels[item.slot];
+  if (!label) return;
+  const card = $$('.hub-video-card').find(el => !(el.dataset.category || '').includes('community') && el.dataset.label === label);
+  if (!card) return;
+
+  card.dataset.title = escapeText(item.title || label);
+  card.dataset.description = escapeText(item.description || '');
+  card.dataset.status = 'Доступен';
+  card.dataset.statusKind = 'ready';
+  card.dataset.tags = `${escapeText(item.category || label)}|Официальный|ReConfig`;
+  card.dataset.author = escapeText(item.author || 'ReConfig Province');
+  card.dataset.previewUrl = escapeText(item.preview_url || '');
+  card.dataset.downloadUrl = escapeText(item.download_url || '');
+  card.dataset.search = `${card.dataset.search || ''} ${card.dataset.title} ${card.dataset.description} ${card.dataset.author}`;
+
+  const thumb = card.querySelector('.config-thumb');
+  if (thumb && item.preview_url) {
+    let image = thumb.querySelector('.official-preview-image');
+    if (!image) {
+      image = document.createElement('img');
+      image.className = 'community-preview official-preview-image';
+      image.alt = '';
+      image.loading = 'lazy';
+      thumb.insertBefore(image, thumb.firstChild);
+    }
+    image.src = item.preview_url;
+  }
+  const state = card.querySelector('.thumb-state');
+  if (state) {
+    state.textContent = 'Доступен';
+    state.classList.remove('soon');
+    state.classList.add('ready');
+  }
+  const title = card.querySelector('.video-card-copy h3');
+  if (title) {
+    title.textContent = item.title || label;
+    const check = document.createElement('span');
+    check.className = 'verified-dot';
+    check.textContent = '✓';
+    title.append(' ', check);
+  }
+  const author = card.querySelector('.video-card-copy p');
+  if (author) {
+    author.textContent = item.author || 'ReConfig Province';
+    const check = document.createElement('span');
+    check.textContent = '✓';
+    author.append(' ', check);
+  }
+  const small = card.querySelector('.video-card-copy small');
+  if (small) small.textContent = `Официальный конфиг · ${item.category || label}`;
 }
 
 async function loadCommunityConfigs() {
@@ -621,9 +678,11 @@ async function loadCommunityConfigs() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     const items = Array.isArray(data) ? data : (Array.isArray(data.configs) ? data.configs : []);
+    items.filter(item => item && item.official === true).forEach(applyOfficialConfig);
+    const communityItems = items.filter(item => !item || item.official !== true);
     grid.innerHTML = '';
-    items.forEach(item => grid.appendChild(makeCommunityCard(item)));
-    empty.hidden = items.length > 0;
+    communityItems.forEach(item => grid.appendChild(makeCommunityCard(item)));
+    empty.hidden = communityItems.length > 0;
     initCardParallax();
     bindCursorHover();
   } catch (error) {
