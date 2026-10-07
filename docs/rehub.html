@@ -8,7 +8,34 @@
   <title>ReHub — мастерская конфигов</title>
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="rehub.css">
+  <link rel="stylesheet" href="rehub.css?v=5">
+
+  <style>
+    #openUploadTop {
+      -webkit-appearance: none !important;
+      appearance: none !important;
+      color: #f4f4f7 !important;
+      -webkit-text-fill-color: #f4f4f7 !important;
+      font: inherit;
+    }
+
+    #openUploadTop span {
+      color: #f4f4f7 !important;
+      -webkit-text-fill-color: #f4f4f7 !important;
+    }
+
+    #openUploadTop svg,
+    #openUploadTop svg * {
+      color: currentColor !important;
+      stroke: currentColor !important;
+    }
+
+    #openUploadTop:hover,
+    #openUploadTop:hover span {
+      color: #b79cff !important;
+      -webkit-text-fill-color: #b79cff !important;
+    }
+  </style>
 </head>
 <body class="rehub-page">
   <div class="page-noise" aria-hidden="true"></div>
@@ -330,6 +357,6 @@
 
   <div class="hub-toast" id="hubToast" role="status" aria-live="polite"></div>
 
-  <script src="rehub.js"></script>
+  <script src="rehub.js?v=5"></script>
 </body>
 </html>

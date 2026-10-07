@@ -334,3 +334,25 @@ label,
     stroke: currentColor;
 }
 
+
+/* v5: force the header upload button to ignore native form-button colors. */
+#openUploadTop,
+#openUploadTop span {
+  color: #f4f4f7 !important;
+  -webkit-text-fill-color: #f4f4f7 !important;
+}
+#openUploadTop {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  font: inherit;
+}
+#openUploadTop svg,
+#openUploadTop svg * {
+  stroke: currentColor !important;
+  color: currentColor !important;
+}
+#openUploadTop:hover,
+#openUploadTop:hover span {
+  color: #b79cff !important;
+  -webkit-text-fill-color: #b79cff !important;
+}
