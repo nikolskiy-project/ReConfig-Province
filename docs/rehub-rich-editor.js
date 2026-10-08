@@ -95,11 +95,11 @@
     textarea.dataset.richReady='1';textarea.dataset.roundScroll='1'; // no obsolete textarea track
     const field=textarea.closest('.rehub-markdown-field');
     const editor=document.createElement('div');
-    editor.className='rehub-rich-editor';editor.contentEditable='true';editor.spellcheck=true;
+    editor.className='rehub-rich-editor interactive';editor.contentEditable='true';editor.spellcheck=true;
     editor.setAttribute('role','textbox');editor.setAttribute('aria-label','Описание публикации');
     editor.setAttribute('aria-multiline','true');editor.setAttribute('aria-required','true');
     editor.dataset.placeholder='Описание: переносы строк, жирный текст, списки и ссылки';
-    textarea.classList.add('rehub-rich-source');textarea.required=false;
+    textarea.classList.add('rehub-rich-source');textarea.required=false;textarea.tabIndex=-1;
     textarea.insertAdjacentElement('afterend',editor);
     const form=textarea.closest('form');
     const show=()=>{editor.innerHTML=textarea.value?renderMarkdown(textarea.value):'';requestAnimationFrame(syncTrack);};

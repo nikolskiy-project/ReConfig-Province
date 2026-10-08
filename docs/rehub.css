@@ -1133,3 +1133,13 @@ label,
 @media(max-width:450px){
   .rehub-markdown-field .rehub-rich-editor{height:114px;max-height:114px;}
 }
+
+/* v30: description controls are div containers so clicks cannot activate the hidden textarea.
+   Preserve the original label grid/flex sizing without redirecting keyboard focus. */
+.upload-fields > .rehub-markdown-field {
+  display:flex; flex-direction:column; gap:6px; grid-column:1 / -1;
+}
+.upload-fields > .rehub-markdown-field > span { color:#898998; font-size:9px; }
+/* The site uses its custom mouse cursor: never let contenteditable re-enable the OS I-beam. */
+.rehub-markdown-field .rehub-rich-editor,
+.rehub-markdown-field .rehub-rich-editor * { cursor:none !important; }
