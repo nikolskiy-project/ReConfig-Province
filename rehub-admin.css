@@ -989,3 +989,139 @@ body.page-dragging { cursor: none !important; }
 @media (max-width: 700px) {
   .admin-review-inner-track { top: 54px; right: 3px; width: 11px; }
 }
+
+
+/* v15: no square native bars inside moderation modal, including XML pane.
+   Actual scrolling remains native; only the visible draggable thumb is custom. */
+#reviewOverlay .admin-review-modal,
+#reviewOverlay #reviewScroll,
+#reviewOverlay #reviewCode {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+#reviewOverlay .admin-review-modal::-webkit-scrollbar,
+#reviewOverlay #reviewScroll::-webkit-scrollbar,
+#reviewOverlay #reviewCode::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+#reviewOverlay .admin-review-inner-track {
+  background: rgba(183,156,255,.05);
+  border-radius: 999px !important;
+  right: 4px !important;
+  width: 13px !important;
+}
+#reviewOverlay .admin-review-inner-thumb {
+  left: 3px !important;
+  width: 7px !important;
+  background: #9b79dd !important;
+  border-radius: 999px !important;
+  box-shadow: 0 0 10px rgba(139,92,246,.20) !important;
+}
+#reviewOverlay .admin-review-inner-track:is(:hover, .dragging) .admin-review-inner-thumb {
+  left: 2px !important;
+  width: 9px !important;
+  background: #bea3ff !important;
+}
+#reviewOverlay .admin-review-code-track {
+  position: absolute;
+  z-index: 20;
+  right: 6px;
+  top: 9px;
+  bottom: 9px;
+  width: 11px;
+  border-radius: 999px;
+  background: rgba(183,156,255,.07);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: none !important;
+}
+#reviewOverlay .admin-review-code-track[hidden] { display: none !important; }
+#reviewOverlay .admin-review-code-thumb {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  width: 7px;
+  min-height: 38px;
+  border-radius: 999px;
+  background: #9b79dd;
+  box-shadow: 0 0 12px rgba(139,92,246,.14);
+  transition: background .16s ease, width .16s ease, left .16s ease;
+  will-change: transform;
+}
+#reviewOverlay .admin-review-code-track:is(:hover, .dragging) .admin-review-code-thumb {
+  left: 1px;
+  width: 9px;
+  background: #bea3ff;
+}
+
+/* Официальные бинды: две независимые версии для генератора программы. */
+.admin-preset-files { margin: 18px 0 20px; }
+.admin-preset-heading { display:flex; gap:12px; justify-content:space-between; align-items:center; margin:0 0 11px; flex-wrap:wrap; }
+.admin-preset-heading strong { font-size:12px; font-weight:650; color:var(--text); }
+.admin-preset-heading span { font-size:10px; color:var(--text-muted); }
+.admin-preset-drop { min-height:110px !important; padding:15px !important; }
+.admin-preset-drop.saved { border-color:rgba(125,215,160,.38); background:rgba(48,157,103,.045); }
+.admin-preset-drop.saved strong { color:#9eddb8; }
+.admin-preset-drop.selected { border-color:var(--accent) !important; background:rgba(var(--accent-rgb),.065); }
+
+
+/* v18 — one XML upload; the variant switch lives beside the author field. */
+.admin-gender-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.admin-gender-field > span {
+  color: #898998;
+  font-size: 9px;
+}
+/* Uses the same native, measured segmented marker as moderation / XML view. */
+.admin-gender-switch.program-segmented {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  width: 100%;
+  min-height: 38px;
+  margin: 0;
+  border-radius: 8px;
+}
+.admin-gender-switch.program-segmented .admin-gender-option {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  min-width: 0;
+  gap: 6px;
+  font-size: 10px;
+  cursor: none;
+}
+/* Keep the status indicators green, not the general segment counters' violet. */
+.admin-gender-switch.program-segmented .segment-btn .gender-ready-dot,
+.admin-gender-switch.program-segmented .segment-btn.active .gender-ready-dot {
+  background: #4ac996 !important;
+  box-shadow: 0 0 5px rgba(74,201,150,.38);
+  border: 0 !important;
+}
+.gender-ready-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-left: 0;
+  flex: 0 0 5px;
+  border-radius: 100%;
+  background: #4ac996;
+  box-shadow: 0 0 5px rgba(74,201,150,.38);
+  vertical-align: 2px;
+  visibility: hidden;
+}
+.gender-ready-dot.ready { visibility: visible; }
+#adminConfigDrop.version-ready { border-color: rgba(74,201,150,.37); }
+#adminConfigDrop.version-pending { border-color: rgba(var(--accent-rgb), .60); background: rgba(var(--accent-rgb), .045); }
+@media (pointer: coarse) { .admin-gender-option { cursor: pointer; } }
+
+/* Moderation XML versions use the existing Admin segmented style. */
+.admin-review-gender { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; margin-bottom: 12px; }
+.admin-review-gender > span { font-size: 10px; color: #9f9aaf; font-weight: 600; }
+.admin-review-gender .admin-gender-switch { width: min(285px, 100%); }
+.admin-review-gender[hidden] { display: none !important; }

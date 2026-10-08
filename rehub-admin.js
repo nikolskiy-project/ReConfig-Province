@@ -16,7 +16,10 @@ let currentSlot = 'okb';
 let creatingOfficial = false;
 let currentMeta = null;
 let compressedPreview = null;
-let preparedOfficialConfig = null;
+let selectedOfficialGender = 'male';
+// Each variant is kept in memory while changing the visible upload slot.
+let preparedOfficialPresets = { male: null, female: null };
+let officialUploadRevision = 0;
 let moderationData = { pending:[], approved:[], rejected:[] };
 let moderationTab = 'pending';
 let selectedSubmission = null;
@@ -40,14 +43,14 @@ const reviewObjectUrlCache = new Map();
 function reviewFilePath(type) {
   if (!selectedSubmission?.id || !selectedSubmission?.status) return '';
   const status = encodeURIComponent(selectedSubmission.status);
-  return `/api/admin/submissions/${encodeURIComponent(selectedSubmission.id)}/file?status=${status}&type=${encodeURIComponent(type)}`;
+  return `/api/admin/submissions/${encodeURIComponent(selectedSubmission.id)}/file?status=${status}&type=${encodeURIComponent(type)}${type === 'config' ? `&gender=${selectedReviewGender}` : ''}`;
 }
 
 async function fetchAdminFile(type, timeoutMs = 12000) {
   const path = reviewFilePath(type);
   if (!path) throw new Error('Публикация не выбрана.');
 
-  const cacheKey = `${selectedSubmission.status}:${selectedSubmission.id}:${type}`;
+  const cacheKey = `${selectedSubmission.status}:${selectedSubmission.id}:${type}:${type === 'config' ? selectedReviewGender : ''}`;
   if (reviewFileCache.has(cacheKey)) return reviewFileCache.get(cacheKey);
 
   const promise = (async () => {
@@ -89,7 +92,7 @@ async function fetchAdminFile(type, timeoutMs = 12000) {
 }
 
 async function getReviewObjectUrl(type) {
-  const cacheKey = `${selectedSubmission.status}:${selectedSubmission.id}:${type}`;
+  const cacheKey = `${selectedSubmission.status}:${selectedSubmission.id}:${type}:${type === 'config' ? selectedReviewGender : ''}`;
   if (reviewObjectUrlCache.has(cacheKey)) return reviewObjectUrlCache.get(cacheKey);
   const blob = await fetchAdminFile(type);
   const url = URL.createObjectURL(blob);
@@ -383,10 +386,56 @@ async function compressPreview(file) {
   bmp.close?.(); if(!blob||blob.size>PREVIEW_MAX) throw new Error('Не удалось ужать превью до 600 КБ.');
   return new File([blob],'preview.webp',{type:'image/webp'});
 }
+function updateOfficialVariantUI() {
+  const gender = selectedOfficialGender;
+  const label = gender === 'male' ? 'Мужская' : 'Женская';
+  const staged = preparedOfficialPresets[gender];
+  const saved = Boolean(currentMeta?.[`preset_${gender}_file`]);
+  const drop = $('#adminConfigDrop');
+  drop.classList.toggle('version-pending', Boolean(staged));
+  drop.classList.toggle('version-ready', !staged && saved);
+
+  if (staged) {
+    $('#adminConfigTitle').textContent = staged.name;
+    $('#adminConfigMeta').textContent = `${label} версия · ${staged.bindCount} биндов · ${Math.max(1, Math.ceil(staged.file.size/1024))} КБ · будет обновлена`;
+  } else if (saved) {
+    $('#adminConfigTitle').textContent = `${label} версия уже загружена`;
+    $('#adminConfigMeta').textContent = 'Нажми для замены XML или переключи пол · старый файл сохранится';
+  } else {
+    $('#adminConfigTitle').textContent = `Выбрать XML · ${gender === 'male' ? 'мужская' : 'женская'} версия`;
+    $('#adminConfigMeta').textContent = 'Загрузи XML · сохраняется только <binds>…</binds> · до 1 МБ';
+  }
+
+  const toggle = $('#officialGenderSwitch');
+  toggle.dataset.gender = gender;
+  toggle.dataset.index = gender === 'female' ? '1' : '0';
+  $$('.admin-gender-option', toggle).forEach(button => {
+    const active = button.dataset.gender === gender;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+  ['male','female'].forEach(key => {
+    const dot=$(`#genderReady${key === 'male' ? 'Male' : 'Female'}`);
+    dot.classList.toggle('ready', Boolean(preparedOfficialPresets[key] || currentMeta?.[`preset_${key}_file`]));
+  });
+}
+
+function switchOfficialGender(gender) {
+  if (gender !== 'male' && gender !== 'female') return;
+  selectedOfficialGender = gender;
+  // A single file input represents one variant at a time.
+  $('#adminConfigFile').value = '';
+  updateOfficialVariantUI();
+}
+
 function resetFiles() {
-  $('#adminConfigFile').value=''; $('#adminPreviewFile').value=''; compressedPreview=null; preparedOfficialConfig=null;
-  $('#adminConfigTitle').textContent=currentMeta?'Оставить текущий XML':'Выбрать XML-конфиг';
-  $('#adminConfigMeta').textContent=currentMeta?'Выбери файл только если нужно заменить XML':'Для первой публикации обязателен · экспортируется только <binds>';
+  officialUploadRevision++;
+  selectedOfficialGender = 'male';
+  preparedOfficialPresets = { male:null, female:null };
+  $('#adminConfigFile').value = '';
+  $('#adminPreviewFile').value = '';
+  compressedPreview = null;
+  updateOfficialVariantUI();
   const img=$('#adminPreviewImage'),drop=$('#adminPreviewDrop');
   if(currentMeta?.preview_url){img.hidden=false;img.src=currentMeta.preview_url;drop.classList.add('has-preview');$('#adminPreviewTitle').textContent='Текущее превью';$('#adminPreviewMeta').textContent='Новый файл заменит его';}
   else {img.hidden=true;img.removeAttribute('src');drop.classList.remove('has-preview');$('#adminPreviewTitle').textContent='Добавить превью';$('#adminPreviewMeta').textContent='JPG / PNG / WebP · авто ≤ 600 КБ';}
@@ -436,20 +485,28 @@ function showWorkspace() {
 function logout(){adminKey='';sessionStorage.removeItem('rehub_admin_key');$('#adminWorkspace').hidden=true;$('#adminLogin').hidden=false;$('#adminKeyInput').value='';bindAdminCursorHover();requestAnimationFrame(()=>window.syncAdminScrollbar?.());}
 async function login(key){adminKey=key.trim();if(!adminKey)return;try{await api('/api/admin/official');sessionStorage.setItem('rehub_admin_key',adminKey);$('#loginError').textContent='';showWorkspace();}catch(e){adminKey='';$('#loginError').textContent=e.status===401?'Неверный ADMIN_KEY.':e.message;}}
 function bindFiles(){
-  $('#adminConfigFile').addEventListener('change',async()=>{
-    const f=$('#adminConfigFile').files[0];if(!f)return;
-    $('#adminConfigTitle').textContent='Извлекаю блок биндов…';
-    $('#adminConfigMeta').textContent='На GitHub попадёт только <binds>…</binds>';
-    try{
-      const extracted=await extractBindsFile(f);
-      preparedOfficialConfig=extracted.file;
-      $('#adminConfigTitle').textContent=f.name;
-      $('#adminConfigMeta').textContent=`${extracted.bindCount} биндов · экспорт ${Math.max(1,Math.round(extracted.exportedBytes/1024))} КБ · только <binds>`;
-    }catch(e){
-      preparedOfficialConfig=null;$('#adminConfigFile').value='';
-      $('#adminConfigTitle').textContent=currentMeta?'Оставить текущий XML':'Выбрать XML-конфиг';
-      $('#adminConfigMeta').textContent=currentMeta?'Выбери файл только если нужно заменить XML':'Для первой публикации обязателен · экспортируется только <binds>';
-      toast(e.message||'Не удалось прочитать XML.');
+  $$('.admin-gender-option', $('#officialGenderSwitch')).forEach(button => {
+    button.addEventListener('click', () => switchOfficialGender(button.dataset.gender));
+  });
+  $('#adminConfigFile').addEventListener('change', async () => {
+    const input = $('#adminConfigFile');
+    const file = input.files?.[0];
+    if (!file) return;
+    const gender = selectedOfficialGender;
+    const revision = officialUploadRevision;
+    input.value = ''; // Enables selecting the same filename for the other gender.
+    $('#adminConfigTitle').textContent = 'Извлекаю блок биндов…';
+    $('#adminConfigMeta').textContent = 'Подготавливаю XML для выбранного пола';
+    try {
+      const extracted = await extractBindsFile(file);
+      // Ignore stale results after selecting a different faction/reset.
+      if (revision !== officialUploadRevision) return;
+      preparedOfficialPresets[gender] = { ...extracted, name: file.name };
+      updateOfficialVariantUI();
+    } catch (e) {
+      if (revision !== officialUploadRevision) return;
+      updateOfficialVariantUI();
+      toast(e.message || 'Не удалось прочитать XML.');
     }
   });
   $('#adminPreviewFile').addEventListener('change',async()=>{const f=$('#adminPreviewFile').files[0];if(!f)return;try{compressedPreview=await compressPreview(f);const url=URL.createObjectURL(compressedPreview),img=$('#adminPreviewImage');img.hidden=false;img.src=url;$('#adminPreviewDrop').classList.add('has-preview');$('#adminPreviewTitle').textContent='Новое превью готово';$('#adminPreviewMeta').textContent=`${Math.round(compressedPreview.size/1024)} КБ · WebP`; }catch(e){$('#adminPreviewFile').value='';compressedPreview=null;toast(e.message);}});
@@ -457,9 +514,23 @@ function bindFiles(){
 async function submit(e){
   e.preventDefault(); if(!API){toast('Не указан REHUB_API.');return;}
   const faction=$('#officialFaction').value.trim();if(!faction){toast('Укажи фракцию.');return;}
-  const xml=preparedOfficialConfig;if(!currentMeta&&!xml){toast('Для первой публикации выбери XML.');return;}
+  const male = preparedOfficialPresets.male?.file || null;
+  const female = preparedOfficialPresets.female?.file || null;
+  if (!currentMeta && (!male || !female)) {
+    toast('Для первой публикации выбери мужскую и женскую версии XML.');
+    return;
+  }
   let targetSlot=currentSlot;if(!targetSlot){targetSlot=slugifyFaction(faction);const used=new Set([...seededOfficials,...officialCatalog].map(x=>x.slot));let base=targetSlot,n=2;while(used.has(targetSlot))targetSlot=`${base}-${n++}`;}
-  const fd=new FormData();fd.set('faction',faction);fd.set('title',$('#officialTitle').value);fd.set('author',$('#officialAuthor').value);fd.set('description',$('#officialDescription').value);if(xml)fd.set('config',xml,xml.name);if(compressedPreview)fd.set('preview',compressedPreview,'preview.webp');
+  const fd=new FormData();
+  fd.set('faction',faction);
+  fd.set('title',$('#officialTitle').value);
+  fd.set('author',$('#officialAuthor').value);
+  fd.set('description',$('#officialDescription').value);
+  // Same male file is the public downloadable XML. It also drives male presets.
+  // A female-only update does not modify either male version or public XML.
+  if (male) { fd.set('config',male,male.name); fd.set('preset_male',male,male.name); }
+  if (female) fd.set('preset_female',female,female.name);
+  if (compressedPreview) fd.set('preview',compressedPreview,'preview.webp');
   const form=$('#officialForm'),btn=$('#officialSubmit'),old=btn.textContent;form.classList.add('submitting');btn.disabled=true;btn.textContent=currentMeta?'Обновляю…':'Публикую…';
   try{const result=await api(`/api/admin/official/${targetSlot}`,{method:'POST',body:fd});currentSlot=result.item.slot;creatingOfficial=false;fillForm(result.item);await refreshStates();$('#officialFactionSelect').value=currentSlot;refreshProgramSelect($('#officialFactionSelect'));toast(result.mode==='updated'?'Официальный конфиг обновлён.':'Официальный конфиг опубликован.');}
   catch(e){toast(e.detail||e.message);}
@@ -508,6 +579,7 @@ function setModerationTab(status){
 
 const reviewXmlCache = new Map();
 let reviewMediaMode = 'cover';
+let selectedReviewGender = 'male';
 
 function updateReviewViewButtons(mode) {
   let idx=0;$$('.admin-review-view').forEach((btn,i)=>{const active=btn.dataset.reviewView===mode;btn.classList.toggle('active',active);if(active)idx=i;});$('#reviewViewbar')?.setAttribute('data-index',String(idx));
@@ -525,8 +597,11 @@ async function loadReviewCode() {
   loading.textContent = 'Загружаю XML…';
 
   try {
+    const gender = selectedReviewGender;
+    const itemId = selectedSubmission.id;
     const blob = await fetchAdminFile('config');
     const text = await blob.text();
+    if (selectedReviewGender !== gender || selectedSubmission?.id !== itemId) return;
     codeText.textContent = text || 'XML-файл пуст.';
     code.hidden = false;
   } catch (error) {
@@ -609,8 +684,24 @@ function setReviewMediaMode(mode) {
   requestAnimationFrame(() => window.syncAdminScrollbar?.());
 }
 
+function updateReviewGenderSwitch() {
+  const group = $('#reviewGenderSwitch');
+  if (!group) return;
+  group.dataset.index = selectedReviewGender === 'female' ? '1' : '0';
+  $$('.admin-gender-option', group).forEach(button => {
+    const active = button.dataset.gender === selectedReviewGender;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+}
+
 function openReview(item,status){
   selectedSubmission={...item,status};
+  selectedReviewGender = 'male';
+  const availableFemale = Boolean(item.gender_variants?.includes('female') || item.config_female_file === 'config_female.xml');
+  const genderRow = $('#reviewGenderRow');
+  if (genderRow) genderRow.hidden = !availableFemale;
+  updateReviewGenderSwitch();
   $('#reviewTitle').textContent=item.title||'Публикация';
   $('#reviewStatusBadge').textContent=statusLabel(status);$('#reviewStatusBadge').dataset.status=status;
   $('#reviewCategoryBadge').textContent=item.category||'Другое';
@@ -645,7 +736,7 @@ function openReview(item,status){
   const reviewScroll=$('#reviewScroll');if(reviewScroll)reviewScroll.scrollTop=0;
   $('#reviewOverlay').hidden=false;document.body.classList.add('admin-review-open');bindAdminCursorHover();requestAnimationFrame(()=>window.syncAdminScrollbar?.());
   loadReviewPreview();
-  requestAnimationFrame(() => window.syncAdminReviewScrollbar?.());
+  requestAnimationFrame(() => { window.syncAdminReviewScrollbar?.(); window.syncAdminReviewCodeScrollbar?.(); });
 }
 function closeReview(){
   $('#reviewOverlay').hidden=true;document.body.classList.remove('admin-review-open');selectedSubmission=null;$('#rejectBox').hidden=true;$('#deleteConfirmBox').hidden=true;reviewMediaMode='cover';requestAnimationFrame(()=>window.syncAdminScrollbar?.());
@@ -704,7 +795,7 @@ async function downloadReviewConfig(event){
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
     a.href=url;
-    a.download=`${selectedSubmission.title || selectedSubmission.id}.xml`.replace(/[\\/:*?"<>|]+/g,'_');
+    a.download=`${selectedSubmission.title || selectedSubmission.id}${selectedSubmission.gender_variants?.includes('female') ? (selectedReviewGender === 'female' ? '-Женская' : '-Мужская') : ''}.xml`.replace(/[\\/:*?"<>|]+/g,'_');
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -817,8 +908,83 @@ function initReviewInnerScrollbar() {
   sync();
 }
 
+/* Scrollbar for the scrollable XML code pane in Firefox and Chromium. */
+function initReviewCodeScrollbar() {
+  const code = $('#reviewCode');
+  const preview = $('#reviewPreview');
+  if (!code || !preview || preview.querySelector('.admin-review-code-track')) return;
+  const track = document.createElement('div');
+  track.className = 'admin-review-code-track';
+  track.setAttribute('aria-hidden','true');
+  const thumb = document.createElement('div');
+  thumb.className = 'admin-review-code-thumb';
+  track.append(thumb);
+  preview.append(track);
+  let pointer = null, grabOffset = 0, raf = 0;
+  const metrics = () => {
+    const trackHeight = Math.max(1, track.clientHeight);
+    const viewport = Math.max(1, code.clientHeight);
+    const full = Math.max(viewport, code.scrollHeight);
+    const thumbHeight = Math.min(trackHeight, Math.max(38, trackHeight * viewport / full));
+    return { thumbHeight, travel: Math.max(0,trackHeight-thumbHeight), range: Math.max(0,full-viewport) };
+  };
+  const syncNow = () => {
+    raf = 0;
+    const active = !$('#reviewOverlay').hidden && !code.hidden && preview.classList.contains('mode-code');
+    if (!active) {track.hidden = true;return;}
+    const {thumbHeight,travel,range} = metrics();
+    track.hidden = range < 2;
+    thumb.style.height = `${thumbHeight}px`;
+    thumb.style.transform = `translate3d(0,${range ? travel * (code.scrollTop / range) : 0}px,0)`;
+  };
+  const sync = () => {if (raf) cancelAnimationFrame(raf);raf=requestAnimationFrame(syncNow);};
+  window.syncAdminReviewCodeScrollbar = sync;
+  const moveTo = y => {
+    const {travel,range}=metrics();
+    if (!range || !travel) return;
+    const top = Math.max(0,Math.min(travel,y-track.getBoundingClientRect().top-grabOffset));
+    code.scrollTop = top/travel*range;
+    sync();
+  };
+  track.addEventListener('pointerdown',e=>{
+    if(e.button!==0 || track.hidden)return;
+    e.preventDefault(); e.stopPropagation();
+    pointer=e.pointerId;
+    const rect=thumb.getBoundingClientRect();
+    grabOffset = e.clientY >= rect.top && e.clientY <= rect.bottom ? e.clientY-rect.top : rect.height/2;
+    track.classList.add('dragging');
+    track.setPointerCapture(e.pointerId);
+    moveTo(e.clientY);
+  });
+  track.addEventListener('pointermove',e=>{if(pointer===e.pointerId){e.preventDefault();moveTo(e.clientY);}});
+  const release=e=>{
+    if(pointer!==e.pointerId)return;
+    pointer=null;track.classList.remove('dragging');
+    try{track.releasePointerCapture(e.pointerId);}catch(_){}
+  };
+  track.addEventListener('pointerup',release);
+  track.addEventListener('pointercancel',release);
+  track.addEventListener('lostpointercapture',()=>{pointer=null;track.classList.remove('dragging');});
+  code.addEventListener('scroll',sync,{passive:true});
+  addEventListener('resize',sync,{passive:true});
+  if('ResizeObserver' in window){
+    const resize=new ResizeObserver(sync);
+    resize.observe(code); resize.observe(preview);
+  }
+  const mutation=new MutationObserver(sync);
+  mutation.observe(preview,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden']});
+  const codeText=$('#reviewCodeText');
+  if(codeText)mutation.observe(codeText,{childList:true,subtree:true,characterData:true});
+  sync();
+}
+
 function bindModeration(){
   $$('.admin-review-view').forEach(b=>b.addEventListener('click',()=>setReviewMediaMode(b.dataset.reviewView)));
+  $$('#reviewGenderSwitch .admin-gender-option').forEach(b=>b.addEventListener('click', () => {
+    selectedReviewGender = b.dataset.gender;
+    updateReviewGenderSwitch();
+    if (reviewMediaMode === 'code') void loadReviewCode();
+  }));
   $$('.admin-tab').forEach(b=>b.addEventListener('click',()=>setModerationTab(b.dataset.status)));
   $('#reloadCommunity').addEventListener('click',loadCommunityModeration);
   $('#reviewClose').addEventListener('click',closeReview);
@@ -872,5 +1038,5 @@ function initMeasuredSegmentMarkers() {
   });
 }
 
-function init(){initMeasuredSegmentMarkers();initReviewInnerScrollbar();initCursor();initAdminHeader();initAdminDragScroll();initCustomScrollbar();initProgramSelects();observeAdminReveals();$('#loginForm').addEventListener('submit',e=>{e.preventDefault();login($('#adminKeyInput').value);});$('#logoutBtn').addEventListener('click',logout);$('#officialFactionSelect').addEventListener('change',e=>loadSlot(e.target.value));$('#newOfficialFaction').addEventListener('click',beginNewOfficial);$('#reloadOfficial').addEventListener('click',()=>currentSlot?loadSlot(currentSlot):beginNewOfficial());$('#officialForm').addEventListener('submit',submit);bindFiles();bindModeration();if(adminKey)login(adminKey);}
+function init(){initMeasuredSegmentMarkers();initReviewInnerScrollbar();initReviewCodeScrollbar();initCursor();initAdminHeader();initAdminDragScroll();initCustomScrollbar();initProgramSelects();observeAdminReveals();$('#loginForm').addEventListener('submit',e=>{e.preventDefault();login($('#adminKeyInput').value);});$('#logoutBtn').addEventListener('click',logout);$('#officialFactionSelect').addEventListener('change',e=>loadSlot(e.target.value));$('#newOfficialFaction').addEventListener('click',beginNewOfficial);$('#reloadOfficial').addEventListener('click',()=>currentSlot?loadSlot(currentSlot):beginNewOfficial());$('#officialForm').addEventListener('submit',submit);bindFiles();bindModeration();if(adminKey)login(adminKey);}
 addEventListener('DOMContentLoaded',init);
