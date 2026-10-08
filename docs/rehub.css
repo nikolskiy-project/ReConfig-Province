@@ -1046,3 +1046,26 @@ label,
 }
 .rehub-text-track:is(:hover,.dragging) .rehub-text-thumb {left:2px;width:7px;background:#c9b4ff;}
 @media (pointer:coarse) { .hub-rounded-track,.rehub-text-track { cursor:auto!important; } }
+
+/* v28: Community upload Markdown actions live INSIDE the description field, like the admin editor. */
+#uploadForm .rehub-markdown-field { position:relative; min-width:0; }
+#uploadForm .rehub-markdown-field textarea { display:block; width:100%; padding-bottom:43px; }
+#uploadForm .rehub-markdown-toolbar {
+  position:absolute; right:13px; bottom:9px; z-index:4;
+  display:flex; align-items:center; flex-wrap:nowrap; gap:1px;
+  width:max-content; max-width:calc(100% - 24px);
+  margin:0; padding:0; border:0; border-radius:6px;
+  background:transparent; box-shadow:none;
+}
+#uploadForm .rehub-markdown-toolbar button {
+  flex:0 0 auto; width:24px; min-width:24px; height:23px; padding:0 3px;
+  border:0; background:transparent; color:#aaa6bb; font-size:10px;
+  white-space:nowrap; line-height:1;
+}
+#uploadForm .rehub-markdown-toolbar button:hover,
+#uploadForm .rehub-markdown-toolbar button:focus-visible {
+  border:0; outline:0; color:#d1bbff; background:rgba(139,92,246,.12);
+}
+#uploadForm .rehub-markdown-toolbar button[data-md="code"] {
+  width:33px; min-width:33px; white-space:nowrap; font-family:monospace;
+}

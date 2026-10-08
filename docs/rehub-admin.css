@@ -1220,3 +1220,10 @@ html:has(> body.admin-review-open) { overflow-y:hidden !important; }
 .admin-review-description pre {overflow:auto; max-width:100%; padding:10px; margin:8px 0 13px; border-radius:8px; border:1px solid var(--border); background:#0a0a11;}
 .admin-review-description pre code {background:transparent; border:0; padding:0; white-space:pre;}
 .admin-review-description hr {margin:14px 0; border:0; border-top:1px solid var(--border);}
+
+/* v28: Keep the Markdown code action </> together on one line. */
+.admin-page .admin-markdown-actions button { white-space:nowrap; line-height:1; }
+.admin-page .admin-markdown-actions button[data-md="code"] {
+  flex:0 0 33px; width:33px; min-width:33px;
+  white-space:nowrap; font-family:monospace;
+}
