@@ -68,14 +68,26 @@
       const t=Math.max(0,Math.min(travel,y-track.getBoundingClientRect().top-grab));
       editor.scrollTop=t/travel*total;sync();
     };
+    let wheelFrame=0,wheelTarget=null;
+    const cancelWheel=()=>{if(wheelFrame)cancelAnimationFrame(wheelFrame);wheelFrame=0;wheelTarget=null;};
     track.addEventListener('wheel',e=>{
-      // The overlay scrollbar is a sibling of the editor, so route its wheel here too.
       e.preventDefault();e.stopPropagation();window.cancelPageInertia?.();
       const delta=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?editor.clientHeight:1);
-      editor.scrollTop+=delta;sync();
+      const total=Math.max(0,editor.scrollHeight-editor.clientHeight);
+      wheelTarget=Math.max(0,Math.min(total,(wheelTarget===null?editor.scrollTop:wheelTarget)+delta));
+      if(wheelFrame)return;
+      let previous=performance.now();
+      const tick=now=>{
+        const dt=Math.min(36,Math.max(1,now-previous));previous=now;
+        const remain=wheelTarget-editor.scrollTop;
+        if(Math.abs(remain)<.6){editor.scrollTop=wheelTarget;cancelWheel();sync();return;}
+        editor.scrollTop+=remain*(1-Math.exp(-dt/56));
+        wheelFrame=requestAnimationFrame(tick);
+      };
+      wheelFrame=requestAnimationFrame(tick);
     },{passive:false});
     track.addEventListener('pointerdown',e=>{
-      if(e.button!==0)return;e.preventDefault();e.stopPropagation();dragging=true;pointer=e.pointerId;
+      if(e.button!==0)return;cancelWheel();e.preventDefault();e.stopPropagation();dragging=true;pointer=e.pointerId;
       grab=e.target===thumb?e.clientY-thumb.getBoundingClientRect().top:metrics().th/2;
       track.classList.add('dragging');track.setPointerCapture(pointer);
       if(e.target!==thumb)move(e.clientY);
@@ -84,6 +96,7 @@
     const stop=e=>{if(!dragging||e.pointerId!==pointer)return;dragging=false;track.classList.remove('dragging');if(track.hasPointerCapture(pointer))track.releasePointerCapture(pointer);pointer=null;};
     track.addEventListener('pointerup',stop);track.addEventListener('pointercancel',stop);
     editor.addEventListener('scroll',sync,{passive:true});editor.addEventListener('input',sync);
+    editor.addEventListener('wheel',cancelWheel,{passive:true});
     if(window.ResizeObserver)new ResizeObserver(sync).observe(editor);
     requestAnimationFrame(sync);
     return sync;

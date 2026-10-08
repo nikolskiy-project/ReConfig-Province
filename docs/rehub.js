@@ -203,6 +203,7 @@ function initDragScroll() {
   let lastMoveTime = 0;
   let velocity = 0;
   let inertiaFrame = 0;
+  let wheelTarget = null;
   let suppressClick = false;
 
   const interactiveSelector = 'a, button, input, textarea, select, [contenteditable="true"], .site-scrollbar-thumb, .hub-video-card, .hub-modal';
@@ -217,12 +218,14 @@ function initDragScroll() {
   const cancelInertia = () => {
     if (inertiaFrame) cancelAnimationFrame(inertiaFrame);
     inertiaFrame = 0;
+    wheelTarget = null;
     velocity = 0;
     if (!dragging) setKineticState(false);
   };
   window.cancelPageInertia = cancelInertia;
 
   const beginInertia = () => {
+    wheelTarget = null;
     if (inertiaFrame) cancelAnimationFrame(inertiaFrame);
     const idleFor = performance.now() - lastMoveTime;
     if (idleFor > 85) velocity *= Math.max(0, 1 - (idleFor - 85) / 150);
@@ -322,28 +325,32 @@ function initDragScroll() {
     let delta = e.deltaY;
     if (e.deltaMode === 1) delta *= 16;
     else if (e.deltaMode === 2) delta *= innerHeight;
-    return Math.max(-190, Math.min(190, delta));
+    return Math.max(-550, Math.min(550, delta));
   };
 
-  const startWheelInertia = () => {
+  // Wheel scrolling uses ONE continuously updated target, instead of stacking
+  // velocity impulses (which previously bounced when a mouse wheel was spun fast).
+  const startWheelAnimation = () => {
     if (inertiaFrame) return;
-    setKineticState(true);
+    setKineticState(true); // disable CSS smooth during manual rAF movement
     let previous = performance.now();
     const tick = now => {
-      const dt = Math.min(32, Math.max(1, now - previous));
+      const dt = Math.min(36, Math.max(1, now - previous));
       previous = now;
       const limit = maxScroll();
-      const before = scrollY;
-      const next = Math.max(0, Math.min(limit, before + velocity * dt));
-      scrollTo(0, next);
-      velocity *= Math.pow(.885, dt / 16.667);
-      if (next <= 0 || next >= limit) velocity *= .28;
-      if (Math.abs(velocity) > .012) inertiaFrame = requestAnimationFrame(tick);
-      else {
+      wheelTarget = Math.max(0, Math.min(limit, wheelTarget ?? scrollY));
+      const distance = wheelTarget - scrollY;
+      if (Math.abs(distance) <= .6) {
+        scrollTo(0, wheelTarget);
         inertiaFrame = 0;
-        velocity = 0;
+        wheelTarget = null;
         setKineticState(false);
+        return;
       }
+      // Frame-rate-independent ease out, stable at 60/120/144 Hz.
+      const fraction = 1 - Math.exp(-dt / 56);
+      scrollTo(0, scrollY + distance * fraction);
+      inertiaFrame = requestAnimationFrame(tick);
     };
     inertiaFrame = requestAnimationFrame(tick);
   };
@@ -353,9 +360,13 @@ function initDragScroll() {
     if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
     if (wheelCanUseOwnScroller(e.target, e.deltaY)) { cancelInertia(); return; }
     e.preventDefault();
-    velocity += normalizeWheelDelta(e) * .0078;
-    velocity = Math.max(-3.4, Math.min(3.4, velocity));
-    startWheelInertia();
+    // A new wheel gesture supersedes any momentum left from a page drag.
+    if (inertiaFrame && wheelTarget === null) cancelInertia();
+    // Accumulate relative to the previous destination rather than current
+    // scrollY; small trackpad deltas and discrete wheel notches feel alike.
+    const base = wheelTarget === null ? scrollY : wheelTarget;
+    wheelTarget = Math.max(0, Math.min(maxScroll(), base + normalizeWheelDelta(e)));
+    startWheelAnimation();
   }, { passive: false });
 
   addEventListener('keydown', cancelInertia);
@@ -404,6 +415,8 @@ function initCustomScrollbar() {
     e.preventDefault();
     e.stopPropagation();
     window.cancelPageInertia?.();
+    document.documentElement.classList.add('page-dragging');
+    document.body.classList.add('page-dragging');
     grabOffset = e.clientY - thumb.getBoundingClientRect().top;
     dragging = true;
     thumb.classList.add('dragging');
@@ -418,6 +431,8 @@ function initCustomScrollbar() {
     if (!dragging) return;
     dragging = false;
     thumb.classList.remove('dragging');
+    document.documentElement.classList.remove('page-dragging');
+    document.body.classList.remove('page-dragging');
     try { thumb.releasePointerCapture?.(e.pointerId); } catch (_) {}
   };
   addEventListener('pointerup', finish);
