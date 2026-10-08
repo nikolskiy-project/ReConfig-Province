@@ -626,13 +626,50 @@ function openCard(card) {
   setModal(modal, true);
 }
 
+function activateCard(card) {
+  if (!card || card.classList.contains('card-click-flash')) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    openCard(card);
+    return;
+  }
+  card.classList.add('card-click-flash');
+  // Allow the press animation to become visible before the modal covers the card.
+  setTimeout(() => {
+    card.classList.remove('card-click-flash');
+    if (card.isConnected) openCard(card);
+  }, 145);
+}
+
+/* Works for cards created after the community API request too. */
+function initHubCardMotion() {
+  const getCard = target => target instanceof Element ? target.closest('.hub-video-card') : null;
+  document.addEventListener('pointerover', event => {
+    const card = getCard(event.target);
+    if (card && !card.contains(event.relatedTarget)) card.classList.add('hub-motion-hover');
+  });
+  document.addEventListener('pointerout', event => {
+    const card = getCard(event.target);
+    if (card && !card.contains(event.relatedTarget)) card.classList.remove('hub-motion-hover', 'hub-motion-press');
+  });
+  document.addEventListener('pointerdown', event => {
+    const card = getCard(event.target);
+    if (card && event.button === 0) card.classList.add('hub-motion-press');
+  });
+  const clearPressed = () => {
+    document.querySelectorAll('.hub-video-card.hub-motion-press').forEach(card => card.classList.remove('hub-motion-press'));
+  };
+  document.addEventListener('pointerup', clearPressed);
+  document.addEventListener('pointercancel', clearPressed);
+  window.addEventListener('blur', clearPressed);
+}
+
 function initCards() {
   $$('.hub-video-card').forEach((card, index) => {
-    card.addEventListener('click', () => openCard(card));
+    card.addEventListener('click', () => activateCard(card));
     card.addEventListener('keydown', e => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
       e.preventDefault();
-      openCard(card);
+      activateCard(card);
     });
   });
 }
@@ -783,11 +820,11 @@ function makeCommunityCard(item, index = 0) {
   meta.append(avatar, copy);
   card.append(thumb, meta);
 
-  card.addEventListener('click', () => openCard(card));
+  card.addEventListener('click', () => activateCard(card));
   card.addEventListener('keydown', e => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
     e.preventDefault();
-    openCard(card);
+    activateCard(card);
   });
   return card;
 }
@@ -817,8 +854,8 @@ function makeOfficialCard(item) {
   const shine=document.createElement('div');shine.className='thumb-shine';thumb.appendChild(shine);
   const meta=document.createElement('div');meta.className='video-card-meta';meta.innerHTML=`<img class="video-avatar" src="assets/logo.png" alt=""><div class="video-card-copy"><h3>${escapeText(item.title||item.category||'Официальный конфиг')} <span class="verified-dot">✓</span></h3><p>${escapeText(item.author||'ReConfig Province')} <span>✓</span></p><small>Официальный конфиг · ${escapeText(item.category||'ReHub')}</small></div>`;
   card.append(thumb,meta);
-  card.addEventListener('click',()=>openCard(card));
-  card.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;e.preventDefault();openCard(card);});
+  card.addEventListener('click',()=>activateCard(card));
+  card.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;e.preventDefault();activateCard(card);});
   return card;
 }
 
@@ -1058,6 +1095,7 @@ initCursor();
 initCardParallax();
 initDragScroll();
 initCustomScrollbar();
+initHubCardMotion();
 initCards();
 initProgramSelects();
 initSearch();

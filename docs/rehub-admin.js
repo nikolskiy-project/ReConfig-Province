@@ -645,6 +645,7 @@ function openReview(item,status){
   const reviewScroll=$('#reviewScroll');if(reviewScroll)reviewScroll.scrollTop=0;
   $('#reviewOverlay').hidden=false;document.body.classList.add('admin-review-open');bindAdminCursorHover();requestAnimationFrame(()=>window.syncAdminScrollbar?.());
   loadReviewPreview();
+  requestAnimationFrame(() => { window.syncAdminReviewScrollbar?.(); window.syncAdminReviewCodeScrollbar?.(); });
 }
 function closeReview(){
   $('#reviewOverlay').hidden=true;document.body.classList.remove('admin-review-open');selectedSubmission=null;$('#rejectBox').hidden=true;$('#deleteConfirmBox').hidden=true;reviewMediaMode='cover';requestAnimationFrame(()=>window.syncAdminScrollbar?.());
@@ -726,6 +727,166 @@ async function openReviewPreviewOriginal(event){
   }
 }
 
+function initReviewInnerScrollbar() {
+  const panel = $('#reviewScroll');
+  const modal = panel?.closest('.admin-review-modal');
+  if (!panel || !modal || modal.querySelector('.admin-review-inner-track')) return;
+
+  const track = document.createElement('div');
+  track.className = 'admin-review-inner-track';
+  track.setAttribute('aria-hidden', 'true');
+  const thumb = document.createElement('div');
+  thumb.className = 'admin-review-inner-thumb';
+  track.appendChild(thumb);
+  modal.appendChild(track);
+
+  let frame = 0;
+  let activePointer = null;
+  let pointerOffset = 0;
+  const metrics = () => {
+    const length = Math.max(1, track.clientHeight);
+    const viewport = Math.max(1, panel.clientHeight);
+    const content = Math.max(viewport, panel.scrollHeight);
+    const thumbSize = Math.min(length, Math.max(42, length * viewport / content));
+    const travel = Math.max(0, length - thumbSize);
+    const maxScroll = Math.max(0, content - viewport);
+    return { thumbSize, travel, maxScroll };
+  };
+  const syncNow = () => {
+    frame = 0;
+    if ($('#reviewOverlay')?.hidden) { track.hidden = true; return; }
+    const { thumbSize, travel, maxScroll } = metrics();
+    track.hidden = maxScroll < 2;
+    thumb.style.height = `${thumbSize}px`;
+    const fraction = maxScroll ? Math.min(1, Math.max(0, panel.scrollTop / maxScroll)) : 0;
+    thumb.style.transform = `translate3d(0,${(travel * fraction).toFixed(2)}px,0)`;
+  };
+  const sync = () => {
+    if (frame) cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(syncNow);
+  };
+  window.syncAdminReviewScrollbar = sync;
+
+  const setFromPointer = y => {
+    const rect = track.getBoundingClientRect();
+    const { travel, maxScroll } = metrics();
+    if (!maxScroll || !travel) return;
+    const top = Math.max(0, Math.min(travel, y - rect.top - pointerOffset));
+    panel.scrollTop = maxScroll * (top / travel);
+    sync();
+  };
+  track.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || track.hidden) return;
+    e.preventDefault();
+    e.stopPropagation();
+    activePointer = e.pointerId;
+    const bounds = thumb.getBoundingClientRect();
+    const grabbedThumb = e.clientY >= bounds.top && e.clientY <= bounds.bottom;
+    pointerOffset = grabbedThumb ? e.clientY - bounds.top : bounds.height / 2;
+    track.classList.add('dragging');
+    track.setPointerCapture(e.pointerId);
+    setFromPointer(e.clientY);
+  });
+  track.addEventListener('pointermove', e => {
+    if (e.pointerId !== activePointer) return;
+    e.preventDefault();
+    setFromPointer(e.clientY);
+  });
+  const finish = e => {
+    if (e.pointerId !== activePointer) return;
+    activePointer = null;
+    track.classList.remove('dragging');
+    try { track.releasePointerCapture(e.pointerId); } catch (_) {}
+  };
+  track.addEventListener('pointerup', finish);
+  track.addEventListener('pointercancel', finish);
+  track.addEventListener('lostpointercapture', () => {
+    activePointer = null;
+    track.classList.remove('dragging');
+  });
+  panel.addEventListener('scroll', sync, { passive: true });
+  window.addEventListener('resize', sync, { passive: true });
+  if ('ResizeObserver' in window) {
+    const resize = new ResizeObserver(sync);
+    resize.observe(panel);
+    resize.observe(modal);
+  }
+  const mutation = new MutationObserver(sync);
+  mutation.observe(panel, { subtree: true, childList: true, attributes: true,
+    attributeFilter: ['class', 'hidden', 'src', 'style'] });
+  sync();
+}
+
+/* Scrollbar for the scrollable XML code pane in Firefox and Chromium. */
+function initReviewCodeScrollbar() {
+  const code = $('#reviewCode');
+  const preview = $('#reviewPreview');
+  if (!code || !preview || preview.querySelector('.admin-review-code-track')) return;
+  const track = document.createElement('div');
+  track.className = 'admin-review-code-track';
+  track.setAttribute('aria-hidden','true');
+  const thumb = document.createElement('div');
+  thumb.className = 'admin-review-code-thumb';
+  track.append(thumb);
+  preview.append(track);
+  let pointer = null, grabOffset = 0, raf = 0;
+  const metrics = () => {
+    const trackHeight = Math.max(1, track.clientHeight);
+    const viewport = Math.max(1, code.clientHeight);
+    const full = Math.max(viewport, code.scrollHeight);
+    const thumbHeight = Math.min(trackHeight, Math.max(38, trackHeight * viewport / full));
+    return { thumbHeight, travel: Math.max(0,trackHeight-thumbHeight), range: Math.max(0,full-viewport) };
+  };
+  const syncNow = () => {
+    raf = 0;
+    const active = !$('#reviewOverlay').hidden && !code.hidden && preview.classList.contains('mode-code');
+    if (!active) {track.hidden = true;return;}
+    const {thumbHeight,travel,range} = metrics();
+    track.hidden = range < 2;
+    thumb.style.height = `${thumbHeight}px`;
+    thumb.style.transform = `translate3d(0,${range ? travel * (code.scrollTop / range) : 0}px,0)`;
+  };
+  const sync = () => {if (raf) cancelAnimationFrame(raf);raf=requestAnimationFrame(syncNow);};
+  window.syncAdminReviewCodeScrollbar = sync;
+  const moveTo = y => {
+    const {travel,range}=metrics();
+    if (!range || !travel) return;
+    const top = Math.max(0,Math.min(travel,y-track.getBoundingClientRect().top-grabOffset));
+    code.scrollTop = top/travel*range;
+    sync();
+  };
+  track.addEventListener('pointerdown',e=>{
+    if(e.button!==0 || track.hidden)return;
+    e.preventDefault(); e.stopPropagation();
+    pointer=e.pointerId;
+    const rect=thumb.getBoundingClientRect();
+    grabOffset = e.clientY >= rect.top && e.clientY <= rect.bottom ? e.clientY-rect.top : rect.height/2;
+    track.classList.add('dragging');
+    track.setPointerCapture(e.pointerId);
+    moveTo(e.clientY);
+  });
+  track.addEventListener('pointermove',e=>{if(pointer===e.pointerId){e.preventDefault();moveTo(e.clientY);}});
+  const release=e=>{
+    if(pointer!==e.pointerId)return;
+    pointer=null;track.classList.remove('dragging');
+    try{track.releasePointerCapture(e.pointerId);}catch(_){}
+  };
+  track.addEventListener('pointerup',release);
+  track.addEventListener('pointercancel',release);
+  track.addEventListener('lostpointercapture',()=>{pointer=null;track.classList.remove('dragging');});
+  code.addEventListener('scroll',sync,{passive:true});
+  addEventListener('resize',sync,{passive:true});
+  if('ResizeObserver' in window){
+    const resize=new ResizeObserver(sync);
+    resize.observe(code); resize.observe(preview);
+  }
+  const mutation=new MutationObserver(sync);
+  mutation.observe(preview,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden']});
+  const codeText=$('#reviewCodeText');
+  if(codeText)mutation.observe(codeText,{childList:true,subtree:true,characterData:true});
+  sync();
+}
+
 function bindModeration(){
   $$('.admin-review-view').forEach(b=>b.addEventListener('click',()=>setReviewMediaMode(b.dataset.reviewView)));
   $$('.admin-tab').forEach(b=>b.addEventListener('click',()=>setModerationTab(b.dataset.status)));
@@ -781,5 +942,5 @@ function initMeasuredSegmentMarkers() {
   });
 }
 
-function init(){initMeasuredSegmentMarkers();initCursor();initAdminHeader();initAdminDragScroll();initCustomScrollbar();initProgramSelects();observeAdminReveals();$('#loginForm').addEventListener('submit',e=>{e.preventDefault();login($('#adminKeyInput').value);});$('#logoutBtn').addEventListener('click',logout);$('#officialFactionSelect').addEventListener('change',e=>loadSlot(e.target.value));$('#newOfficialFaction').addEventListener('click',beginNewOfficial);$('#reloadOfficial').addEventListener('click',()=>currentSlot?loadSlot(currentSlot):beginNewOfficial());$('#officialForm').addEventListener('submit',submit);bindFiles();bindModeration();if(adminKey)login(adminKey);}
+function init(){initMeasuredSegmentMarkers();initReviewInnerScrollbar();initReviewCodeScrollbar();initCursor();initAdminHeader();initAdminDragScroll();initCustomScrollbar();initProgramSelects();observeAdminReveals();$('#loginForm').addEventListener('submit',e=>{e.preventDefault();login($('#adminKeyInput').value);});$('#logoutBtn').addEventListener('click',logout);$('#officialFactionSelect').addEventListener('change',e=>loadSlot(e.target.value));$('#newOfficialFaction').addEventListener('click',beginNewOfficial);$('#reloadOfficial').addEventListener('click',()=>currentSlot?loadSlot(currentSlot):beginNewOfficial());$('#officialForm').addEventListener('submit',submit);bindFiles();bindModeration();if(adminKey)login(adminKey);}
 addEventListener('DOMContentLoaded',init);

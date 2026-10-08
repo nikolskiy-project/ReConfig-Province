@@ -940,3 +940,119 @@ body.page-dragging { cursor: none !important; }
   .admin-official-picker { height: 65px; }
   #newOfficialFaction { width: 100%; }
 }
+
+
+/* v14 — genuinely rounded scrollbar inside the opened moderation card.
+   Native Firefox scrollbar ignores scrollbar-thumb border-radius. */
+.admin-review-modal #reviewScroll {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.admin-review-modal #reviewScroll::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+.admin-review-inner-track {
+  position: absolute;
+  z-index: 72;
+  top: 58px; /* leave room for the existing close button */
+  bottom: 13px;
+  right: 6px;
+  width: 12px;
+  border-radius: 999px;
+  background: rgba(183,156,255,.035);
+  cursor: none !important;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.admin-review-inner-track[hidden] { display: none !important; }
+.admin-review-inner-thumb {
+  position: absolute;
+  top: 0;
+  left: 3px;
+  width: 6px;
+  min-height: 42px;
+  border-radius: 999px;
+  background: rgba(183,156,255,.48);
+  box-shadow: 0 0 10px rgba(139,92,246,.11);
+  will-change: transform;
+  transition: width .17s ease, left .17s ease, background .17s ease;
+}
+.admin-review-inner-track:hover .admin-review-inner-thumb,
+.admin-review-inner-track.dragging .admin-review-inner-thumb {
+  left: 2px;
+  width: 8px;
+  background: rgba(193,171,255,.78);
+}
+@media (max-width: 700px) {
+  .admin-review-inner-track { top: 54px; right: 3px; width: 11px; }
+}
+
+
+/* v15: no square native bars inside moderation modal, including XML pane.
+   Actual scrolling remains native; only the visible draggable thumb is custom. */
+#reviewOverlay .admin-review-modal,
+#reviewOverlay #reviewScroll,
+#reviewOverlay #reviewCode {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+#reviewOverlay .admin-review-modal::-webkit-scrollbar,
+#reviewOverlay #reviewScroll::-webkit-scrollbar,
+#reviewOverlay #reviewCode::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+#reviewOverlay .admin-review-inner-track {
+  background: rgba(183,156,255,.05);
+  border-radius: 999px !important;
+  right: 4px !important;
+  width: 13px !important;
+}
+#reviewOverlay .admin-review-inner-thumb {
+  left: 3px !important;
+  width: 7px !important;
+  background: #9b79dd !important;
+  border-radius: 999px !important;
+  box-shadow: 0 0 10px rgba(139,92,246,.20) !important;
+}
+#reviewOverlay .admin-review-inner-track:is(:hover, .dragging) .admin-review-inner-thumb {
+  left: 2px !important;
+  width: 9px !important;
+  background: #bea3ff !important;
+}
+#reviewOverlay .admin-review-code-track {
+  position: absolute;
+  z-index: 20;
+  right: 6px;
+  top: 9px;
+  bottom: 9px;
+  width: 11px;
+  border-radius: 999px;
+  background: rgba(183,156,255,.07);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: none !important;
+}
+#reviewOverlay .admin-review-code-track[hidden] { display: none !important; }
+#reviewOverlay .admin-review-code-thumb {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  width: 7px;
+  min-height: 38px;
+  border-radius: 999px;
+  background: #9b79dd;
+  box-shadow: 0 0 12px rgba(139,92,246,.14);
+  transition: background .16s ease, width .16s ease, left .16s ease;
+  will-change: transform;
+}
+#reviewOverlay .admin-review-code-track:is(:hover, .dragging) .admin-review-code-thumb {
+  left: 1px;
+  width: 9px;
+  background: #bea3ff;
+}
