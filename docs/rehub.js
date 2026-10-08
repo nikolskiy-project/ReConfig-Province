@@ -1310,6 +1310,19 @@ function initReHubMarkdownToolbar() {
   );
 }
 
+function initUploadGuide() {
+  const guide = document.getElementById('uploadGuide');
+  const toggle = document.getElementById('uploadGuideToggle');
+  const content = document.getElementById('uploadGuideContent');
+  if (!guide || !toggle || !content) return;
+  toggle.addEventListener('click', () => {
+    const open = !guide.classList.contains('is-open');
+    guide.classList.toggle('is-open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+    content.setAttribute('aria-hidden', String(!open));
+  });
+}
+
 function initUpload() {
   const configInput = $('#configFile');
   const previewInput = $('#previewFile');
@@ -1513,6 +1526,7 @@ initCards();
 initProgramSelects();
 initSearch();
 initModals();
+initUploadGuide();
 initUpload();
 initHubRoundedScrollbars();
 initReHubMarkdownToolbar();

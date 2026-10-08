@@ -8,7 +8,7 @@
   <title>ReHub — мастерская конфигов</title>
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="rehub.css?v=39">
+  <link rel="stylesheet" href="rehub.css?v=40">
 
   <style>
     #openUploadTop {
@@ -401,6 +401,31 @@
             </div>
           </div>
         </div>
+        <section class="upload-guide" id="uploadGuide" aria-labelledby="uploadGuideHeading">
+          <button class="upload-guide-toggle interactive" id="uploadGuideToggle" type="button" aria-expanded="false" aria-controls="uploadGuideContent">
+            <span class="upload-guide-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4.5h9a2 2 0 0 1 2 2V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7.5a3 3 0 0 1 3-3Z"/><path d="M9 10h6m-6 4h6m-6 4h3"/><path d="M5 8h4V4"/></svg></span>
+            <span class="upload-guide-heading">
+              <strong id="uploadGuideHeading">Как подготовить бинды?</strong>
+              <small>5 простых советов для публикации</small>
+            </span>
+            <span class="upload-guide-optional">Необязательно</span>
+            <svg class="upload-guide-chevron" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="upload-guide-expand" id="uploadGuideContent" aria-hidden="true">
+            <div class="upload-guide-clip">
+              <div class="upload-guide-body">
+                <ol class="upload-guide-list">
+                  <li><span class="upload-guide-step">01</span><div><strong>Оставьте только бинды</strong><p>По возможности подготовьте XML с блоком <code>&lt;binds&gt;…&lt;/binds&gt;</code>, без остальных игровых настроек.</p></div></li>
+                  <li><span class="upload-guide-step">02</span><div><strong>Используйте переменные</strong><p>Вместо личных данных укажите <code>{fio}</code>, <code>{rank}</code>, <code>{department}</code> — так бинды легче адаптировать.</p></div></li>
+                  <li><span class="upload-guide-step">03</span><div><strong>Учтите пол персонажа</strong><p>Если команды отличаются по роду («достал» / «достала»), можно загрузить две версии.</p></div></li>
+                  <li><span class="upload-guide-step">04</span><div><strong>Проверьте команды</strong><p>Протестируйте бинды в игре и убедитесь, что клавиши не конфликтуют.</p></div></li>
+                  <li><span class="upload-guide-step">05</span><div><strong>Добавьте понятное описание</strong><p>Расскажите, для чего набор, как его использовать, и при желании добавьте превью.</p></div></li>
+                </ol>
+                <p class="upload-guide-footnote">Это рекомендации, а не требования к публикации.</p>
+              </div>
+            </div>
+          </div>
+        </section>
         <div class="upload-notice">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
           <span>Достаточно одной версии биндов — мужской или женской. Вторую можно добавить по желанию. Сохраняется только блок &lt;binds&gt;…&lt;/binds&gt;; превью сжимается до WebP ≤ 600 КБ.</span>
@@ -430,6 +455,6 @@
 
   <script src="rehub-rich-editor.js?v=33"></script>
   <script src="rehub-config.js?v=1"></script>
-  <script src="rehub.js?v=39"></script>
+  <script src="rehub.js?v=40"></script>
 </body>
 </html>
