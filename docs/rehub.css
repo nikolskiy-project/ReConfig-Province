@@ -1143,3 +1143,46 @@ label,
 /* The site uses its custom mouse cursor: never let contenteditable re-enable the OS I-beam. */
 .rehub-markdown-field .rehub-rich-editor,
 .rehub-markdown-field .rehub-rich-editor * { cursor:none !important; }
+
+/* v32: Compact link editor positioned above the selected inline link (both forms). */
+.rehub-link-popup {
+  position:fixed; z-index:9800; width:min(284px, calc(100vw - 16px));
+  padding:12px; border-radius:11px;
+  border:1px solid rgba(183,156,255,.3);
+  background:#16141f; box-shadow:0 12px 38px rgba(0,0,0,.5),0 0 0 1px rgba(0,0,0,.25);
+  color:#e6e1ef; font-family:inherit; box-sizing:border-box;
+  animation:rehub-link-reveal .16s cubic-bezier(.2,1,.36,1) both;
+}
+.rehub-link-popup[hidden] {display:none!important;}
+.rehub-link-popup::after {
+  content:''; position:absolute; bottom:-6px; left:var(--link-arrow-x,50%);
+  width:10px; height:10px; transform:translateX(-50%) rotate(45deg);
+  background:#16141f; border-right:1px solid rgba(183,156,255,.3);
+  border-bottom:1px solid rgba(183,156,255,.3);
+}
+.rehub-link-popup.below::after {top:-6px;bottom:auto; transform:translateX(-50%) rotate(225deg);}
+@keyframes rehub-link-reveal {from{opacity:0;transform:translateY(5px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.rehub-link-popup-title {font-size:11px;font-weight:700;color:#d6c3ff;margin-bottom:8px;}
+.rehub-link-popup-label {display:block!important;font-size:10px!important;color:#9993ab!important;margin:0 0 7px!important;}
+.rehub-link-popup-label input {
+  display:block!important;box-sizing:border-box;width:100%!important;height:31px!important;
+  margin-top:4px!important;padding:5px 9px!important;border-radius:6px!important;
+  border:1px solid #343041!important;background:#101018!important;color:#f0ecf8!important;
+  font:inherit!important;font-size:11px!important;outline:none!important;
+}
+.rehub-link-popup-label input:focus {border-color:#9674e8!important;box-shadow:0 0 0 2px rgba(139,92,246,.12)!important;}
+.rehub-link-popup-error {font-size:10px;color:#ffa3af;margin-bottom:7px;}
+.rehub-link-popup-actions {display:flex;align-items:center;gap:5px;margin-top:9px;}
+.rehub-link-popup-spacer {flex:1;}
+.rehub-link-popup-actions button {
+  border:1px solid #353044;background:#1d1a28;color:#bfb8d0;
+  border-radius:6px;padding:7px 9px;min-height:29px;font:inherit;font-size:10px;
+  white-space:nowrap;cursor:none!important;
+}
+.rehub-link-popup-actions button:hover {border-color:#8e70c6;color:#e7d8ff;}
+.rehub-link-popup-actions .rehub-link-save {background:#8855ed;color:#fff;border-color:#8855ed;font-weight:700;}
+.rehub-link-popup-actions .rehub-link-remove {background:transparent;border-color:transparent;color:#da9fa9;padding-left:0;}
+.rehub-link-popup [hidden] {display:none!important;}
+.rehub-link-popup, .rehub-link-popup * {cursor:none!important;}
+@media(hover:none),(pointer:coarse){.rehub-link-popup,.rehub-link-popup *{cursor:auto!important;}}
+@media(prefers-reduced-motion:reduce){.rehub-link-popup{animation:none;}}

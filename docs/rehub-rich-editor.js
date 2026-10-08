@@ -1,4 +1,4 @@
-/* ReHub v31: in-place, accessible Markdown WYSIWYG editor.
+/* ReHub v32: in-place, accessible Markdown WYSIWYG editor.
    This script only edits client-side presentation. The existing textarea remains the canonical
    Markdown value submitted to ReHub API. No HTML is sent to the server. */
 (function () {
@@ -124,6 +124,134 @@
         const pressed=!!states[button.dataset.md];button.classList.toggle('md-active',pressed);button.setAttribute('aria-pressed',String(pressed));
       }
     };
+    // A floating link editor is rendered above the text itself, not in a separate toolbar.
+    // The selection range is saved before focusing the inputs; link creation is committed
+    // only on Save, so cancelling cannot leave a placeholder URL in the Markdown.
+    const linkPopup=document.createElement('div');
+    linkPopup.className='rehub-link-popup';
+    linkPopup.hidden=true;
+    linkPopup.setAttribute('role','dialog');
+    linkPopup.setAttribute('aria-label','Редактировать ссылку');
+    linkPopup.innerHTML=`
+      <div class="rehub-link-popup-title">Ссылка</div>
+      <label class="rehub-link-popup-label">Текст <input data-link-text type="text" maxlength="500" autocomplete="off" placeholder="Название ссылки"></label>
+      <label class="rehub-link-popup-label">Адрес <input data-link-url type="url" spellcheck="false" autocomplete="off" placeholder="https://example.com"></label>
+      <div class="rehub-link-popup-error" data-link-error role="status" hidden></div>
+      <div class="rehub-link-popup-actions">
+        <button type="button" data-link-remove class="rehub-link-remove" hidden>Убрать ссылку</button>
+        <span class="rehub-link-popup-spacer"></span>
+        <button type="button" data-link-cancel>Отмена</button>
+        <button type="button" data-link-save class="rehub-link-save">Сохранить</button>
+      </div>`;
+    document.body.append(linkPopup);
+    const textInput=linkPopup.querySelector('[data-link-text]');
+    const urlInput=linkPopup.querySelector('[data-link-url]');
+    const removeButton=linkPopup.querySelector('[data-link-remove]');
+    const error=linkPopup.querySelector('[data-link-error]');
+    let editingLink=null,linkRange=null,anchorRect=null;
+    const positionLinkPopup=()=>{
+      if(linkPopup.hidden)return;
+      const rect=editingLink?.isConnected?editingLink.getBoundingClientRect():
+        linkRange?.getBoundingClientRect()||anchorRect;
+      if(!rect)return;
+      const w=linkPopup.offsetWidth,h=linkPopup.offsetHeight;
+      const center=rect.left+rect.width/2;
+      const left=Math.max(8,Math.min(window.innerWidth-w-8,center-w/2));
+      const below=rect.top-h-11<8;
+      const top=below?Math.min(window.innerHeight-h-8,rect.bottom+11):rect.top-h-11;
+      linkPopup.classList.toggle('below',below);
+      linkPopup.style.left=`${left}px`;
+      linkPopup.style.top=`${Math.max(8,top)}px`;
+      linkPopup.style.setProperty('--link-arrow-x',`${Math.max(14,Math.min(w-14,center-left))}px`);
+    };
+    const closeLinkPopup=({restore=false}={})=>{
+      if(linkPopup.hidden)return;
+      const oldLink=editingLink,oldRange=linkRange;
+      linkPopup.hidden=true;linkPopup.classList.remove('below');
+      editingLink=null;linkRange=null;anchorRect=null;
+      error.hidden=true;error.textContent='';
+      if(restore){
+        editor.focus({preventScroll:true});
+        if(oldLink?.isConnected)caretAfter(oldLink);
+        else if(oldRange){
+          try{const s=getSelection();s.removeAllRanges();s.addRange(oldRange);}catch(_){}
+        }
+        active();
+      }
+    };
+    const openLinkPopup=(link=null,range=null)=>{
+      if(!link && !range)return;
+      editingLink=link;
+      linkRange=range?.cloneRange()||null;
+      anchorRect=linkRange?.getBoundingClientRect()||null;
+      textInput.value=link?link.textContent:range.toString()||'';
+      urlInput.value=link?link.getAttribute('href')||'':'';
+      removeButton.hidden=!link;
+      error.hidden=true;error.textContent='';
+      linkPopup.hidden=false;
+      positionLinkPopup();
+      (link?urlInput:(textInput.value?urlInput:textInput)).focus({preventScroll:true});
+    };
+    const validUrl=raw=>{
+      const value=raw.trim();
+      if(!value)return null;
+      const candidate=/^[a-z][a-z0-9+.-]*:/i.test(value)?value:`https://${value}`;
+      try{const parsed=new URL(candidate);return /^(https?:)$/.test(parsed.protocol)&&parsed.hostname?parsed.href:null;}
+      catch(_){return null;}
+    };
+    const saveLink=()=>{
+      const label=textInput.value.trim(),url=validUrl(urlInput.value);
+      if(!label||!url){
+        error.textContent=!label?'Укажите текст ссылки.':'Укажите корректный адрес http(s).';
+        error.hidden=false;positionLinkPopup();
+        (!label?textInput:urlInput).focus();return;
+      }
+      if(editingLink?.isConnected){
+        // Preserve existing bold/italic inside a link if only its URL changed.
+        if(editingLink.textContent!==label)editingLink.textContent=label;
+        editingLink.setAttribute('href',url);
+        const link=editingLink;
+        closeLinkPopup();editor.focus({preventScroll:true});caretAfter(link);
+      }else if(linkRange){
+        // Restore the original range after the popup took keyboard focus.
+        const range=linkRange.cloneRange();
+        closeLinkPopup();editor.focus({preventScroll:true});
+        const sel=getSelection();sel.removeAllRanges();sel.addRange(range);
+        const mark=document.createElement('a');mark.href=url;
+        const originalText=range.toString();
+        const content=range.extractContents();
+        if(label===originalText && content.hasChildNodes())mark.append(content);
+        else mark.textContent=label;
+        range.insertNode(mark);caretAfter(mark);
+      }else {closeLinkPopup();return;}
+      sync();active();syncTrack();
+    };
+    const removeLink=()=>{
+      const link=editingLink;
+      if(!link?.isConnected)return;
+      const nodes=Array.from(link.childNodes),last=nodes[nodes.length-1];
+      link.replaceWith(...nodes);
+      closeLinkPopup();editor.focus({preventScroll:true});
+      if(last?.isConnected)caretAfter(last);
+      sync();active();syncTrack();
+    };
+    linkPopup.querySelector('[data-link-save]').addEventListener('click',saveLink);
+    linkPopup.querySelector('[data-link-cancel]').addEventListener('click',()=>closeLinkPopup({restore:true}));
+    removeButton.addEventListener('click',removeLink);
+    linkPopup.addEventListener('keydown',e=>{
+      if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeLinkPopup({restore:true});}
+      else if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();saveLink();}
+    });
+    // Outside clicks only dismiss the popup; they never remove the edited link.
+    document.addEventListener('pointerdown',e=>{
+      if(linkPopup.hidden || linkPopup.contains(e.target))return;
+      if(editor.contains(e.target)&&e.target.closest?.('a[href]'))return;
+      closeLinkPopup();
+    },true);
+    editor.addEventListener('scroll',positionLinkPopup,{passive:true});
+    window.addEventListener('scroll',positionLinkPopup,{passive:true});
+    window.addEventListener('resize',positionLinkPopup,{passive:true});
+    field.closest('.hub-upload-scroll,.admin-editor,.hub-modal')?.addEventListener('scroll',positionLinkPopup,{passive:true});
     const command=(cmd,value=null)=>document.execCommand(cmd,false,value);
     // In-place caret boundary for inline formatting: the next character is plain
     // text, never inserted inside the recently formatted fragment.
@@ -216,7 +344,13 @@
       }else if(action==='code'){
         inlineToggle('code','code','код');
       }else if(action==='link'){
-        inlineToggle('link','a','название ссылки',{href:'https://example.com'});
+        const link=ancestor(current.range.startContainer,'a[href]');
+        if(link && !current.range.collapsed && link.contains(current.range.endContainer)){
+          // Keep the existing selected-text toggle: a second click unlinks it.
+          inlineToggle('link','a','название ссылки',{href:'https://example.com'});
+        }else{
+          openLinkPopup(link,link?null:current.range);
+        }
       }
       sync();active();syncTrack();
     };
@@ -241,7 +375,13 @@
       e.preventDefault();const data=e.clipboardData?.getData('text/plain')||'';
       command('insertText',data);
     });
-    editor.addEventListener('click',e=>{if(e.target.closest('a'))e.preventDefault();});
+    editor.addEventListener('click',e=>{
+      const link=e.target.closest('a[href]');
+      if(link && editor.contains(link)){
+        e.preventDefault();
+        openLinkPopup(link);
+      }
+    });
     editor.addEventListener('keydown',e=>{
       if((e.ctrlKey||e.metaKey)&&!e.altKey&&['b','i'].includes(e.key.toLowerCase())){
         e.preventDefault();apply(e.key.toLowerCase()==='b'?'bold':'italic');
@@ -261,7 +401,7 @@
         e.preventDefault();e.stopImmediatePropagation();editor.focus();notify?.('Описание длиннее 5000 символов.');
       }
     },true);
-    form?.addEventListener('reset',()=>setTimeout(show,0));
+    form?.addEventListener('reset',()=>{closeLinkPopup();setTimeout(show,0);});
     show();
     return {editor,refresh:show,sync,apply};
   }
