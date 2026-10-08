@@ -1056,3 +1056,13 @@ body.page-dragging { cursor: none !important; }
   width: 9px;
   background: #bea3ff;
 }
+
+/* Официальные бинды: две независимые версии для генератора программы. */
+.admin-preset-files { margin: 18px 0 20px; }
+.admin-preset-heading { display:flex; gap:12px; justify-content:space-between; align-items:center; margin:0 0 11px; flex-wrap:wrap; }
+.admin-preset-heading strong { font-size:12px; font-weight:650; color:var(--text); }
+.admin-preset-heading span { font-size:10px; color:var(--text-muted); }
+.admin-preset-drop { min-height:110px !important; padding:15px !important; }
+.admin-preset-drop.saved { border-color:rgba(125,215,160,.38); background:rgba(48,157,103,.045); }
+.admin-preset-drop.saved strong { color:#9eddb8; }
+.admin-preset-drop.selected { border-color:var(--accent) !important; background:rgba(var(--accent-rgb),.065); }

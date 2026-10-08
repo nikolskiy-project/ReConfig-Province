@@ -9,7 +9,7 @@
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="rehub.css?v=15">
-  <link rel="stylesheet" href="rehub-admin.css?v=15">
+  <link rel="stylesheet" href="rehub-admin.css?v=17">
 </head>
 <body class="rehub-page admin-page">
   <div class="page-noise" aria-hidden="true"></div>
@@ -72,6 +72,24 @@
               <strong id="adminPreviewTitle">Добавить превью</strong>
               <small id="adminPreviewMeta">JPG / PNG / WebP · авто ≤ 600 КБ</small>
             </label>
+          </div>
+
+          <div class="admin-preset-files">
+            <div class="admin-preset-heading"><strong>Предустановки для программы</strong><span>Два варианта биндов · {fio}, {rank}, {department}</span></div>
+            <div class="upload-files-grid">
+              <label class="upload-drop interactive admin-preset-drop" id="presetMaleDrop">
+                <input id="officialPresetMale" type="file" accept=".xml,text/xml,application/xml">
+                <span class="upload-drop-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m-4-4 4 4 4-4M4 20h16"/></svg></span>
+                <strong id="officialPresetMaleTitle">Мужская версия биндов</strong>
+                <small id="officialPresetMaleMeta">Выбрать XML · до 1 МБ</small>
+              </label>
+              <label class="upload-drop interactive admin-preset-drop" id="presetFemaleDrop">
+                <input id="officialPresetFemale" type="file" accept=".xml,text/xml,application/xml">
+                <span class="upload-drop-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m-4-4 4 4 4-4M4 20h16"/></svg></span>
+                <strong id="officialPresetFemaleTitle">Женская версия биндов</strong>
+                <small id="officialPresetFemaleMeta">Выбрать XML · до 1 МБ</small>
+              </label>
+            </div>
           </div>
 
           <div class="upload-fields">
@@ -167,6 +185,6 @@
 
   <div class="hub-toast" id="hubToast" role="status" aria-live="polite"></div>
   <script src="rehub-config.js?v=1"></script>
-  <script src="rehub-admin.js?v=15"></script>
+  <script src="rehub-admin.js?v=17"></script>
 </body>
 </html>
