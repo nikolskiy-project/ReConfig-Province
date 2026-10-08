@@ -140,19 +140,36 @@ function initCursor() {
   bindCursorHover();
 }
 
+const parallaxCards = new WeakSet();
 function initCardParallax() {
   if (!matchMedia('(pointer:fine)').matches || innerWidth < 900 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   $$('.hub-video-card').forEach(card => {
+    if (parallaxCards.has(card)) return; // API refresh must not bind the same animation twice
     const thumb = $('.config-thumb', card);
     const follow = $('.thumb-follow', card);
     if (!thumb || !follow) return;
+    parallaxCards.add(card);
 
     let tx = 0, ty = 0, rx = 0, ry = 0;
     let x = 0, y = 0, crx = 0, cry = 0;
     let followX = 0, followY = 0, targetFollowX = 0, targetFollowY = 0;
-    let active = false;
-
+    let frame = 0;
+    const animate = () => {
+      frame = 0;
+      x += (tx - x) * .11;
+      y += (ty - y) * .11;
+      crx += (rx - crx) * .10;
+      cry += (ry - cry) * .10;
+      followX += (targetFollowX - followX) * .09;
+      followY += (targetFollowY - followY) * .09;
+      thumb.style.transform = `perspective(1000px) translate3d(${x.toFixed(2)}px,${y.toFixed(2)}px,0) rotateX(${crx.toFixed(2)}deg) rotateY(${cry.toFixed(2)}deg)`;
+      follow.style.transform = `translate3d(${followX.toFixed(2)}px,${followY.toFixed(2)}px,20px)`;
+      if (Math.max(Math.abs(tx-x),Math.abs(ty-y),Math.abs(rx-crx),Math.abs(ry-cry),Math.abs(targetFollowX-followX),Math.abs(targetFollowY-followY)) > .02) {
+        frame = requestAnimationFrame(animate);
+      }
+    };
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(animate); };
     const setTarget = e => {
       const rect = thumb.getBoundingClientRect();
       const nx = Math.max(-1, Math.min(1, (e.clientX - (rect.left + rect.width / 2)) / Math.max(rect.width / 2, 1)));
@@ -165,29 +182,16 @@ function initCardParallax() {
       targetFollowY = ny * 2.5;
       thumb.style.setProperty('--shine-x', `${Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100)).toFixed(1)}%`);
       thumb.style.setProperty('--shine-y', `${Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100)).toFixed(1)}%`);
+      schedule();
     };
-
-    card.addEventListener('mouseenter', e => { active = true; setTarget(e); });
+    card.addEventListener('mouseenter', setTarget);
     card.addEventListener('mousemove', setTarget, { passive: true });
     card.addEventListener('mouseleave', () => {
-      active = false;
       tx = ty = rx = ry = targetFollowX = targetFollowY = 0;
       thumb.style.setProperty('--shine-x', '50%');
       thumb.style.setProperty('--shine-y', '50%');
+      schedule();
     });
-
-    const animate = () => {
-      x += (tx - x) * .11;
-      y += (ty - y) * .11;
-      crx += (rx - crx) * .10;
-      cry += (ry - cry) * .10;
-      followX += (targetFollowX - followX) * .09;
-      followY += (targetFollowY - followY) * .09;
-      thumb.style.transform = `perspective(1000px) translate3d(${x.toFixed(2)}px,${y.toFixed(2)}px,0) rotateX(${crx.toFixed(2)}deg) rotateY(${cry.toFixed(2)}deg)`;
-      follow.style.transform = `translate3d(${followX.toFixed(2)}px,${followY.toFixed(2)}px,20px)`;
-      requestAnimationFrame(animate);
-    };
-    animate();
   });
 }
 
@@ -203,7 +207,6 @@ function initDragScroll() {
   let lastMoveTime = 0;
   let velocity = 0;
   let inertiaFrame = 0;
-  let wheelTarget = null;
   let suppressClick = false;
 
   const interactiveSelector = 'a, button, input, textarea, select, [contenteditable="true"], .site-scrollbar-thumb, .hub-video-card, .hub-modal';
@@ -218,14 +221,12 @@ function initDragScroll() {
   const cancelInertia = () => {
     if (inertiaFrame) cancelAnimationFrame(inertiaFrame);
     inertiaFrame = 0;
-    wheelTarget = null;
     velocity = 0;
     if (!dragging) setKineticState(false);
   };
   window.cancelPageInertia = cancelInertia;
 
   const beginInertia = () => {
-    wheelTarget = null;
     if (inertiaFrame) cancelAnimationFrame(inertiaFrame);
     const idleFor = performance.now() - lastMoveTime;
     if (idleFor > 85) velocity *= Math.max(0, 1 - (idleFor - 85) / 150);
@@ -307,67 +308,12 @@ function initDragScroll() {
     suppressClick = false;
   }, true);
 
-  const wheelCanUseOwnScroller = (target, deltaY) => {
-    let node = target instanceof Element ? target : null;
-    while (node && node !== document.body && node !== root) {
-      const style = getComputedStyle(node);
-      const overflowY = style.overflowY;
-      const scrollable = (overflowY === 'auto' || overflowY === 'scroll') && node.scrollHeight > node.clientHeight + 1;
-      if (scrollable) {
-        return true; // even at the edge: no scroll chaining to the page
-      }
-      node = node.parentElement;
-    }
-    return false;
-  };
-
-  const normalizeWheelDelta = e => {
-    let delta = e.deltaY;
-    if (e.deltaMode === 1) delta *= 16;
-    else if (e.deltaMode === 2) delta *= innerHeight;
-    return Math.max(-550, Math.min(550, delta));
-  };
-
-  // Wheel scrolling uses ONE continuously updated target, instead of stacking
-  // velocity impulses (which previously bounced when a mouse wheel was spun fast).
-  const startWheelAnimation = () => {
-    if (inertiaFrame) return;
-    setKineticState(true); // disable CSS smooth during manual rAF movement
-    let previous = performance.now();
-    const tick = now => {
-      const dt = Math.min(36, Math.max(1, now - previous));
-      previous = now;
-      const limit = maxScroll();
-      wheelTarget = Math.max(0, Math.min(limit, wheelTarget ?? scrollY));
-      const distance = wheelTarget - scrollY;
-      if (Math.abs(distance) <= .6) {
-        scrollTo(0, wheelTarget);
-        inertiaFrame = 0;
-        wheelTarget = null;
-        setKineticState(false);
-        return;
-      }
-      // Frame-rate-independent ease out, stable at 60/120/144 Hz.
-      const fraction = 1 - Math.exp(-dt / 56);
-      scrollTo(0, scrollY + distance * fraction);
-      inertiaFrame = requestAnimationFrame(tick);
-    };
-    inertiaFrame = requestAnimationFrame(tick);
-  };
-
-  addEventListener('wheel', e => {
-    if (e.ctrlKey || e.metaKey || dragging || document.body.classList.contains('modal-open')) return;
-    if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
-    if (wheelCanUseOwnScroller(e.target, e.deltaY)) { cancelInertia(); return; }
-    e.preventDefault();
-    // A new wheel gesture supersedes any momentum left from a page drag.
-    if (inertiaFrame && wheelTarget === null) cancelInertia();
-    // Accumulate relative to the previous destination rather than current
-    // scrollY; small trackpad deltas and discrete wheel notches feel alike.
-    const base = wheelTarget === null ? scrollY : wheelTarget;
-    wheelTarget = Math.max(0, Math.min(maxScroll(), base + normalizeWheelDelta(e)));
-    startWheelAnimation();
-  }, { passive: false });
+  // Native wheel scrolling avoids main-thread rAF loops and lets Firefox/Chromium
+  // process both discrete wheel and touchpad gestures at the browser's own cadence.
+  // Keep drag inertia cancellable when the user takes control with the wheel.
+  addEventListener('wheel', () => {
+    if (inertiaFrame) cancelInertia();
+  }, { passive: true, capture: true });
 
   addEventListener('keydown', cancelInertia);
   document.addEventListener('mousedown', () => {
@@ -396,13 +342,16 @@ function initCustomScrollbar() {
     const maxThumbTop = Math.max(0, trackHeight - thumbHeight);
     return { thumbHeight, maxScroll, maxThumbTop };
   };
-  const sync = () => {
+  let syncFrame = 0;
+  const syncNow = () => {
+    syncFrame = 0;
     const { thumbHeight, maxScroll, maxThumbTop } = metrics();
     const ratio = maxScroll > 0 ? Math.max(0, Math.min(1, scrollY / maxScroll)) : 0;
     thumb.style.height = `${thumbHeight}px`;
     thumb.style.transform = `translate3d(0,${maxThumbTop * ratio}px,0)`;
     track.classList.toggle('hidden', maxScroll <= 0);
   };
+  const sync = () => { if (!syncFrame) syncFrame = requestAnimationFrame(syncNow); };
   const move = clientY => {
     const rect = track.getBoundingClientRect();
     const { maxScroll, maxThumbTop } = metrics();
