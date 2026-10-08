@@ -1066,3 +1066,81 @@ body.page-dragging { cursor: none !important; }
 .admin-preset-drop.saved { border-color:rgba(125,215,160,.38); background:rgba(48,157,103,.045); }
 .admin-preset-drop.saved strong { color:#9eddb8; }
 .admin-preset-drop.selected { border-color:var(--accent) !important; background:rgba(var(--accent-rgb),.065); }
+
+
+/* v18 — one XML upload; the variant switch lives beside the author field. */
+.admin-gender-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.admin-gender-field > span {
+  color: #898998;
+  font-size: 9px;
+}
+.admin-gender-switch {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  padding: 3px;
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #101017;
+  isolation: isolate;
+  overflow: hidden;
+  transition: border-color .18s ease;
+}
+.admin-gender-switch:hover { border-color: rgba(var(--accent-rgb), .43); }
+.admin-gender-switch::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  bottom: 3px;
+  width: calc((100% - 8px) / 2);
+  border: 1px solid rgba(var(--accent-rgb), .20);
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), .18), rgba(var(--accent-rgb), .075));
+  box-shadow: 0 2px 9px rgba(0,0,0,.15);
+  pointer-events: none;
+  z-index: 0;
+  transition: transform .32s cubic-bezier(.22,1,.36,1);
+}
+.admin-gender-switch[data-gender="female"]::before { transform: translateX(100%); }
+.admin-gender-option {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  padding: 7px 6px;
+  border-radius: 6px;
+  background: transparent;
+  color: #8c8c9e;
+  font: inherit;
+  font-size: 10px;
+  line-height: 1.3;
+  cursor: none;
+  transition: color .2s ease, transform .17s ease;
+}
+.admin-gender-option:hover { color: #ded8f4; }
+.admin-gender-option.active { color: var(--accent-light); font-weight: 650; }
+.admin-gender-option:active { transform: scale(.975); }
+.gender-ready-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-left: 5px;
+  border-radius: 100%;
+  background: #4ac996;
+  box-shadow: 0 0 5px rgba(74,201,150,.38);
+  vertical-align: 2px;
+  visibility: hidden;
+}
+.gender-ready-dot.ready { visibility: visible; }
+#adminConfigDrop.version-ready { border-color: rgba(74,201,150,.37); }
+#adminConfigDrop.version-pending { border-color: rgba(var(--accent-rgb), .60); background: rgba(var(--accent-rgb), .045); }
+@media (pointer: coarse) { .admin-gender-option { cursor: pointer; } }

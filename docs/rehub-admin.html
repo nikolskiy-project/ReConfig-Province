@@ -9,7 +9,7 @@
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="rehub.css?v=15">
-  <link rel="stylesheet" href="rehub-admin.css?v=17">
+  <link rel="stylesheet" href="rehub-admin.css?v=18">
 </head>
 <body class="rehub-page admin-page">
   <div class="page-noise" aria-hidden="true"></div>
@@ -61,8 +61,8 @@
             <label class="upload-drop interactive" id="adminConfigDrop">
               <input id="adminConfigFile" type="file" accept=".xml,text/xml,application/xml">
               <span class="upload-drop-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4m0 0-4 4m4-4 4 4M5 20h14"/></svg></span>
-              <strong id="adminConfigTitle">Выбрать XML-конфиг</strong>
-              <small id="adminConfigMeta">Для первой публикации обязателен · экспортируется только <binds></small>
+              <strong id="adminConfigTitle">Выбрать XML · мужская версия</strong>
+              <small id="adminConfigMeta">Выбери XML для мужского варианта · сохраняется только &lt;binds&gt;</small>
             </label>
 
             <label class="upload-drop preview-upload-drop interactive" id="adminPreviewDrop">
@@ -74,28 +74,17 @@
             </label>
           </div>
 
-          <div class="admin-preset-files">
-            <div class="admin-preset-heading"><strong>Предустановки для программы</strong><span>Два варианта биндов · {fio}, {rank}, {department}</span></div>
-            <div class="upload-files-grid">
-              <label class="upload-drop interactive admin-preset-drop" id="presetMaleDrop">
-                <input id="officialPresetMale" type="file" accept=".xml,text/xml,application/xml">
-                <span class="upload-drop-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m-4-4 4 4 4-4M4 20h16"/></svg></span>
-                <strong id="officialPresetMaleTitle">Мужская версия биндов</strong>
-                <small id="officialPresetMaleMeta">Выбрать XML · до 1 МБ</small>
-              </label>
-              <label class="upload-drop interactive admin-preset-drop" id="presetFemaleDrop">
-                <input id="officialPresetFemale" type="file" accept=".xml,text/xml,application/xml">
-                <span class="upload-drop-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m-4-4 4 4 4-4M4 20h16"/></svg></span>
-                <strong id="officialPresetFemaleTitle">Женская версия биндов</strong>
-                <small id="officialPresetFemaleMeta">Выбрать XML · до 1 МБ</small>
-              </label>
-            </div>
-          </div>
-
           <div class="upload-fields">
             <label><span>Фракция</span><input id="officialFaction" name="faction" maxlength="50" placeholder="Например: МЧС" required></label>
             <label><span>Название</span><input id="officialTitle" name="title" maxlength="70" required></label>
             <label><span>Автор</span><input id="officialAuthor" name="author" maxlength="40" value="ReConfig Province" required></label>
+            <div class="admin-gender-field">
+              <span id="officialGenderLabel">Версия биндов</span>
+              <div class="admin-gender-switch" id="officialGenderSwitch" role="group" aria-labelledby="officialGenderLabel">
+                <button class="admin-gender-option interactive active" type="button" data-gender="male" aria-pressed="true">Мужская <span class="gender-ready-dot" id="genderReadyMale" aria-hidden="true"></span></button>
+                <button class="admin-gender-option interactive" type="button" data-gender="female" aria-pressed="false">Женская <span class="gender-ready-dot" id="genderReadyFemale" aria-hidden="true"></span></button>
+              </div>
+            </div>
             <label class="wide"><span>Описание</span><textarea id="officialDescription" name="description" rows="5" maxlength="600" required></textarea></label>
           </div>
 
@@ -185,6 +174,6 @@
 
   <div class="hub-toast" id="hubToast" role="status" aria-live="polite"></div>
   <script src="rehub-config.js?v=1"></script>
-  <script src="rehub-admin.js?v=17"></script>
+  <script src="rehub-admin.js?v=18"></script>
 </body>
 </html>

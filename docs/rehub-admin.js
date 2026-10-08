@@ -16,7 +16,10 @@ let currentSlot = 'okb';
 let creatingOfficial = false;
 let currentMeta = null;
 let compressedPreview = null;
-let preparedOfficialConfig = null;
+let selectedOfficialGender = 'male';
+// Each variant is kept in memory while changing the visible upload slot.
+let preparedOfficialPresets = { male: null, female: null };
+let officialUploadRevision = 0;
 let moderationData = { pending:[], approved:[], rejected:[] };
 let moderationTab = 'pending';
 let selectedSubmission = null;
@@ -383,37 +386,55 @@ async function compressPreview(file) {
   bmp.close?.(); if(!blob||blob.size>PREVIEW_MAX) throw new Error('Не удалось ужать превью до 600 КБ.');
   return new File([blob],'preview.webp',{type:'image/webp'});
 }
-function resetOfficialPresetFiles(){
-  for(const [gender,title] of [['Male','Мужская'],['Female','Женская']]){
-    const input=$(`#officialPreset${gender}`), drop=$(`#preset${gender}Drop`);
-    if(!input || !drop) continue;
-    input.value='';drop.classList.remove('selected','saved');
-    const existing=Boolean(currentMeta?.[`preset_${gender.toLowerCase()}_file`]);
-    if(existing)drop.classList.add('saved');
-    $(`#officialPreset${gender}Title`).textContent=existing?`${title} версия загружена`:`${title} версия биндов`;
-    $(`#officialPreset${gender}Meta`).textContent=existing?'Можно оставить или загрузить новую':'Выбрать XML · до 1 МБ';
+function updateOfficialVariantUI() {
+  const gender = selectedOfficialGender;
+  const label = gender === 'male' ? 'Мужская' : 'Женская';
+  const staged = preparedOfficialPresets[gender];
+  const saved = Boolean(currentMeta?.[`preset_${gender}_file`]);
+  const drop = $('#adminConfigDrop');
+  drop.classList.toggle('version-pending', Boolean(staged));
+  drop.classList.toggle('version-ready', !staged && saved);
+
+  if (staged) {
+    $('#adminConfigTitle').textContent = staged.name;
+    $('#adminConfigMeta').textContent = `${label} версия · ${staged.bindCount} биндов · ${Math.max(1, Math.ceil(staged.file.size/1024))} КБ · будет обновлена`;
+  } else if (saved) {
+    $('#adminConfigTitle').textContent = `${label} версия уже загружена`;
+    $('#adminConfigMeta').textContent = 'Нажми для замены XML или переключи пол · старый файл сохранится';
+  } else {
+    $('#adminConfigTitle').textContent = `Выбрать XML · ${gender === 'male' ? 'мужская' : 'женская'} версия`;
+    $('#adminConfigMeta').textContent = 'Загрузи XML · сохраняется только <binds>…</binds> · до 1 МБ';
   }
+
+  const toggle = $('#officialGenderSwitch');
+  toggle.dataset.gender = gender;
+  $$('.admin-gender-option', toggle).forEach(button => {
+    const active = button.dataset.gender === gender;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+  ['male','female'].forEach(key => {
+    const dot=$(`#genderReady${key === 'male' ? 'Male' : 'Female'}`);
+    dot.classList.toggle('ready', Boolean(preparedOfficialPresets[key] || currentMeta?.[`preset_${key}_file`]));
+  });
 }
-function bindOfficialPresetFiles(){
-  for(const gender of ['Male','Female']){
-    const input=$(`#officialPreset${gender}`);if(!input)continue;
-    input.addEventListener('change',()=>{
-      const file=input.files?.[0];if(!file)return;
-      if(!file.name.toLowerCase().endsWith('.xml')||file.size>1024*1024){
-        toast('Выбери XML не больше 1 МБ.');input.value='';return;
-      }
-      $(`#preset${gender}Drop`).classList.remove('saved');
-      $(`#preset${gender}Drop`).classList.add('selected');
-      $(`#officialPreset${gender}Title`).textContent=file.name;
-      $(`#officialPreset${gender}Meta`).textContent=`${Math.max(1,Math.ceil(file.size/1024))} КБ · будет обновлена`;
-    });
-  }
+
+function switchOfficialGender(gender) {
+  if (gender !== 'male' && gender !== 'female') return;
+  selectedOfficialGender = gender;
+  // A single file input represents one variant at a time.
+  $('#adminConfigFile').value = '';
+  updateOfficialVariantUI();
 }
+
 function resetFiles() {
-  $('#adminConfigFile').value=''; $('#adminPreviewFile').value=''; compressedPreview=null; preparedOfficialConfig=null;
-  resetOfficialPresetFiles();
-  $('#adminConfigTitle').textContent=currentMeta?'Оставить текущий XML':'Выбрать XML-конфиг';
-  $('#adminConfigMeta').textContent=currentMeta?'Выбери файл только если нужно заменить XML':'Для первой публикации обязателен · экспортируется только <binds>';
+  officialUploadRevision++;
+  selectedOfficialGender = 'male';
+  preparedOfficialPresets = { male:null, female:null };
+  $('#adminConfigFile').value = '';
+  $('#adminPreviewFile').value = '';
+  compressedPreview = null;
+  updateOfficialVariantUI();
   const img=$('#adminPreviewImage'),drop=$('#adminPreviewDrop');
   if(currentMeta?.preview_url){img.hidden=false;img.src=currentMeta.preview_url;drop.classList.add('has-preview');$('#adminPreviewTitle').textContent='Текущее превью';$('#adminPreviewMeta').textContent='Новый файл заменит его';}
   else {img.hidden=true;img.removeAttribute('src');drop.classList.remove('has-preview');$('#adminPreviewTitle').textContent='Добавить превью';$('#adminPreviewMeta').textContent='JPG / PNG / WebP · авто ≤ 600 КБ';}
@@ -463,20 +484,28 @@ function showWorkspace() {
 function logout(){adminKey='';sessionStorage.removeItem('rehub_admin_key');$('#adminWorkspace').hidden=true;$('#adminLogin').hidden=false;$('#adminKeyInput').value='';bindAdminCursorHover();requestAnimationFrame(()=>window.syncAdminScrollbar?.());}
 async function login(key){adminKey=key.trim();if(!adminKey)return;try{await api('/api/admin/official');sessionStorage.setItem('rehub_admin_key',adminKey);$('#loginError').textContent='';showWorkspace();}catch(e){adminKey='';$('#loginError').textContent=e.status===401?'Неверный ADMIN_KEY.':e.message;}}
 function bindFiles(){
-  $('#adminConfigFile').addEventListener('change',async()=>{
-    const f=$('#adminConfigFile').files[0];if(!f)return;
-    $('#adminConfigTitle').textContent='Извлекаю блок биндов…';
-    $('#adminConfigMeta').textContent='На GitHub попадёт только <binds>…</binds>';
-    try{
-      const extracted=await extractBindsFile(f);
-      preparedOfficialConfig=extracted.file;
-      $('#adminConfigTitle').textContent=f.name;
-      $('#adminConfigMeta').textContent=`${extracted.bindCount} биндов · экспорт ${Math.max(1,Math.round(extracted.exportedBytes/1024))} КБ · только <binds>`;
-    }catch(e){
-      preparedOfficialConfig=null;$('#adminConfigFile').value='';
-      $('#adminConfigTitle').textContent=currentMeta?'Оставить текущий XML':'Выбрать XML-конфиг';
-      $('#adminConfigMeta').textContent=currentMeta?'Выбери файл только если нужно заменить XML':'Для первой публикации обязателен · экспортируется только <binds>';
-      toast(e.message||'Не удалось прочитать XML.');
+  $$('.admin-gender-option', $('#officialGenderSwitch')).forEach(button => {
+    button.addEventListener('click', () => switchOfficialGender(button.dataset.gender));
+  });
+  $('#adminConfigFile').addEventListener('change', async () => {
+    const input = $('#adminConfigFile');
+    const file = input.files?.[0];
+    if (!file) return;
+    const gender = selectedOfficialGender;
+    const revision = officialUploadRevision;
+    input.value = ''; // Enables selecting the same filename for the other gender.
+    $('#adminConfigTitle').textContent = 'Извлекаю блок биндов…';
+    $('#adminConfigMeta').textContent = 'Подготавливаю XML для выбранного пола';
+    try {
+      const extracted = await extractBindsFile(file);
+      // Ignore stale results after selecting a different faction/reset.
+      if (revision !== officialUploadRevision) return;
+      preparedOfficialPresets[gender] = { ...extracted, name: file.name };
+      updateOfficialVariantUI();
+    } catch (e) {
+      if (revision !== officialUploadRevision) return;
+      updateOfficialVariantUI();
+      toast(e.message || 'Не удалось прочитать XML.');
     }
   });
   $('#adminPreviewFile').addEventListener('change',async()=>{const f=$('#adminPreviewFile').files[0];if(!f)return;try{compressedPreview=await compressPreview(f);const url=URL.createObjectURL(compressedPreview),img=$('#adminPreviewImage');img.hidden=false;img.src=url;$('#adminPreviewDrop').classList.add('has-preview');$('#adminPreviewTitle').textContent='Новое превью готово';$('#adminPreviewMeta').textContent=`${Math.round(compressedPreview.size/1024)} КБ · WebP`; }catch(e){$('#adminPreviewFile').value='';compressedPreview=null;toast(e.message);}});
@@ -484,9 +513,23 @@ function bindFiles(){
 async function submit(e){
   e.preventDefault(); if(!API){toast('Не указан REHUB_API.');return;}
   const faction=$('#officialFaction').value.trim();if(!faction){toast('Укажи фракцию.');return;}
-  const xml=preparedOfficialConfig;if(!currentMeta&&!xml){toast('Для первой публикации выбери XML.');return;}
+  const male = preparedOfficialPresets.male?.file || null;
+  const female = preparedOfficialPresets.female?.file || null;
+  if (!currentMeta && (!male || !female)) {
+    toast('Для первой публикации выбери мужскую и женскую версии XML.');
+    return;
+  }
   let targetSlot=currentSlot;if(!targetSlot){targetSlot=slugifyFaction(faction);const used=new Set([...seededOfficials,...officialCatalog].map(x=>x.slot));let base=targetSlot,n=2;while(used.has(targetSlot))targetSlot=`${base}-${n++}`;}
-  const fd=new FormData();fd.set('faction',faction);fd.set('title',$('#officialTitle').value);fd.set('author',$('#officialAuthor').value);fd.set('description',$('#officialDescription').value);if(xml)fd.set('config',xml,xml.name);if(compressedPreview)fd.set('preview',compressedPreview,'preview.webp');for(const [gender,field] of [['Male','preset_male'],['Female','preset_female']]){const file=$(`#officialPreset${gender}`).files?.[0];if(file)fd.set(field,file,file.name);}
+  const fd=new FormData();
+  fd.set('faction',faction);
+  fd.set('title',$('#officialTitle').value);
+  fd.set('author',$('#officialAuthor').value);
+  fd.set('description',$('#officialDescription').value);
+  // Same male file is the public downloadable XML. It also drives male presets.
+  // A female-only update does not modify either male version or public XML.
+  if (male) { fd.set('config',male,male.name); fd.set('preset_male',male,male.name); }
+  if (female) fd.set('preset_female',female,female.name);
+  if (compressedPreview) fd.set('preview',compressedPreview,'preview.webp');
   const form=$('#officialForm'),btn=$('#officialSubmit'),old=btn.textContent;form.classList.add('submitting');btn.disabled=true;btn.textContent=currentMeta?'Обновляю…':'Публикую…';
   try{const result=await api(`/api/admin/official/${targetSlot}`,{method:'POST',body:fd});currentSlot=result.item.slot;creatingOfficial=false;fillForm(result.item);await refreshStates();$('#officialFactionSelect').value=currentSlot;refreshProgramSelect($('#officialFactionSelect'));toast(result.mode==='updated'?'Официальный конфиг обновлён.':'Официальный конфиг опубликован.');}
   catch(e){toast(e.detail||e.message);}
@@ -969,5 +1012,5 @@ function initMeasuredSegmentMarkers() {
   });
 }
 
-function init(){initMeasuredSegmentMarkers();initReviewInnerScrollbar();initReviewCodeScrollbar();initCursor();initAdminHeader();initAdminDragScroll();initCustomScrollbar();initProgramSelects();observeAdminReveals();$('#loginForm').addEventListener('submit',e=>{e.preventDefault();login($('#adminKeyInput').value);});$('#logoutBtn').addEventListener('click',logout);$('#officialFactionSelect').addEventListener('change',e=>loadSlot(e.target.value));$('#newOfficialFaction').addEventListener('click',beginNewOfficial);$('#reloadOfficial').addEventListener('click',()=>currentSlot?loadSlot(currentSlot):beginNewOfficial());$('#officialForm').addEventListener('submit',submit);bindFiles();bindOfficialPresetFiles();bindModeration();if(adminKey)login(adminKey);}
+function init(){initMeasuredSegmentMarkers();initReviewInnerScrollbar();initReviewCodeScrollbar();initCursor();initAdminHeader();initAdminDragScroll();initCustomScrollbar();initProgramSelects();observeAdminReveals();$('#loginForm').addEventListener('submit',e=>{e.preventDefault();login($('#adminKeyInput').value);});$('#logoutBtn').addEventListener('click',logout);$('#officialFactionSelect').addEventListener('change',e=>loadSlot(e.target.value));$('#newOfficialFaction').addEventListener('click',beginNewOfficial);$('#reloadOfficial').addEventListener('click',()=>currentSlot?loadSlot(currentSlot):beginNewOfficial());$('#officialForm').addEventListener('submit',submit);bindFiles();bindModeration();if(adminKey)login(adminKey);}
 addEventListener('DOMContentLoaded',init);
