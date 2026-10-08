@@ -453,6 +453,120 @@ function previewClassFor(card) {
   return 'okb';
 }
 
+// Published configs are addressed by stable IDs, never by their raw GitHub URL.
+let activeDetailCard = null;
+let rehubCatalogLoaded = false;
+
+function configRefForCard(card) {
+  if (!card) return '';
+  const official = String(card.dataset.officialSlot || '').toLowerCase();
+  if (/^[a-z0-9][a-z0-9-]{1,47}$/.test(official)) return `official:${official}`;
+  const community = String(card.dataset.communityId || '').toLowerCase();
+  if (/^[a-f0-9]{12}$/.test(community)) return `community:${community}`;
+  return '';
+}
+
+function downloadPathForCard(card) {
+  const ref = configRefForCard(card);
+  if (!ref || !card?.dataset.downloadUrl || !REHUB_API) return '';
+  const [type, id] = ref.split(':');
+  return `${REHUB_API}/api/download/${type}/${encodeURIComponent(id)}`;
+}
+
+function shareUrlForCard(card) {
+  const ref = configRefForCard(card);
+  if (!ref) return '';
+  const url = new URL(location.href);
+  url.hash = `config=${encodeURIComponent(ref)}`;
+  return url.href;
+}
+
+async function copyShareLink(url) {
+  if (!url) return false;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(url);
+      return true;
+    }
+  } catch (_) { /* Firefox / clipboard permissions: use the selection fallback. */ }
+  const textarea = document.createElement('textarea');
+  textarea.value = url;
+  textarea.setAttribute('readonly', '');
+  Object.assign(textarea.style, { position: 'fixed', left: '-9999px', top: '0', opacity: '0' });
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  let copied = false;
+  try { copied = document.execCommand('copy'); } catch (_) { /* fallback below */ }
+  textarea.remove();
+  if (!copied && typeof window.prompt === 'function') {
+    window.prompt('Скопируй ссылку на конфиг:', url);
+  }
+  return copied;
+}
+
+function sharedRefFromHash() {
+  const hash = location.hash || '';
+  if (!hash.startsWith('#config=')) return '';
+  try {
+    const ref = decodeURIComponent(hash.slice('#config='.length));
+    return /^(official:[a-z0-9][a-z0-9-]{1,47}|community:[a-f0-9]{12})$/.test(ref) ? ref : '';
+  } catch (_) { return ''; }
+}
+
+function openSharedConfig() {
+  const ref = sharedRefFromHash();
+  if (!ref || !rehubCatalogLoaded) return;
+  const card = $$('.hub-video-card').find(item => configRefForCard(item) === ref && !!item.dataset.downloadUrl);
+  if (card) openCard(card);
+  else showToast('Публикация не найдена или была удалена.');
+}
+
+async function downloadSelectedConfig(button) {
+  const card = activeDetailCard;
+  const url = downloadPathForCard(card);
+  if (!url) {
+    showToast('Этот XML пока недоступен для скачивания.');
+    return;
+  }
+  button.disabled = true;
+  const originalLabel = button.textContent;
+  button.textContent = 'Загружаю XML…';
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+  try {
+    const response = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+    if (!response.ok) {
+      let message = `Ошибка загрузки (HTTP ${response.status})`;
+      try {
+        const data = await response.json();
+        if (data?.error) message = String(data.error);
+      } catch (_) {}
+      throw new Error(message);
+    }
+    const blob = await response.blob();
+    const filename = String(card.dataset.title || 'config')
+      .replace(/[\\/:*?"<>|\x00-\x1f\x7f]/g, '_')
+      .trim().slice(0, 72) || 'config';
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = `${filename}.xml`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+    showToast('XML-файл скачан.');
+  } catch (error) {
+    showToast(error?.name === 'AbortError' ? 'Сервер долго не отвечает. Попробуй ещё раз.' : (error.message || 'Ошибка скачивания XML.'));
+  } finally {
+    clearTimeout(timeout);
+    button.textContent = originalLabel;
+    // The user may have switched to another card while the request was in flight.
+    button.disabled = !downloadPathForCard(activeDetailCard);
+  }
+}
+
 function openCard(card) {
   const modal = $('#detailModal');
   if (!modal) return;
@@ -495,14 +609,17 @@ function openCard(card) {
     tags.appendChild(item);
   });
 
+  activeDetailCard = card;
   const primary = $('#detailPrimary');
-  primary.dataset.downloadUrl = downloadUrl;
-  primary.textContent = downloadUrl ? 'Скачать XML' : (ready ? 'Открыть в ReConfig' : 'В разработке');
-  primary.disabled = !downloadUrl && !ready;
-  primary.classList.toggle('disabled', primary.disabled);
-  $('#detailNote').textContent = isCommunity
-    ? 'Пользовательский конфиг прошёл модерацию ReHub. Перед импортом ReConfig обработает только поддерживаемые бинды.'
-    : (ready ? 'Прямая установка из ReHub будет подключена вместе с API мастерской.' : 'Этот официальный набор уже закреплён в мастерской, но его содержимое ещё готовится.');
+  const canDownload = !!downloadPathForCard(card);
+  primary.textContent = canDownload ? 'Скачать XML' : 'Пока недоступно';
+  primary.disabled = !canDownload;
+  primary.classList.toggle('disabled', !canDownload);
+  const share = $('#detailSecondary');
+  share.disabled = !shareUrlForCard(card);
+  $('#detailNote').textContent = canDownload
+    ? 'Скачивается только XML с биндами. Прямая установка в ReConfig появится позже.'
+    : 'XML ещё не опубликован — скачивание пока недоступно.';
 
   const detailScroll = $('#detailScroll');
   if (detailScroll) detailScroll.scrollTop = 0;
@@ -592,18 +709,11 @@ function initModals() {
     setModal(detail, false);
   });
 
-  $('#detailPrimary')?.addEventListener('click', e => {
-    const url = e.currentTarget.dataset.downloadUrl || '';
-    if (url) { window.open(url, '_blank', 'noopener'); return; }
-    showToast('Прямая установка появится в следующем этапе ReHub.');
-  });
+  $('#detailPrimary')?.addEventListener('click', e => { void downloadSelectedConfig(e.currentTarget); });
   $('#detailSecondary')?.addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(location.href.split('#')[0]);
-      showToast('Ссылка на ReHub скопирована.');
-    } catch (_) {
-      showToast('Скопировать ссылку автоматически не удалось.');
-    }
+    const shareUrl = shareUrlForCard(activeDetailCard);
+    if (!shareUrl) { showToast('Ссылка на эту публикацию недоступна.'); return; }
+    if (await copyShareLink(shareUrl)) showToast('Ссылка на конфиг скопирована.');
   });
 }
 
@@ -627,6 +737,7 @@ function makeCommunityCard(item, index = 0) {
   card.dataset.tags = `${escapeText(item.category || 'Другое')}|Сообщество|${item.verified ? 'Проверено|' : ''}ReHub`;
   card.dataset.symbol = 'star';
   card.dataset.author = escapeText(item.author || 'Пользователь');
+  card.dataset.communityId = /^[a-f0-9]{12}$/.test(String(item.id || '')) ? item.id : '';
   card.dataset.previewUrl = escapeText(item.preview_url || '');
   card.dataset.downloadUrl = escapeText(item.download_url || '');
 
@@ -716,6 +827,7 @@ function applyOfficialConfig(item) {
   let card=$(`#hubGrid .hub-video-card[data-official-slot="${CSS.escape(item.slot)}"]`);
   if(!card){card=makeOfficialCard(item);$('#hubGrid')?.appendChild(card);observeReveals(card.parentElement);return;}
   const label=item.category||card.dataset.label||'Официальный';
+  card.dataset.officialSlot = item.slot;
   card.dataset.title=item.title||label; card.dataset.description=item.description||''; card.dataset.status='Доступен'; card.dataset.statusKind='ready'; card.dataset.tags=`${label}|Официальный|ReConfig`; card.dataset.author=item.author||'ReConfig Province'; card.dataset.previewUrl=item.preview_url||''; card.dataset.downloadUrl=item.download_url||''; card.dataset.search=`${card.dataset.search||''} ${item.title||''} ${label} ${item.description||''} ${item.author||''}`;
   const thumb=card.querySelector('.config-thumb');
   if(thumb&&item.preview_url){let image=thumb.querySelector('.official-preview-image');if(!image){image=document.createElement('img');image.className='community-preview official-preview-image';image.alt='';image.loading='lazy';thumb.insertBefore(image,thumb.firstChild);}image.src=item.preview_url;}
@@ -751,6 +863,8 @@ async function loadCommunityConfigs() {
   if (!REHUB_API || REHUB_API.includes('YOUR-WORKER')) {
     emptyTitle.textContent = 'API ReHub ещё не подключён';
     emptyText.textContent = 'Укажи адрес Cloudflare Worker в rehub-config.js — после этого опубликованные конфиги загрузятся автоматически.';
+    rehubCatalogLoaded = true;
+    openSharedConfig();
     return;
   }
 
@@ -777,6 +891,9 @@ async function loadCommunityConfigs() {
     emptyTitle.textContent = 'Не удалось загрузить мастерскую';
     emptyText.textContent = 'Проверь адрес API и настройки CORS в Cloudflare Worker.';
     console.error('ReHub API:', error);
+  } finally {
+    rehubCatalogLoaded = true;
+    openSharedConfig();
   }
 }
 
@@ -946,5 +1063,6 @@ initProgramSelects();
 initSearch();
 initModals();
 initUpload();
+addEventListener('hashchange', openSharedConfig);
 loadCommunityConfigs();
 bindCursorHover();
