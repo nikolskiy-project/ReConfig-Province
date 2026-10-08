@@ -195,6 +195,81 @@ function initCardParallax() {
   });
 }
 
+// Smooth wheel momentum for traditional mouse wheels. Precision touchpads keep
+// their native browser scrolling/inertia; the two paths never animate together.
+function rehubHasNestedScroll(target, boundary) {
+  for (let node = target instanceof Element ? target : null;
+       node && node !== boundary && node !== document.body && node !== document.documentElement;
+       node = node.parentElement) {
+    const style = getComputedStyle(node);
+    if (/(auto|scroll|overlay)/.test(style.overflowY) && node.scrollHeight > node.clientHeight + 2) {
+      return true; // Do not scroll the parent even when this area reaches its edge.
+    }
+  }
+  return false;
+}
+
+function installRehubWheelMomentum(target, getTop, setTop, getMax, allowed, setActive = () => {}, capture = false) {
+  let frame = 0, destination = null, previous = 0;
+  const stop = () => {
+    const wasGliding = frame !== 0 || destination !== null;
+    if (frame) cancelAnimationFrame(frame);
+    frame = 0;
+    destination = null;
+    previous = 0;
+    // Do not clear page-kinetic while mouse drag has acquired the page.
+    if (wasGliding) setActive(false);
+  };
+  const tick = now => {
+    const dt = Math.min(34, Math.max(1, now - previous));
+    previous = now;
+    const current = getTop();
+    destination = Math.max(0, Math.min(getMax(), destination));
+    const remaining = destination - current;
+    if (Math.abs(remaining) <= .55) {
+      setTop(destination);
+      stop();
+      return;
+    }
+    // Time-independent ease-out; subsequent notches update one destination,
+    // never start additional animations or abruptly reset the velocity.
+    const progress = 1 - Math.exp(-dt / 94);
+    setTop(current + remaining * progress);
+    frame = requestAnimationFrame(tick);
+  };
+  target.addEventListener('wheel', e => {
+    if (e.defaultPrevented || e.ctrlKey || e.metaKey ||
+        Math.abs(e.deltaX) > Math.abs(e.deltaY) ||
+        !matchMedia('(pointer:fine)').matches ||
+        matchMedia('(prefers-reduced-motion: reduce)').matches || !allowed(e)) {
+      stop();
+      return;
+    }
+    // High-resolution touchpads already provide OS momentum. Don't hijack
+    // their small pixel deltas, avoiding the old jitter/double-scrolling.
+    if (e.deltaMode === 0 && Math.abs(e.deltaY) < 38) {
+      stop();
+      return;
+    }
+    const limit = getMax();
+    if (limit <= 0) { stop(); return; }
+    let delta = e.deltaY;
+    if (e.deltaMode === 1) delta *= 18;
+    else if (e.deltaMode === 2) delta *= Math.max(1, Math.min(innerHeight, 700));
+    delta = Math.max(-460, Math.min(460, delta));
+    const current = getTop();
+    const base = destination === null ? current : destination;
+    destination = Math.max(0, Math.min(limit, Math.max(current - 780, Math.min(current + 780, base + delta))));
+    e.preventDefault();
+    if (!frame && Math.abs(destination - current) > .55) {
+      setActive(true);
+      previous = performance.now();
+      frame = requestAnimationFrame(tick);
+    }
+  }, { passive: false, capture });
+  return stop;
+}
+
 function initDragScroll() {
   if (!matchMedia('(pointer:fine)').matches || innerWidth < 900) return;
 
@@ -207,6 +282,7 @@ function initDragScroll() {
   let lastMoveTime = 0;
   let velocity = 0;
   let inertiaFrame = 0;
+  let stopWheelMomentum = () => {};
   let suppressClick = false;
 
   const interactiveSelector = 'a, button, input, textarea, select, [contenteditable="true"], .site-scrollbar-thumb, .hub-video-card, .hub-modal';
@@ -219,6 +295,7 @@ function initDragScroll() {
   };
 
   const cancelInertia = () => {
+    stopWheelMomentum();
     if (inertiaFrame) cancelAnimationFrame(inertiaFrame);
     inertiaFrame = 0;
     velocity = 0;
@@ -308,12 +385,20 @@ function initDragScroll() {
     suppressClick = false;
   }, true);
 
-  // Native wheel scrolling avoids main-thread rAF loops and lets Firefox/Chromium
-  // process both discrete wheel and touchpad gestures at the browser's own cadence.
-  // Keep drag inertia cancellable when the user takes control with the wheel.
+  // Cancel page-drag momentum on wheel handoff; modal/nested areas own theirs.
   addEventListener('wheel', () => {
     if (inertiaFrame) cancelInertia();
   }, { passive: true, capture: true });
+  stopWheelMomentum = installRehubWheelMomentum(
+    window,
+    () => scrollY,
+    value => scrollTo(0, value),
+    maxScroll,
+    e => !dragging && !document.body.classList.contains('modal-open') &&
+      !rehubHasNestedScroll(e.target, root),
+    setKineticState,
+    true
+  );
 
   addEventListener('keydown', cancelInertia);
   document.addEventListener('mousedown', () => {
@@ -394,6 +479,9 @@ function initCustomScrollbar() {
 function setModal(modal, open) {
   if (!modal) return;
   if (open) window.cancelPageInertia?.();
+  // The official-card thumb must only fade in after the card has fully expanded.
+  // Reset on each open/close so re-opening never flashes the old thumb.
+  if (modal.id === 'detailModal') modal.classList.remove('scrollbar-ready');
   modal.classList.toggle('open', open);
   modal.setAttribute('aria-hidden', open ? 'false' : 'true');
   document.body.classList.toggle('modal-open', $$('.hub-modal-backdrop.open').length > 0);
@@ -627,6 +715,7 @@ function openCard(card) {
   const ready = card.dataset.statusKind === 'ready';
   // A verified community publication is NOT an official publication.
   const isCommunity = card.classList.contains('community-card') || !!card.dataset.communityId;
+  modal.classList.toggle('official-scroll-reveal', !isCommunity);
   const previewUrl = card.dataset.previewUrl || '';
   const downloadUrl = card.dataset.downloadUrl || '';
 
@@ -1074,6 +1163,18 @@ function initHubRoundedScrollbars() {
     const thumb = document.createElement('div'); thumb.className = 'hub-rounded-thumb';
     track.appendChild(thumb); backdrop.appendChild(track);
     let dragging = false, pointerId = null, grab = 0;
+    // The opened card glides after a wheel notch just like the page; inputs,
+    // nested scroll areas and precision touchpads stay native.
+    const stopModalWheel = backdrop.id === 'detailModal'
+      ? installRehubWheelMomentum(
+          scroller,
+          () => scroller.scrollTop,
+          top => { scroller.scrollTop = top; },
+          () => Math.max(0, scroller.scrollHeight - scroller.clientHeight),
+          e => !dragging && backdrop.classList.contains('open') &&
+            !rehubHasNestedScroll(e.target, scroller)
+        )
+      : () => {};
     const metrics = () => {
       const viewport = scroller.clientHeight, total = scroller.scrollHeight;
       const height = track.clientHeight;
@@ -1083,7 +1184,7 @@ function initHubRoundedScrollbars() {
     const sync = () => {
       const visible = backdrop.classList.contains('open') && scroller.scrollHeight > scroller.clientHeight+2;
       track.hidden = !visible;
-      if(!visible) return;
+      if(!visible) { stopModalWheel(); return; }
       const r = surface.getBoundingClientRect();
       const paddingTop = 9, paddingBottom = 9;
       track.style.left = `${r.right - 10}px`;
@@ -1103,6 +1204,7 @@ function initHubRoundedScrollbars() {
     track.addEventListener('pointerdown',e=>{
       if(e.button!==0)return;
       e.preventDefault();e.stopPropagation();
+      stopModalWheel();
       dragging=true;pointerId=e.pointerId;
       grab=e.target===thumb?e.clientY-thumb.getBoundingClientRect().top:metrics().th/2;
       track.classList.add('dragging');
@@ -1120,11 +1222,20 @@ function initHubRoundedScrollbars() {
     };
     track.addEventListener('pointerup',finish);
     track.addEventListener('pointercancel',finish);
+    scroller.addEventListener('pointerdown',stopModalWheel,{passive:true});
+    scroller.addEventListener('keydown',stopModalWheel);
     scroller.addEventListener('scroll',sync,{passive:true});
     // The modal scales from .978 to 1 during opening. Its bounding box moves,
     // even though ResizeObserver sees no size change; realign the thumb at the end.
     surface.addEventListener('transitionend', e => {
-      if (e.target === surface && e.propertyName === 'transform') sync();
+      if (e.target !== surface || e.propertyName !== 'transform') return;
+      // Calculate the thumb's final position before starting its fade-in.
+      sync();
+      if (backdrop.id === 'detailModal' &&
+          backdrop.classList.contains('open') &&
+          backdrop.classList.contains('official-scroll-reveal')) {
+        backdrop.classList.add('scrollbar-ready');
+      }
     });
     if('ResizeObserver' in window){ const ro=new ResizeObserver(sync);ro.observe(scroller);ro.observe(surface); }
     syncers.push(sync);
