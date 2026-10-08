@@ -1121,6 +1121,11 @@ function initHubRoundedScrollbars() {
     track.addEventListener('pointerup',finish);
     track.addEventListener('pointercancel',finish);
     scroller.addEventListener('scroll',sync,{passive:true});
+    // The modal scales from .978 to 1 during opening. Its bounding box moves,
+    // even though ResizeObserver sees no size change; realign the thumb at the end.
+    surface.addEventListener('transitionend', e => {
+      if (e.target === surface && e.propertyName === 'transform') sync();
+    });
     if('ResizeObserver' in window){ const ro=new ResizeObserver(sync);ro.observe(scroller);ro.observe(surface); }
     syncers.push(sync);
   });
