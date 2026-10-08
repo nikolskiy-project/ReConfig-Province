@@ -755,7 +755,7 @@ body.page-dragging { cursor: none !important; }
 
 /* Admin page scrollbar: larger hit area and reliable rounded dragging. */
 .admin-page .site-scrollbar {
-  right: 5px !important;
+  right: 1px !important;
   top: 9px !important;
   bottom: 9px !important;
   width: 12px !important;
@@ -1009,7 +1009,7 @@ body.page-dragging { cursor: none !important; }
 #reviewOverlay .admin-review-inner-track {
   background: rgba(183,156,255,.05);
   border-radius: 999px !important;
-  right: 4px !important;
+  right: 1px !important;
   width: 13px !important;
 }
 #reviewOverlay .admin-review-inner-thumb {
@@ -1201,3 +1201,22 @@ html:has(> body.admin-review-open) { overflow-y:hidden !important; }
 .admin-page > .site-scrollbar { z-index:10030!important; touch-action:none!important; pointer-events:auto!important; }
 .admin-page > .site-scrollbar.hidden {pointer-events:none!important;}
 .admin-page > .site-scrollbar .site-scrollbar-thumb {touch-action:none!important;pointer-events:auto;}
+
+/* v27: Markdown descriptions in moderation use the public card's typography. */
+.admin-review-description { white-space:normal; overflow-wrap:anywhere; }
+.admin-review-description > :first-child { margin-top:0; }
+.admin-review-description > :last-child { margin-bottom:0; }
+.admin-review-description p { margin:0 0 10px; }
+.admin-review-description h1,.admin-review-description h2,.admin-review-description h3,.admin-review-description h4 { margin:15px 0 7px; color:#eeeaf9; font-size:13px; font-weight:680; line-height:1.5; }
+.admin-review-description h1 {font-size:17px;}
+.admin-review-description h2 {font-size:15px;}
+.admin-review-description strong {color:#e7defb; font-weight:700;}
+.admin-review-description em {color:#cbc4db;}
+.admin-review-description ul,.admin-review-description ol {margin:7px 0 13px 19px; padding:0;}
+.admin-review-description li {padding:2px 0;}
+.admin-review-description blockquote {margin:10px 0; padding:7px 12px; border-left:3px solid var(--accent); border-radius:0 7px 7px 0; background:rgba(139,92,246,.045);}
+.admin-review-description a {color:var(--accent-light); text-decoration:underline; text-underline-offset:3px;}
+.admin-review-description code {font-family:Consolas,monospace; color:#cbb5ff; background:rgba(139,92,246,.09); border:1px solid rgba(139,92,246,.13); padding:1px 4px; border-radius:4px;}
+.admin-review-description pre {overflow:auto; max-width:100%; padding:10px; margin:8px 0 13px; border-radius:8px; border:1px solid var(--border); background:#0a0a11;}
+.admin-review-description pre code {background:transparent; border:0; padding:0; white-space:pre;}
+.admin-review-description hr {margin:14px 0; border:0; border-top:1px solid var(--border);}

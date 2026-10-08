@@ -237,8 +237,9 @@ function initCustomScrollbar() {
   const syncNow = () => {
     frame = 0;
     const {el,maxScroll,thumbHeight,maxThumbTop} = metrics();
+    const pageScroll = Math.max(0,window.scrollY || el.scrollTop);
     thumb.style.height = `${thumbHeight}px`;
-    thumb.style.transform = `translate3d(0,${maxScroll ? maxThumbTop * Math.min(1,Math.max(0,el.scrollTop/maxScroll)) : 0}px,0)`;
+    thumb.style.transform = `translate3d(0,${maxScroll ? maxThumbTop * Math.min(1,pageScroll/maxScroll) : 0}px,0)`;
     track.classList.toggle('hidden', maxScroll <= 1 || document.body.classList.contains('admin-review-open'));
   };
   const sync = () => { if (frame) cancelAnimationFrame(frame); frame = requestAnimationFrame(syncNow); };
@@ -248,9 +249,10 @@ function initCustomScrollbar() {
     if (!maxScroll || !maxThumbTop) return;
     const top = Math.max(0,Math.min(maxThumbTop,y-track.getBoundingClientRect().top-grabOffset));
     const wanted = (top/maxThumbTop)*maxScroll;
-    el.scrollTop = wanted;
-    // In certain webviews the document scroll is delegated to window instead.
-    if (Math.abs(el.scrollTop-wanted)>2) window.scrollTo(0,wanted);
+    // Scrolling through window also covers browsers that delegate document scrolling.
+    // CSS uses scroll-behavior:auto while the pointer is moving.
+    window.scrollTo(0,wanted);
+    if (Math.abs(window.scrollY-wanted)>2) el.scrollTop = wanted;
     sync();
   };
   track.addEventListener('pointerdown',e => {
@@ -263,17 +265,21 @@ function initCustomScrollbar() {
     try{track.setPointerCapture(e.pointerId);}catch(_){ }
     if (!thumb.contains(e.target)) setFromPointer(e.clientY);
   });
-  track.addEventListener('pointermove',e=>{
+  // Listen on window in capture phase as a fallback if the browser drops
+  // track pointer capture (notably during Firefox layout changes).
+  window.addEventListener('pointermove',e=>{
     if(!dragging || (pointerId!==null && e.pointerId!==pointerId))return;
     e.preventDefault();setFromPointer(e.clientY);
-  },{passive:false});
+  },{passive:false,capture:true});
   const release=e=>{
     if(!dragging || (pointerId!==null && e?.pointerId!=null && e.pointerId!==pointerId))return;
     dragging=false;track.classList.remove('dragging');thumb.classList.remove('dragging');
     try{if(pointerId!==null)track.releasePointerCapture(pointerId);}catch(_){ }
     pointerId=null;sync();
   };
-  track.addEventListener('pointerup',release);track.addEventListener('pointercancel',release);
+  window.addEventListener('pointerup',release,true);
+  window.addEventListener('pointercancel',release,true);
+  track.addEventListener('lostpointercapture',()=>{if(dragging)release();});
   window.addEventListener('blur',release);
   window.addEventListener('scroll',sync,{passive:true});
   window.addEventListener('resize',sync,{passive:true});
@@ -652,6 +658,82 @@ function updateReviewGenderSwitch() {
   });
 }
 
+// The admin review must display the same safe Markdown as a public ReHub card.
+// Safe, dependency-free Markdown for public descriptions. Raw HTML is always escaped.
+function escapeAdminDescriptionHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function renderAdminDescriptionInline(value) {
+  const tokens = [];
+  const source = String(value ?? '').replace(/[\u0000\u0001]/g, '');
+  const text = source.replace(/`([^`\n]+)`|\[([^\]\n]+)\]\(([^\s()]+)\)/g, (all, code, caption, link) => {
+    let html;
+    if (code !== undefined) {
+      html = `<code>${escapeAdminDescriptionHtml(code)}</code>`;
+    } else {
+      let allowed = false;
+      try { const u = new URL(link); allowed = ['https:', 'http:'].includes(u.protocol); } catch (_) {}
+      if (!allowed) return all;
+      html = `<a href="${escapeAdminDescriptionHtml(link)}" target="_blank" rel="noopener noreferrer nofollow">${escapeAdminDescriptionHtml(caption)}</a>`;
+    }
+    const key = tokens.push(html) - 1;
+    return `\u0001${key}\u0001`;
+  });
+  const formatted = escapeAdminDescriptionHtml(text)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    .replace(/~~(.+?)~~/g, '<del>$1</del>')
+    .replace(/(^|[^\w])\*([^*\n]+)\*/g, '$1<em>$2</em>')
+    .replace(/(^|[^\w])_([^_\n]+)_/g, '$1<em>$2</em>');
+  return formatted.replace(/\u0001(\d+)\u0001/g, (_, key) => tokens[Number(key)] || '');
+}
+function renderAdminDescriptionMarkdown(source) {
+  const lines = String(source ?? '').replace(/\r\n?/g, '\n').split('\n');
+  const out = [], paragraph = [], list = [];
+  let listTag = '', quote = [], code = null;
+  const flushParagraph = () => {
+    if (paragraph.length) out.push(`<p>${paragraph.map(renderAdminDescriptionInline).join('<br>')}</p>`);
+    paragraph.length = 0;
+  };
+  const flushList = () => {
+    if (listTag) out.push(`<${listTag}>${list.map(x => `<li>${renderAdminDescriptionInline(x)}</li>`).join('')}</${listTag}>`);
+    listTag = ''; list.length = 0;
+  };
+  const flushQuote = () => {
+    if (quote.length) out.push(`<blockquote>${quote.map(renderAdminDescriptionInline).join('<br>')}</blockquote>`);
+    quote = [];
+  };
+  for (const line of lines) {
+    if (code !== null) {
+      if (/^\s*```/.test(line)) { out.push(`<pre><code>${escapeAdminDescriptionHtml(code.join('\n'))}</code></pre>`); code = null; }
+      else code.push(line);
+      continue;
+    }
+    if (/^\s*```/.test(line)) { flushParagraph(); flushList(); flushQuote(); code=[]; continue; }
+    if (!line.trim()) { flushParagraph(); flushList(); flushQuote(); continue; }
+    const h = line.match(/^\s{0,3}(#{1,4})\s+(.+)$/);
+    if (h) { flushParagraph(); flushList(); flushQuote(); out.push(`<h${h[1].length}>${renderAdminDescriptionInline(h[2])}</h${h[1].length}>`); continue; }
+    if (/^\s{0,3}(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line)) { flushParagraph(); flushList(); flushQuote(); out.push('<hr>'); continue; }
+    const quoteMatch = line.match(/^\s{0,3}>\s?(.*)$/);
+    if (quoteMatch) { flushParagraph(); flushList(); quote.push(quoteMatch[1]); continue; }
+    flushQuote();
+    const ul = line.match(/^\s{0,3}[-*+]\s+(.+)$/);
+    const ol = line.match(/^\s{0,3}\d+[.)]\s+(.+)$/);
+    if (ul || ol) {
+      flushParagraph();
+      const tag = ul ? 'ul' : 'ol';
+      if (listTag && listTag !== tag) flushList();
+      listTag = tag; list.push((ul || ol)[1]); continue;
+    }
+    flushList();
+    paragraph.push(line);
+  }
+  if (code !== null) out.push(`<pre><code>${escapeAdminDescriptionHtml(code.join('\n'))}</code></pre>`);
+  flushParagraph(); flushList(); flushQuote();
+  return out.join('');
+}
+
+
 function openReview(item,status){
   selectedSubmission={...item,status};
   const availableVariants = Array.isArray(item.gender_variants) && item.gender_variants.length ? item.gender_variants : ['male'];
@@ -663,7 +745,7 @@ function openReview(item,status){
   $('#reviewStatusBadge').textContent=statusLabel(status);$('#reviewStatusBadge').dataset.status=status;
   $('#reviewCategoryBadge').textContent=item.category||'Другое';
   $('#reviewMeta').textContent=`${item.author||'Автор неизвестен'} · ${formatAdminDate(item.approved_at||item.rejected_at||item.created_at)}`;
-  $('#reviewDescription').textContent=item.description||'Описание отсутствует.';
+  $('#reviewDescription').innerHTML=renderAdminDescriptionMarkdown(item.description||'Описание отсутствует.');
   const preview=$('#reviewPreview');
   preview.classList.remove('mode-full','mode-code');
   preview.querySelectorAll(':scope > img').forEach(node=>node.remove());
