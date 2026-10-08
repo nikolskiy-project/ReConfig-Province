@@ -899,3 +899,22 @@ label,
 @media(max-width: 650px){ .community-gender-upload { align-items: stretch; flex-direction: column; } .community-gender-upload > small { flex: unset; } .community-gender-switch { width:100%; min-width:0; } .community-download-gender .community-gender-switch { flex: 1 1 100%; } }
 /* Keep the version chooser completely absent for older single-version publications. */
 .community-download-gender[hidden] { display: none !important; }
+
+/* v21: Position the original version switch beside the category; no extra upload panel. */
+#uploadForm .community-gender-field { display:flex; flex-direction:column; gap:6px; min-width:0; align-self:start; }
+#uploadForm .community-gender-field > span { color:#898998; font-size:9px; }
+#uploadForm .community-gender-field .community-gender-switch { box-sizing:border-box; min-width:0; width:100%; min-height:40px; }
+#uploadForm .community-gender-field .community-gender-button { min-height:32px; padding:7px 9px; }
+#uploadForm .upload-fields:has(.community-gender-field) { align-items:start; }
+@media(max-width:720px) { #uploadForm .community-gender-field { grid-column:1/-1; } }
+/* Confirm optional second version without blocking access to the normal form. */
+.community-optional-overlay[hidden] { display:none!important; }
+.community-optional-overlay { position:fixed; z-index:7500; inset:0; display:grid; place-items:center; padding:16px; background:rgba(5,5,10,.76); backdrop-filter:blur(9px); }
+.community-optional-dialog { width:min(450px,100%); padding:26px; border:1px solid rgba(183,156,255,.24); border-radius:16px; background:#171620; box-shadow:0 24px 75px rgba(0,0,0,.52); animation:communityOptionalIn .28s cubic-bezier(.22,1,.36,1) both; }
+@keyframes communityOptionalIn { from{transform:translateY(11px) scale(.985);opacity:0} to{transform:translateY(0) scale(1);opacity:1} }
+.community-optional-dialog h3 { font-size:18px; line-height:1.3; margin:10px 0; }
+.community-optional-dialog p { font-size:12px; color:#aaa8ba; line-height:1.6; }
+.community-optional-remember { margin-top:18px; display:flex; gap:9px; align-items:center; font-size:11px; color:#c7c2d3; cursor:pointer; user-select:none; }
+.community-optional-remember input { accent-color:#8b5cf6; width:15px; height:15px; cursor:pointer; }
+.community-optional-actions { display:flex; gap:9px; flex-wrap:wrap; justify-content:flex-end; margin-top:18px; }
+@media(max-width:460px){.community-optional-actions .btn{flex:1;}}

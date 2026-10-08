@@ -1125,3 +1125,12 @@ body.page-dragging { cursor: none !important; }
 .admin-review-gender > span { font-size: 10px; color: #9f9aaf; font-weight: 600; }
 .admin-review-gender .admin-gender-switch { width: min(285px, 100%); }
 .admin-review-gender[hidden] { display: none !important; }
+
+/* v21: XML gender choice shares one aligned row with preview mode; no displaced left edge. */
+.admin-review-controls { display:grid; grid-template-columns:minmax(0,410px) minmax(0,1fr); align-items:center; column-gap:14px; margin:0 0 18px; width:100%; }
+.admin-review-controls .admin-review-viewbar.program-segmented { width:100%!important; max-width:none!important; min-width:0; margin:0!important; box-sizing:border-box; }
+.admin-review-controls .admin-review-gender { min-width:0; width:100%; display:flex; flex-wrap:nowrap; justify-content:flex-end; align-items:center; gap:10px; margin:0!important; }
+.admin-review-controls .admin-review-gender[hidden]{display:none!important}
+.admin-review-controls .admin-review-gender > span { flex:0 0 auto; white-space:nowrap; }
+.admin-review-controls .admin-review-gender .admin-gender-switch { flex:1 1 auto; min-width:0; max-width:300px; width:100%; margin:0; box-sizing:border-box; }
+@media(max-width:800px){ .admin-review-controls{ grid-template-columns:minmax(0,1fr); row-gap:10px; } .admin-review-controls .admin-review-gender{justify-content:flex-start} .admin-review-controls .admin-review-gender .admin-gender-switch{max-width:350px;} }

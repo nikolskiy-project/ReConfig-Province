@@ -697,10 +697,10 @@ function updateReviewGenderSwitch() {
 
 function openReview(item,status){
   selectedSubmission={...item,status};
-  selectedReviewGender = 'male';
-  const availableFemale = Boolean(item.gender_variants?.includes('female') || item.config_female_file === 'config_female.xml');
+  const availableVariants = Array.isArray(item.gender_variants) && item.gender_variants.length ? item.gender_variants : ['male'];
+  selectedReviewGender = availableVariants.includes('male') ? 'male' : 'female';
   const genderRow = $('#reviewGenderRow');
-  if (genderRow) genderRow.hidden = !availableFemale;
+  if (genderRow) genderRow.hidden = !(availableVariants.includes('male') && availableVariants.includes('female'));
   updateReviewGenderSwitch();
   $('#reviewTitle').textContent=item.title||'Публикация';
   $('#reviewStatusBadge').textContent=statusLabel(status);$('#reviewStatusBadge').dataset.status=status;

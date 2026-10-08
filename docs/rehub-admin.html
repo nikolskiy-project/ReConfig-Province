@@ -9,7 +9,7 @@
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="rehub.css?v=15">
-  <link rel="stylesheet" href="rehub-admin.css?v=20">
+  <link rel="stylesheet" href="rehub-admin.css?v=21">
 </head>
 <body class="rehub-page admin-page">
   <div class="page-noise" aria-hidden="true"></div>
@@ -131,17 +131,19 @@
         <div class="admin-review-code-loading" id="reviewCodeLoading" hidden>Загружаю XML…</div>
       </div>
       <div class="admin-review-body">
-        <div class="admin-review-viewbar program-segmented review-segmented" id="reviewViewbar" data-index="0">
+        <div class="admin-review-controls">
+          <div class="admin-review-viewbar program-segmented review-segmented" id="reviewViewbar" data-index="0">
           <button class="admin-review-view segment-btn interactive active" data-index="0" type="button" data-review-view="cover">Превью</button>
           <button class="admin-review-view segment-btn interactive" data-index="1" id="reviewFullButton" type="button" data-review-view="full">Полное превью</button>
           <button class="admin-review-view segment-btn interactive" data-index="2" id="reviewCodeButton" type="button" data-review-view="code">Код XML</button>
         </div>
-        <div class="admin-review-gender" id="reviewGenderRow" hidden>
+          <div class="admin-review-gender" id="reviewGenderRow" hidden>
           <span>Версия XML</span>
           <div class="admin-gender-switch program-segmented" id="reviewGenderSwitch" role="group" aria-label="Выбор версии XML" data-index="0">
             <button class="admin-gender-option segment-btn interactive active" type="button" data-gender="male" aria-pressed="true">Мужская</button>
             <button class="admin-gender-option segment-btn interactive" type="button" data-gender="female" aria-pressed="false">Женская</button>
           </div>
+        </div>
         </div>
         <div class="admin-review-badges"><span id="reviewStatusBadge"></span><span id="reviewCategoryBadge"></span></div>
         <h2 id="reviewTitle">Публикация</h2>
@@ -181,6 +183,6 @@
 
   <div class="hub-toast" id="hubToast" role="status" aria-live="polite"></div>
   <script src="rehub-config.js?v=1"></script>
-  <script src="rehub-admin.js?v=20"></script>
+  <script src="rehub-admin.js?v=21"></script>
 </body>
 </html>

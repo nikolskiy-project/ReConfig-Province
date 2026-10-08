@@ -8,7 +8,7 @@
   <title>ReHub — мастерская конфигов</title>
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="rehub.css?v=20">
+  <link rel="stylesheet" href="rehub.css?v=21">
 
   <style>
     #openUploadTop {
@@ -365,14 +365,6 @@
           </label>
         </div>
 
-        <div class="community-gender-upload" aria-label="Версия XML-конфига">
-          <span>Версия биндов</span>
-          <div class="community-gender-switch" id="communityUploadGender" role="group" aria-label="Пол персонажа">
-            <button class="community-gender-button interactive active" type="button" data-gender="male" aria-pressed="true">Мужская <i class="community-gender-ready" id="communityReadyMale" aria-hidden="true"></i></button>
-            <button class="community-gender-button interactive" type="button" data-gender="female" aria-pressed="false">Женская <i class="community-gender-ready" id="communityReadyFemale" aria-hidden="true"></i></button>
-          </div>
-          <small>Выбери XML для каждой версии перед отправкой на модерацию.</small>
-        </div>
         <div class="upload-fields">
           <label><span>Название</span><input type="text" name="title" placeholder="Например: ОКБ — ночная смена" maxlength="70" required></label>
           <label><span>Автор</span><input type="text" name="author" placeholder="Ник на Province" maxlength="40" required></label>
@@ -385,11 +377,18 @@
               <option value="Другое">Другое</option>
             </select>
           </label>
+          <div class="community-gender-field" aria-label="Версия XML-конфига">
+            <span>Версия биндов</span>
+            <div class="community-gender-switch" id="communityUploadGender" role="group" aria-label="Пол персонажа">
+              <button class="community-gender-button interactive active" type="button" data-gender="male" aria-pressed="true">Мужская <i class="community-gender-ready" id="communityReadyMale" aria-hidden="true"></i></button>
+              <button class="community-gender-button interactive" type="button" data-gender="female" aria-pressed="false">Женская <i class="community-gender-ready" id="communityReadyFemale" aria-hidden="true"></i></button>
+            </div>
+          </div>
           <label class="wide"><span>Описание</span><textarea name="description" rows="4" maxlength="600" required placeholder="Коротко расскажи, для чего этот набор биндов"></textarea></label>
         </div>
         <div class="upload-notice">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
-          <span>На модерацию отправятся мужская и женская версии биндов. Из каждого XML сохраняется только блок &lt;binds&gt;…&lt;/binds&gt;; превью сжимается до WebP ≤ 600 КБ.</span>
+          <span>Достаточно одной версии биндов — мужской или женской. Вторую можно добавить по желанию. Сохраняется только блок &lt;binds&gt;…&lt;/binds&gt;; превью сжимается до WebP ≤ 600 КБ.</span>
         </div>
         <div class="upload-actions">
           <button class="btn btn-secondary interactive" id="cancelUpload" type="button">Отмена</button>
@@ -399,9 +398,22 @@
     </div>
   </div>
 
+  <div class="community-optional-overlay" id="communityOptionalOverlay" hidden>
+    <section class="community-optional-dialog" role="dialog" aria-modal="true" aria-labelledby="communityOptionalTitle">
+      <span class="kicker">Дополнительная версия</span>
+      <h3 id="communityOptionalTitle">Можно добавить вторую версию</h3>
+      <p id="communityOptionalText">При желании добавь другую версию биндов. Для публикации достаточно одной.</p>
+      <label class="community-optional-remember"><input id="communityOptionalRemember" type="checkbox"> Больше не показывать</label>
+      <div class="community-optional-actions">
+        <button class="btn btn-secondary interactive" type="button" id="communityOptionalAdd">Добавить версию</button>
+        <button class="btn btn-primary interactive" type="button" id="communityOptionalOk">ОК, отправить</button>
+      </div>
+    </section>
+  </div>
+
   <div class="hub-toast" id="hubToast" role="status" aria-live="polite"></div>
 
   <script src="rehub-config.js?v=1"></script>
-  <script src="rehub.js?v=20"></script>
+  <script src="rehub.js?v=21"></script>
 </body>
 </html>

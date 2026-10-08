@@ -471,7 +471,7 @@ function downloadPathForCard(card) {
   const ref = configRefForCard(card);
   if (!ref || !card?.dataset.downloadUrl || !REHUB_API) return '';
   const [type, id] = ref.split(':');
-  const gender = type === 'community' && card?.dataset.hasFemale === 'true' ? selectedDetailGender : 'male';
+  const gender = type === 'community' ? (card?.dataset.hasFemale === 'true' && card?.dataset.hasMale === 'true' ? selectedDetailGender : (card?.dataset.singleGender || 'male')) : 'male';
   return `${REHUB_API}/api/download/${type}/${encodeURIComponent(id)}${gender === 'female' ? '?gender=female' : ''}`;
 }
 
@@ -554,7 +554,7 @@ async function downloadSelectedConfig(button) {
     const blobUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = blobUrl;
-    link.download = `${filename}${card.dataset.hasFemale === 'true' ? (selectedDetailGender === 'female' ? '-Женская' : '-Мужская') : ''}.xml`;
+    link.download = `${filename}${card.dataset.hasFemale === 'true' && card.dataset.hasMale === 'true' ? (selectedDetailGender === 'female' ? '-Женская' : '-Мужская') : ''}.xml`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -616,9 +616,9 @@ function openCard(card) {
   });
 
   activeDetailCard = card;
-  selectedDetailGender = 'male';
+  selectedDetailGender = card.dataset.singleGender || 'male';
   const genderRow = $('#detailGenderRow');
-  if (genderRow) genderRow.hidden = !(isCommunity && card.dataset.hasFemale === 'true');
+  if (genderRow) genderRow.hidden = !(isCommunity && card.dataset.hasFemale === 'true' && card.dataset.hasMale === 'true');
   updateGenderSwitch($('#detailGenderSwitch'), selectedDetailGender);
   const primary = $('#detailPrimary');
   const canDownload = !!downloadPathForCard(card);
@@ -791,7 +791,10 @@ function makeCommunityCard(item, index = 0) {
   card.dataset.communityId = /^[a-f0-9]{12}$/.test(String(item.id || '')) ? item.id : '';
   card.dataset.previewUrl = escapeText(item.preview_url || '');
   card.dataset.downloadUrl = escapeText(item.download_url || '');
-  card.dataset.hasFemale = item.gender_variants?.includes('female') ? 'true' : 'false';
+  const availableGenders = Array.isArray(item.gender_variants) && item.gender_variants.length ? item.gender_variants : ['male'];
+  card.dataset.hasMale = availableGenders.includes('male') ? 'true' : 'false';
+  card.dataset.hasFemale = availableGenders.includes('female') ? 'true' : 'false';
+  card.dataset.singleGender = card.dataset.hasMale === 'true' ? 'male' : 'female';
 
   const thumb = document.createElement('div');
   thumb.className = 'config-thumb';
@@ -1089,9 +1092,50 @@ function initUpload() {
   setupDrop(previewDrop, setPreview);
   renderVersion();
 
+  const optionalOverlay = $('#communityOptionalOverlay');
+  const optionalRemember = $('#communityOptionalRemember');
+  const optionalOk = $('#communityOptionalOk');
+  const optionalAdd = $('#communityOptionalAdd');
+  const optionalText = $('#communityOptionalText');
+  const preferenceKey = 'rehub-hide-optional-gender-v1';
+  let optionalDecision = null;
+  let optionalBusy = false;
+  function requestOptionalGender(existingGender) {
+    if (!optionalOverlay || optionalBusy) return Promise.resolve('submit');
+    if (localStorage.getItem(preferenceKey) === '1') return Promise.resolve('submit');
+    optionalText.textContent = existingGender === 'male'
+      ? 'Вы можете добавить женскую версию биндов. Это необязательно: мужская версия уже готова к публикации.'
+      : 'Вы можете добавить мужскую версию биндов. Это необязательно: женская версия уже готова к публикации.';
+    optionalRemember.checked = false;
+    optionalOverlay.hidden = false;
+    optionalBusy = true;
+    return new Promise(resolve => { optionalDecision = resolve; });
+  }
+  function finishOptional(choice) {
+    if (!optionalBusy) return;
+    if (optionalRemember.checked) localStorage.setItem(preferenceKey,'1');
+    optionalOverlay.hidden = true;
+    optionalBusy = false;
+    const resolve = optionalDecision;
+    optionalDecision = null;
+    resolve?.(choice);
+  }
+  optionalOk?.addEventListener('click', () => finishOptional('submit'));
+  optionalAdd?.addEventListener('click', () => finishOptional('add'));
+
   form.addEventListener('submit', async e => {
     e.preventDefault();
-    if (!selectedConfigs.male?.file || !selectedConfigs.female?.file) { showToast('Добавь мужскую и женскую версии XML.'); return; }
+    const selectedVersions = ['male','female'].filter(gender => !!selectedConfigs[gender]?.file);
+    if (!selectedVersions.length) { showToast('Выбери хотя бы одну версию XML.'); return; }
+    if (selectedVersions.length === 1) {
+      const decision = await requestOptionalGender(selectedVersions[0]);
+      if (decision === 'add') {
+        selectedGender = selectedVersions[0] === 'male' ? 'female' : 'male';
+        renderVersion();
+        configDrop.scrollIntoView({ block:'nearest', behavior:'smooth' });
+        return;
+      }
+    }
     if (!REHUB_API || REHUB_API.includes('YOUR-WORKER')) { showToast('Сначала укажи адрес API в rehub-config.js.'); return; }
 
     const fields = new FormData(form);
@@ -1100,8 +1144,8 @@ function initUpload() {
     payload.append('author', String(fields.get('author') || '').trim());
     payload.append('category', String(fields.get('category') || 'Другое'));
     payload.append('description', String(fields.get('description') || '').trim());
-    payload.append('config_male', selectedConfigs.male.file, selectedConfigs.male.file.name);
-    payload.append('config_female', selectedConfigs.female.file, selectedConfigs.female.file.name);
+    if (selectedConfigs.male?.file) payload.append('config_male', selectedConfigs.male.file, selectedConfigs.male.file.name);
+    if (selectedConfigs.female?.file) payload.append('config_female', selectedConfigs.female.file, selectedConfigs.female.file.name);
     if (selectedPreview) payload.append('preview', selectedPreview, 'preview.webp');
 
     form.classList.add('submitting');
