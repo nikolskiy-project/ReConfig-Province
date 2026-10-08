@@ -456,6 +456,7 @@ function previewClassFor(card) {
 // Published configs are addressed by stable IDs, never by their raw GitHub URL.
 let activeDetailCard = null;
 let rehubCatalogLoaded = false;
+let selectedDetailGender = 'male';
 
 function configRefForCard(card) {
   if (!card) return '';
@@ -470,7 +471,8 @@ function downloadPathForCard(card) {
   const ref = configRefForCard(card);
   if (!ref || !card?.dataset.downloadUrl || !REHUB_API) return '';
   const [type, id] = ref.split(':');
-  return `${REHUB_API}/api/download/${type}/${encodeURIComponent(id)}`;
+  const gender = type === 'community' && card?.dataset.hasFemale === 'true' ? selectedDetailGender : 'male';
+  return `${REHUB_API}/api/download/${type}/${encodeURIComponent(id)}${gender === 'female' ? '?gender=female' : ''}`;
 }
 
 function shareUrlForCard(card) {
@@ -529,6 +531,7 @@ async function downloadSelectedConfig(button) {
     showToast('Этот XML пока недоступен для скачивания.');
     return;
   }
+  const wasDisabled = button.disabled;
   button.disabled = true;
   const originalLabel = button.textContent;
   button.textContent = 'Загружаю XML…';
@@ -551,7 +554,7 @@ async function downloadSelectedConfig(button) {
     const blobUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = blobUrl;
-    link.download = `${filename}.xml`;
+    link.download = `${filename}${card.dataset.hasFemale === 'true' ? (selectedDetailGender === 'female' ? '-Женская' : '-Мужская') : ''}.xml`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -561,6 +564,7 @@ async function downloadSelectedConfig(button) {
     showToast(error?.name === 'AbortError' ? 'Сервер долго не отвечает. Попробуй ещё раз.' : (error.message || 'Ошибка скачивания XML.'));
   } finally {
     clearTimeout(timeout);
+    button.disabled = wasDisabled;
     button.textContent = originalLabel;
     // The user may have switched to another card while the request was in flight.
     button.disabled = !downloadPathForCard(activeDetailCard);
@@ -612,6 +616,10 @@ function openCard(card) {
   });
 
   activeDetailCard = card;
+  selectedDetailGender = 'male';
+  const genderRow = $('#detailGenderRow');
+  if (genderRow) genderRow.hidden = !(isCommunity && card.dataset.hasFemale === 'true');
+  updateGenderSwitch($('#detailGenderSwitch'), selectedDetailGender);
   const primary = $('#detailPrimary');
   const canDownload = !!downloadPathForCard(card);
   primary.textContent = canDownload ? 'Скачать XML' : 'Пока недоступно';
@@ -749,6 +757,10 @@ function initModals() {
   });
 
   $('#detailPrimary')?.addEventListener('click', e => { void downloadSelectedConfig(e.currentTarget); });
+  $$('#detailGenderSwitch .community-gender-button').forEach(button => button.addEventListener('click', () => {
+    selectedDetailGender = button.dataset.gender;
+    updateGenderSwitch($('#detailGenderSwitch'), selectedDetailGender);
+  }));
   $('#detailSecondary')?.addEventListener('click', async () => {
     const shareUrl = shareUrlForCard(activeDetailCard);
     if (!shareUrl) { showToast('Ссылка на эту публикацию недоступна.'); return; }
@@ -779,6 +791,7 @@ function makeCommunityCard(item, index = 0) {
   card.dataset.communityId = /^[a-f0-9]{12}$/.test(String(item.id || '')) ? item.id : '';
   card.dataset.previewUrl = escapeText(item.preview_url || '');
   card.dataset.downloadUrl = escapeText(item.download_url || '');
+  card.dataset.hasFemale = item.gender_variants?.includes('female') ? 'true' : 'false';
 
   const thumb = document.createElement('div');
   thumb.className = 'config-thumb';
@@ -975,6 +988,16 @@ async function compressPreview(file) {
   return new File([blob], 'preview.webp', { type: 'image/webp' });
 }
 
+function updateGenderSwitch(group, gender) {
+  if (!group) return;
+  group.dataset.gender = gender;
+  $$('.community-gender-button', group).forEach(button => {
+    const active = button.dataset.gender === gender;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+}
+
 function initUpload() {
   const configInput = $('#configFile');
   const previewInput = $('#previewFile');
@@ -989,25 +1012,45 @@ function initUpload() {
   const submit = $('#uploadSubmit');
   if (!configInput || !previewInput || !configDrop || !previewDrop || !form) return;
 
-  let selectedConfig = null;
+  let selectedGender = 'male';
+  let selectedConfigs = { male: null, female: null };
+  let uploadRevision = 0;
   let selectedPreview = null;
+
+  function renderVersion() {
+    updateGenderSwitch($('#communityUploadGender'), selectedGender);
+    for (const gender of ['male','female']) {
+      $(`#communityReady${gender === 'male' ? 'Male' : 'Female'}`)?.classList.toggle('ready', !!selectedConfigs[gender]);
+    }
+    const config = selectedConfigs[selectedGender];
+    configDrop.classList.toggle('has-file', !!config);
+    configTitle.textContent = config?.originalName || `Выбрать XML · ${selectedGender === 'male' ? 'мужская' : 'женская'} версия`;
+    configMeta.textContent = config
+      ? `${config.bindCount} биндов · ${Math.max(1,Math.round(config.exportedBytes/1024))} КБ · только <binds>`
+      : 'До 1 МБ · экспортируется только блок <binds>';
+  }
+  $$('#communityUploadGender .community-gender-button').forEach(button => button.addEventListener('click', () => {
+    selectedGender = button.dataset.gender;
+    configInput.value = '';
+    renderVersion();
+  }));
   let previewObjectUrl = '';
 
   const setConfig = async file => {
     if (!file) return;
+    const gender = selectedGender;
+    const revision = ++uploadRevision;
     configTitle.textContent = 'Извлекаю блок биндов…';
-    configMeta.textContent = 'В ReHub попадёт только <binds>…</binds>';
+    configMeta.textContent = 'Сохраняется только <binds>…</binds>';
     try {
       const extracted = await extractBindsFile(file);
-      selectedConfig = extracted.file;
-      configTitle.textContent = file.name;
-      configMeta.textContent = `${extracted.bindCount} биндов · экспорт ${Math.max(1, Math.round(extracted.exportedBytes / 1024))} КБ · только <binds>`;
+      selectedConfigs[gender] = { ...extracted, originalName: file.name };
     } catch (error) {
-      selectedConfig = null;
-      configInput.value = '';
-      configTitle.textContent = 'Выбрать XML-конфиг';
-      configMeta.textContent = 'До 1 МБ · будет экспортирован только блок <binds>';
+      selectedConfigs[gender] = null;
       showToast(error.message || 'Не удалось прочитать XML.');
+    } finally {
+      if (revision === uploadRevision && selectedGender === gender) renderVersion();
+      configInput.value = '';
     }
   };
 
@@ -1044,10 +1087,11 @@ function initUpload() {
   };
   setupDrop(configDrop, file => { void setConfig(file); });
   setupDrop(previewDrop, setPreview);
+  renderVersion();
 
   form.addEventListener('submit', async e => {
     e.preventDefault();
-    if (!selectedConfig) { showToast('Сначала выбери XML-конфиг.'); return; }
+    if (!selectedConfigs.male?.file || !selectedConfigs.female?.file) { showToast('Добавь мужскую и женскую версии XML.'); return; }
     if (!REHUB_API || REHUB_API.includes('YOUR-WORKER')) { showToast('Сначала укажи адрес API в rehub-config.js.'); return; }
 
     const fields = new FormData(form);
@@ -1056,7 +1100,8 @@ function initUpload() {
     payload.append('author', String(fields.get('author') || '').trim());
     payload.append('category', String(fields.get('category') || 'Другое'));
     payload.append('description', String(fields.get('description') || '').trim());
-    payload.append('config', selectedConfig, selectedConfig.name);
+    payload.append('config_male', selectedConfigs.male.file, selectedConfigs.male.file.name);
+    payload.append('config_female', selectedConfigs.female.file, selectedConfigs.female.file.name);
     if (selectedPreview) payload.append('preview', selectedPreview, 'preview.webp');
 
     form.classList.add('submitting');
@@ -1069,10 +1114,10 @@ function initUpload() {
       if (!response.ok) throw new Error(result.error || `Ошибка API ${response.status}`);
       showToast(`Отправлено на модерацию · ID ${result.id}`);
       form.reset();
-      selectedConfig = null;
+      selectedConfigs = { male: null, female: null };
+      selectedGender = 'male';
       selectedPreview = null;
-      configTitle.textContent = 'Выбрать XML-конфиг';
-      configMeta.textContent = 'До 1 МБ · будет экспортирован только блок <binds>';
+      renderVersion();
       previewTitle.textContent = 'Добавить превью';
       previewMeta.textContent = 'JPG / PNG / WebP · авто до 1280×720 и 600 КБ';
       previewDrop.classList.remove('has-preview');

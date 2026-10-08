@@ -1119,3 +1119,9 @@ body.page-dragging { cursor: none !important; }
 #adminConfigDrop.version-ready { border-color: rgba(74,201,150,.37); }
 #adminConfigDrop.version-pending { border-color: rgba(var(--accent-rgb), .60); background: rgba(var(--accent-rgb), .045); }
 @media (pointer: coarse) { .admin-gender-option { cursor: pointer; } }
+
+/* Moderation XML versions use the existing Admin segmented style. */
+.admin-review-gender { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; margin-bottom: 12px; }
+.admin-review-gender > span { font-size: 10px; color: #9f9aaf; font-weight: 600; }
+.admin-review-gender .admin-gender-switch { width: min(285px, 100%); }
+.admin-review-gender[hidden] { display: none !important; }

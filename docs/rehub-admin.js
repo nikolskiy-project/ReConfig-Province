@@ -43,14 +43,14 @@ const reviewObjectUrlCache = new Map();
 function reviewFilePath(type) {
   if (!selectedSubmission?.id || !selectedSubmission?.status) return '';
   const status = encodeURIComponent(selectedSubmission.status);
-  return `/api/admin/submissions/${encodeURIComponent(selectedSubmission.id)}/file?status=${status}&type=${encodeURIComponent(type)}`;
+  return `/api/admin/submissions/${encodeURIComponent(selectedSubmission.id)}/file?status=${status}&type=${encodeURIComponent(type)}${type === 'config' ? `&gender=${selectedReviewGender}` : ''}`;
 }
 
 async function fetchAdminFile(type, timeoutMs = 12000) {
   const path = reviewFilePath(type);
   if (!path) throw new Error('Публикация не выбрана.');
 
-  const cacheKey = `${selectedSubmission.status}:${selectedSubmission.id}:${type}`;
+  const cacheKey = `${selectedSubmission.status}:${selectedSubmission.id}:${type}:${type === 'config' ? selectedReviewGender : ''}`;
   if (reviewFileCache.has(cacheKey)) return reviewFileCache.get(cacheKey);
 
   const promise = (async () => {
@@ -92,7 +92,7 @@ async function fetchAdminFile(type, timeoutMs = 12000) {
 }
 
 async function getReviewObjectUrl(type) {
-  const cacheKey = `${selectedSubmission.status}:${selectedSubmission.id}:${type}`;
+  const cacheKey = `${selectedSubmission.status}:${selectedSubmission.id}:${type}:${type === 'config' ? selectedReviewGender : ''}`;
   if (reviewObjectUrlCache.has(cacheKey)) return reviewObjectUrlCache.get(cacheKey);
   const blob = await fetchAdminFile(type);
   const url = URL.createObjectURL(blob);
@@ -579,6 +579,7 @@ function setModerationTab(status){
 
 const reviewXmlCache = new Map();
 let reviewMediaMode = 'cover';
+let selectedReviewGender = 'male';
 
 function updateReviewViewButtons(mode) {
   let idx=0;$$('.admin-review-view').forEach((btn,i)=>{const active=btn.dataset.reviewView===mode;btn.classList.toggle('active',active);if(active)idx=i;});$('#reviewViewbar')?.setAttribute('data-index',String(idx));
@@ -596,8 +597,11 @@ async function loadReviewCode() {
   loading.textContent = 'Загружаю XML…';
 
   try {
+    const gender = selectedReviewGender;
+    const itemId = selectedSubmission.id;
     const blob = await fetchAdminFile('config');
     const text = await blob.text();
+    if (selectedReviewGender !== gender || selectedSubmission?.id !== itemId) return;
     codeText.textContent = text || 'XML-файл пуст.';
     code.hidden = false;
   } catch (error) {
@@ -680,8 +684,24 @@ function setReviewMediaMode(mode) {
   requestAnimationFrame(() => window.syncAdminScrollbar?.());
 }
 
+function updateReviewGenderSwitch() {
+  const group = $('#reviewGenderSwitch');
+  if (!group) return;
+  group.dataset.index = selectedReviewGender === 'female' ? '1' : '0';
+  $$('.admin-gender-option', group).forEach(button => {
+    const active = button.dataset.gender === selectedReviewGender;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+}
+
 function openReview(item,status){
   selectedSubmission={...item,status};
+  selectedReviewGender = 'male';
+  const availableFemale = Boolean(item.gender_variants?.includes('female') || item.config_female_file === 'config_female.xml');
+  const genderRow = $('#reviewGenderRow');
+  if (genderRow) genderRow.hidden = !availableFemale;
+  updateReviewGenderSwitch();
   $('#reviewTitle').textContent=item.title||'Публикация';
   $('#reviewStatusBadge').textContent=statusLabel(status);$('#reviewStatusBadge').dataset.status=status;
   $('#reviewCategoryBadge').textContent=item.category||'Другое';
@@ -775,7 +795,7 @@ async function downloadReviewConfig(event){
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
     a.href=url;
-    a.download=`${selectedSubmission.title || selectedSubmission.id}.xml`.replace(/[\\/:*?"<>|]+/g,'_');
+    a.download=`${selectedSubmission.title || selectedSubmission.id}${selectedSubmission.gender_variants?.includes('female') ? (selectedReviewGender === 'female' ? '-Женская' : '-Мужская') : ''}.xml`.replace(/[\\/:*?"<>|]+/g,'_');
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -960,6 +980,11 @@ function initReviewCodeScrollbar() {
 
 function bindModeration(){
   $$('.admin-review-view').forEach(b=>b.addEventListener('click',()=>setReviewMediaMode(b.dataset.reviewView)));
+  $$('#reviewGenderSwitch .admin-gender-option').forEach(b=>b.addEventListener('click', () => {
+    selectedReviewGender = b.dataset.gender;
+    updateReviewGenderSwitch();
+    if (reviewMediaMode === 'code') void loadReviewCode();
+  }));
   $$('.admin-tab').forEach(b=>b.addEventListener('click',()=>setModerationTab(b.dataset.status)));
   $('#reloadCommunity').addEventListener('click',loadCommunityModeration);
   $('#reviewClose').addEventListener('click',closeReview);
