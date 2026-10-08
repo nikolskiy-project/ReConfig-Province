@@ -408,6 +408,7 @@ function updateOfficialVariantUI() {
 
   const toggle = $('#officialGenderSwitch');
   toggle.dataset.gender = gender;
+  toggle.dataset.index = gender === 'female' ? '1' : '0';
   $$('.admin-gender-option', toggle).forEach(button => {
     const active = button.dataset.gender === gender;
     button.classList.toggle('active', active);
