@@ -1161,3 +1161,43 @@ html:has(body.admin-review-open) { overflow:hidden!important; }
 .admin-page .rehub-text-track[hidden] {display:none!important;}
 .admin-page .rehub-text-thumb {position:absolute;left:3px;top:0;width:5px;min-height:25px;border-radius:999px;background:#a98aec;will-change:transform;transition:left .16s ease,width .16s ease,background .16s ease;}
 .admin-page .rehub-text-track:is(:hover,.dragging) .rehub-text-thumb {left:2px;width:7px;background:#c9b4ff;}
+
+
+/* v26: Format Markdown INSIDE the existing official description textarea. */
+.admin-page .admin-markdown-field { position: relative; min-width: 0; }
+.admin-page #officialDescription { display:block; width:100%; padding-bottom:43px; user-select:text!important; -webkit-user-select:text!important; }
+.admin-page .admin-markdown-actions {
+  position:absolute; bottom:9px; right:13px; z-index:4;
+  display:flex; flex-wrap:nowrap; gap:1px; align-items:center;
+  width:max-content; max-width:calc(100% - 24px);
+  margin:0; padding:0; border:0; border-radius:6px;
+  background:transparent; box-shadow:none;
+}
+.admin-page .admin-markdown-actions button {
+  flex:0 0 auto; width:24px; min-width:24px; height:23px; padding:0 3px;
+  border:0; background:transparent; color:#aaa6bb; font-size:10px;
+  transition:color .15s ease,background .15s ease;
+}
+.admin-page .admin-markdown-actions button:hover,
+.admin-page .admin-markdown-actions button:focus-visible {
+  border:0; outline:0; color:#d1bbff; background:rgba(139,92,246,.12);
+}
+
+/* v26: a single root scroll and drag-capable custom thumb; prevents body/html conflicts. */
+html:has(> body.admin-page) {
+  height:auto !important;
+  min-height:100% !important;
+  overflow-x:hidden !important;
+  overflow-y:auto !important;
+  scrollbar-width:none !important;
+  scroll-behavior:auto !important;
+}
+html:has(> body.admin-page) > body.admin-page {
+  height:auto !important;
+  min-height:100vh !important;
+  overflow:visible !important;
+}
+html:has(> body.admin-review-open) { overflow-y:hidden !important; }
+.admin-page > .site-scrollbar { z-index:10030!important; touch-action:none!important; pointer-events:auto!important; }
+.admin-page > .site-scrollbar.hidden {pointer-events:none!important;}
+.admin-page > .site-scrollbar .site-scrollbar-thumb {touch-action:none!important;pointer-events:auto;}

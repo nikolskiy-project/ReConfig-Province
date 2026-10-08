@@ -215,125 +215,82 @@ function initCursor() {
 }
 
 function initCustomScrollbar() {
-  // Track also remains available in narrower windows and on touch devices.
-
   document.querySelector('.site-scrollbar')?.remove();
-
-  const scroller = document.scrollingElement || document.documentElement;
   const track = document.createElement('div');
   track.className = 'site-scrollbar';
   track.setAttribute('aria-hidden', 'true');
-
   const thumb = document.createElement('div');
   thumb.className = 'site-scrollbar-thumb';
   track.appendChild(thumb);
   document.body.appendChild(track);
 
-  let dragging = false;
-  let pointerId = null;
-  let grabOffset = 0;
-  let raf = 0;
-
-  const getMetrics = () => {
-    const viewport = Math.max(1, window.innerHeight);
-    const total = Math.max(scroller.scrollHeight, document.body.scrollHeight, viewport);
-    const trackHeight = Math.max(1, track.clientHeight);
-    const thumbHeight = Math.max(48, Math.min(trackHeight, trackHeight * (viewport / total)));
-    const maxScroll = Math.max(0, total - viewport);
-    const maxThumbTop = Math.max(0, trackHeight - thumbHeight);
-    return { thumbHeight, maxScroll, maxThumbTop };
+  let dragging = false, pointerId = null, grabOffset = 0, frame = 0;
+  const root = () => document.scrollingElement || document.documentElement;
+  const metrics = () => {
+    const el = root();
+    const viewport = Math.max(1, el.clientHeight || innerHeight);
+    const maxScroll = Math.max(0, el.scrollHeight - viewport);
+    const height = Math.max(1, track.clientHeight);
+    const thumbHeight = Math.min(height, Math.max(48, height * viewport / Math.max(viewport,el.scrollHeight)));
+    return { el, maxScroll, thumbHeight, maxThumbTop: Math.max(0,height-thumbHeight) };
   };
-
   const syncNow = () => {
-    raf = 0;
-    const { thumbHeight, maxScroll, maxThumbTop } = getMetrics();
-    const current = scroller.scrollTop || window.scrollY || 0;
-    const ratio = maxScroll > 0 ? Math.max(0, Math.min(1, current / maxScroll)) : 0;
+    frame = 0;
+    const {el,maxScroll,thumbHeight,maxThumbTop} = metrics();
     thumb.style.height = `${thumbHeight}px`;
-    thumb.style.transform = `translate3d(0,${maxThumbTop * ratio}px,0)`;
-    track.classList.toggle('hidden', maxScroll <= 1);
+    thumb.style.transform = `translate3d(0,${maxScroll ? maxThumbTop * Math.min(1,Math.max(0,el.scrollTop/maxScroll)) : 0}px,0)`;
+    track.classList.toggle('hidden', maxScroll <= 1 || document.body.classList.contains('admin-review-open'));
   };
-
-  const sync = () => {
-    if (raf) cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(syncNow);
-  };
+  const sync = () => { if (frame) cancelAnimationFrame(frame); frame = requestAnimationFrame(syncNow); };
   window.syncAdminScrollbar = sync;
-
-  const setScrollFromPointer = clientY => {
-    const rect = track.getBoundingClientRect();
-    const { maxScroll, maxThumbTop } = getMetrics();
-    if (maxScroll <= 0 || maxThumbTop <= 0) return;
-    const thumbTop = Math.max(0, Math.min(maxThumbTop, clientY - rect.top - grabOffset));
-    window.scrollTo(0, (thumbTop / maxThumbTop) * maxScroll);
+  const setFromPointer = y => {
+    const {el,maxScroll,maxThumbTop} = metrics();
+    if (!maxScroll || !maxThumbTop) return;
+    const top = Math.max(0,Math.min(maxThumbTop,y-track.getBoundingClientRect().top-grabOffset));
+    const wanted = (top/maxThumbTop)*maxScroll;
+    el.scrollTop = wanted;
+    // In certain webviews the document scroll is delegated to window instead.
+    if (Math.abs(el.scrollTop-wanted)>2) window.scrollTo(0,wanted);
     sync();
   };
-
-  thumb.addEventListener('pointerdown', e => {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    e.stopPropagation();
+  track.addEventListener('pointerdown',e => {
+    if (e.button!==0 || track.classList.contains('hidden')) return;
+    e.preventDefault();e.stopPropagation();
     window.cancelPageInertia?.();
-    dragging = true;
-    pointerId = e.pointerId;
-    grabOffset = e.clientY - thumb.getBoundingClientRect().top;
-    thumb.classList.add('dragging');
-    try { track.setPointerCapture(pointerId); } catch (_) {}
+    dragging=true;pointerId=e.pointerId;
+    grabOffset=thumb.contains(e.target) ? e.clientY-thumb.getBoundingClientRect().top : thumb.offsetHeight/2;
+    track.classList.add('dragging');thumb.classList.add('dragging');
+    try{track.setPointerCapture(e.pointerId);}catch(_){ }
+    if (!thumb.contains(e.target)) setFromPointer(e.clientY);
   });
-
-  track.addEventListener('pointerdown', e => {
-    if (e.button !== 0 || e.target === thumb) return;
-    e.preventDefault();
-    e.stopPropagation();
-    window.cancelPageInertia?.();
-    const { thumbHeight } = getMetrics();
-    grabOffset = thumbHeight / 2;
-    dragging = true;
-    pointerId = e.pointerId;
-    thumb.classList.add('dragging');
-    try { track.setPointerCapture(pointerId); } catch (_) {}
-    setScrollFromPointer(e.clientY);
-  });
-
-  track.addEventListener('pointermove', e => {
-    if (!dragging || (pointerId !== null && e.pointerId !== pointerId)) return;
-    e.preventDefault();
-    setScrollFromPointer(e.clientY);
-  }, { passive: false });
-
-  const finish = e => {
-    if (!dragging) return;
-    if (pointerId !== null && e?.pointerId != null && e.pointerId !== pointerId) return;
-    dragging = false;
-    thumb.classList.remove('dragging');
-    try { if (pointerId !== null) track.releasePointerCapture(pointerId); } catch (_) {}
-    pointerId = null;
-    sync();
+  track.addEventListener('pointermove',e=>{
+    if(!dragging || (pointerId!==null && e.pointerId!==pointerId))return;
+    e.preventDefault();setFromPointer(e.clientY);
+  },{passive:false});
+  const release=e=>{
+    if(!dragging || (pointerId!==null && e?.pointerId!=null && e.pointerId!==pointerId))return;
+    dragging=false;track.classList.remove('dragging');thumb.classList.remove('dragging');
+    try{if(pointerId!==null)track.releasePointerCapture(pointerId);}catch(_){ }
+    pointerId=null;sync();
   };
-
-  track.addEventListener('pointerup', finish);
-  track.addEventListener('pointercancel', finish);
-  window.addEventListener('blur', finish);
-  window.addEventListener('scroll', sync, { passive: true });
-  window.addEventListener('resize', sync, { passive: true });
-
-  if ('ResizeObserver' in window) {
-    const ro = new ResizeObserver(sync);
-    ro.observe(scroller);
-    ro.observe(document.body);
+  track.addEventListener('pointerup',release);track.addEventListener('pointercancel',release);
+  window.addEventListener('blur',release);
+  window.addEventListener('scroll',sync,{passive:true});
+  window.addEventListener('resize',sync,{passive:true});
+  if('ResizeObserver' in window){
+    const observer=new ResizeObserver(sync);observer.observe(document.documentElement);observer.observe(document.body);
   }
-
-  const mo = new MutationObserver(sync);
-  mo.observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['hidden', 'class', 'style']
-  });
-
+  // Recalculate after login, tab switches and other asynchronous layout updates.
+  const observer=new MutationObserver(sync);
+  // Only observe content changes. Observing thumb.style would recursively
+  // cancel its own animation frame and make the track appear frozen.
+  observer.observe(document.body,{childList:true,subtree:false,attributes:true,attributeFilter:['class']});
+  const workspace=document.querySelector('#adminWorkspace');
+  if(workspace)observer.observe(workspace,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
+  const login=document.querySelector('#adminLogin');
+  if(login)observer.observe(login,{attributes:true,attributeFilter:['hidden']});
   requestAnimationFrame(sync);
 }
-
 
 let adminRevealObserver;
 const adminRevealBound = new WeakSet();
@@ -1041,6 +998,46 @@ function initMeasuredSegmentMarkers() {
 
 
 /* Rounded scrollbars for admin text inputs too (including review/rejection text). */
+function initAdminMarkdownDescription(){
+  const area=$('#officialDescription');
+  const buttons=$('.admin-markdown-actions');
+  if(!area||!buttons)return;
+  // Keep selection when clicking a formatting icon.
+  buttons.addEventListener('mousedown',e=>{if(e.target.closest('button'))e.preventDefault();});
+  const apply=action=>{
+    const s=area.selectionStart,e=area.selectionEnd, selected=area.value.slice(s,e);
+    const lineStart=area.value.lastIndexOf('\n',Math.max(0,s-1))+1;
+    let from=s,to=e,replacement='',selStart=0,selEnd=0;
+    const wrap=(left,right,fallback)=>{
+      const inner=selected||fallback;replacement=left+inner+right;
+      selStart=from+left.length;selEnd=selStart+inner.length;
+    };
+    if(action==='bold')wrap('**','**','жирный текст');
+    else if(action==='italic')wrap('*','*','курсив');
+    else if(action==='code')wrap('`','`','код');
+    else if(action==='link')wrap('[','](https://example.com)','название ссылки');
+    else if(['heading','list','quote'].includes(action)){
+      const prefix=action==='heading'?'## ':action==='list'?'- ':'> ';
+      from=lineStart;
+      replacement=prefix+area.value.slice(from,e).replace(/\n/g,`\n${prefix}`);
+      selStart=from+prefix.length;selEnd=from+replacement.length;
+    }else return;
+    if(area.maxLength>0 && area.value.length-(to-from)+replacement.length>area.maxLength){toast('Превышен лимит описания.');return;}
+    area.focus({preventScroll:true});area.setRangeText(replacement,from,to,'end');
+    area.setSelectionRange(selStart,selEnd);
+    area.dispatchEvent(new Event('input',{bubbles:true}));
+  };
+  buttons.addEventListener('click',e=>{
+    const button=e.target.closest('button[data-md]');if(!button)return;
+    e.preventDefault();e.stopPropagation();apply(button.dataset.md);
+  });
+  area.addEventListener('keydown',e=>{
+    if(!(e.ctrlKey||e.metaKey)||e.altKey)return;
+    const key=e.key.toLowerCase();
+    if(key==='b'||key==='i'){e.preventDefault();apply(key==='b'?'bold':'italic');}
+  });
+}
+
 function initAdminRoundedTextareas(){
   const elements=$$('#officialDescription, #rejectReasonInput');
   elements.forEach(area=>{
@@ -1070,5 +1067,5 @@ function initAdminRoundedTextareas(){
   });
 }
 
-function init(){initAdminRoundedTextareas();initMeasuredSegmentMarkers();initReviewInnerScrollbar();initReviewCodeScrollbar();initCursor();initAdminHeader();initAdminDragScroll();initCustomScrollbar();initProgramSelects();observeAdminReveals();$('#loginForm').addEventListener('submit',e=>{e.preventDefault();login($('#adminKeyInput').value);});$('#logoutBtn').addEventListener('click',logout);$('#officialFactionSelect').addEventListener('change',e=>loadSlot(e.target.value));$('#newOfficialFaction').addEventListener('click',beginNewOfficial);$('#reloadOfficial').addEventListener('click',()=>currentSlot?loadSlot(currentSlot):beginNewOfficial());$('#officialForm').addEventListener('submit',submit);bindFiles();bindModeration();if(adminKey)login(adminKey);}
+function init(){initAdminMarkdownDescription();initAdminRoundedTextareas();initMeasuredSegmentMarkers();initReviewInnerScrollbar();initReviewCodeScrollbar();initCursor();initAdminHeader();initAdminDragScroll();initCustomScrollbar();initProgramSelects();observeAdminReveals();$('#loginForm').addEventListener('submit',e=>{e.preventDefault();login($('#adminKeyInput').value);});$('#logoutBtn').addEventListener('click',logout);$('#officialFactionSelect').addEventListener('change',e=>loadSlot(e.target.value));$('#newOfficialFaction').addEventListener('click',beginNewOfficial);$('#reloadOfficial').addEventListener('click',()=>currentSlot?loadSlot(currentSlot):beginNewOfficial());$('#officialForm').addEventListener('submit',submit);bindFiles();bindModeration();if(adminKey)login(adminKey);}
 addEventListener('DOMContentLoaded',init);

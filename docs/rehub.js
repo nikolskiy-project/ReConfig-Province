@@ -1124,7 +1124,7 @@ function initHubRoundedScrollbars() {
       if(!visible) return;
       const r = surface.getBoundingClientRect();
       const paddingTop = 9, paddingBottom = 9;
-      track.style.left = `${r.right - 17}px`;
+      track.style.left = `${r.right - 12}px`;
       track.style.top = `${r.top+paddingTop}px`;
       track.style.height = `${Math.max(20,r.height-paddingTop-paddingBottom)}px`;
       const {totalScroll, travel, th} = metrics();

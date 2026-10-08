@@ -9,7 +9,7 @@
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="rehub.css?v=25">
-  <link rel="stylesheet" href="rehub-admin.css?v=25">
+  <link rel="stylesheet" href="rehub-admin.css?v=26">
 </head>
 <body class="rehub-page admin-page">
   <div class="page-noise" aria-hidden="true"></div>
@@ -85,7 +85,18 @@
                 <button class="admin-gender-option segment-btn interactive" type="button" data-gender="female" aria-pressed="false">Женская <span class="gender-ready-dot" id="genderReadyFemale" aria-hidden="true"></span></button>
               </div>
             </div>
-            <label class="wide"><span>Описание</span><textarea id="officialDescription" name="description" rows="5" maxlength="5000" required></textarea></label>
+            <label class="wide admin-markdown-field rehub-markdown-field"><span>Описание</span>
+              <textarea id="officialDescription" name="description" rows="5" maxlength="5000" required></textarea>
+              <div class="rehub-markdown-toolbar admin-markdown-actions" role="toolbar" aria-label="Форматировать выделенный текст Markdown">
+                <button type="button" data-md="bold" title="Жирный (Ctrl+B)" aria-label="Жирный"><strong>Ж</strong></button>
+                <button type="button" data-md="italic" title="Курсив (Ctrl+I)" aria-label="Курсив"><em>К</em></button>
+                <button type="button" data-md="heading" title="Заголовок" aria-label="Заголовок">H</button>
+                <button type="button" data-md="list" title="Маркированный список" aria-label="Список">☷</button>
+                <button type="button" data-md="quote" title="Цитата" aria-label="Цитата">❞</button>
+                <button type="button" data-md="code" title="Код" aria-label="Код">&lt;/&gt;</button>
+                <button type="button" data-md="link" title="Добавить ссылку" aria-label="Ссылка">↗</button>
+              </div>
+            </label>
           </div>
 
           <div class="upload-notice admin-notice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span id="adminNoticeText">Официальная публикация сразу появится в закреплённой карточке без модерации.</span></div>
@@ -183,6 +194,6 @@
 
   <div class="hub-toast" id="hubToast" role="status" aria-live="polite"></div>
   <script src="rehub-config.js?v=1"></script>
-  <script src="rehub-admin.js?v=25"></script>
+  <script src="rehub-admin.js?v=26"></script>
 </body>
 </html>
