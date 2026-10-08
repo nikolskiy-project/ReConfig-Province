@@ -517,11 +517,19 @@ function sharedRefFromHash() {
 }
 
 function openSharedConfig() {
+  if (!rehubCatalogLoaded) return;
   const ref = sharedRefFromHash();
-  if (!ref || !rehubCatalogLoaded) return;
+  if (!ref) return;
+
   const card = $$('.hub-video-card').find(item => configRefForCard(item) === ref && !!item.dataset.downloadUrl);
   if (card) openCard(card);
   else showToast('Публикация не найдена или была удалена.');
+
+  // Shared links open the requested card once. Remove only the consumed #config=
+  // fragment without reloading the page or adding a new browser-history entry.
+  if (location.hash.startsWith('#config=')) {
+    history.replaceState(history.state, '', location.pathname + location.search);
+  }
 }
 
 async function downloadSelectedConfig(button) {
