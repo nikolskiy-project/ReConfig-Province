@@ -157,12 +157,12 @@ function initCardParallax() {
       const rect = thumb.getBoundingClientRect();
       const nx = Math.max(-1, Math.min(1, (e.clientX - (rect.left + rect.width / 2)) / Math.max(rect.width / 2, 1)));
       const ny = Math.max(-1, Math.min(1, (e.clientY - (rect.top + rect.height / 2)) / Math.max(rect.height / 2, 1)));
-      tx = nx * 3.2;
-      ty = ny * 2.2;
-      rx = -ny * 2.5;
-      ry = nx * 3.5;
-      targetFollowX = nx * 8;
-      targetFollowY = ny * 5;
+      tx = nx * 1.6;
+      ty = ny * 1.1;
+      rx = -ny * 1.3;
+      ry = nx * 1.8;
+      targetFollowX = nx * 4;
+      targetFollowY = ny * 2.5;
       thumb.style.setProperty('--shine-x', `${Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100)).toFixed(1)}%`);
       thumb.style.setProperty('--shine-y', `${Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100)).toFixed(1)}%`);
     };
@@ -576,10 +576,12 @@ function openCard(card) {
   const title = card.dataset.title || 'Конфиг';
   const status = card.dataset.status || '—';
   const ready = card.dataset.statusKind === 'ready';
-  const isCommunity = (card.dataset.category || '').includes('community');
+  // A verified community publication is NOT an official publication.
+  const isCommunity = card.classList.contains('community-card') || !!card.dataset.communityId;
   const previewUrl = card.dataset.previewUrl || '';
   const downloadUrl = card.dataset.downloadUrl || '';
 
+  $('#detailKicker').textContent = isCommunity ? 'Конфиг сообщества' : 'Официальный конфиг';
   $('#detailTitle').textContent = title;
   $('#detailPreviewLabel').textContent = card.dataset.label || title;
   $('#detailDescription').textContent = card.dataset.description || '';

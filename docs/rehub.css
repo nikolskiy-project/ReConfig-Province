@@ -835,120 +835,48 @@ label,
 }
 
 
-/* v14: unmistakable hover/press feedback on both official and community cards.
-   The inner preview's inline 3D parallax is untouched. */
+
+/* v16 — subtle, unified motion and a single fine outline. */
 .hub-video-card {
   position: relative;
-  transform-origin: center 42%;
-  -webkit-tap-highlight-color: transparent;
-}
-.hub-video-card.reveal.visible {
-  transition: transform .32s cubic-bezier(.20,.82,.26,1),
-              filter .25s ease,
-              opacity .62s cubic-bezier(.22,1,.36,1);
-}
-.hub-video-card.reveal.visible:hover,
-.hub-video-card.reveal.visible:focus-visible {
-  transform: translate3d(0,-7px,0) scale(1.014);
-  filter: brightness(1.07);
-}
-.hub-video-card .config-thumb {
-  transition: border-color .21s ease, box-shadow .28s ease,
-              filter .25s ease, transform .16s ease;
-}
-.hub-video-card .config-thumb::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 4;
-  pointer-events: none;
-  border-radius: inherit;
-  opacity: 0;
-  box-shadow: inset 0 0 0 1px rgba(183,156,255,.52),
-              inset 0 0 26px rgba(139,92,246,.10);
-  background: linear-gradient(125deg,rgba(183,156,255,.085),transparent 36%);
-  transition: opacity .24s ease;
-}
-.hub-video-card:hover .config-thumb::after,
-.hub-video-card:focus-visible .config-thumb::after {
-  opacity: 1;
-}
-.hub-video-card:hover .config-thumb,
-.hub-video-card:focus-visible .config-thumb {
-  border-color: rgba(183,156,255,.7);
-  box-shadow: 0 24px 46px rgba(0,0,0,.39),
-              0 0 33px rgba(139,92,246,.18);
-}
-.hub-video-card .community-preview {
-  transition: transform .45s cubic-bezier(.20,.82,.26,1), filter .3s ease;
-}
-.hub-video-card:hover .community-preview,
-.hub-video-card:focus-visible .community-preview {
-  transform: scale(1.055);
-  filter: saturate(1.10) brightness(1.07);
-}
-.hub-video-card.reveal.visible:active,
-.hub-video-card.reveal.visible.card-click-flash {
-  transform: translate3d(0,-1px,0) scale(.982) !important;
-  filter: brightness(1.20) !important;
-  transition-duration: .11s !important;
-}
-.hub-video-card.card-click-flash .config-thumb {
-  border-color: rgba(200,181,255,.90);
-  box-shadow: 0 12px 25px rgba(0,0,0,.42),
-              0 0 30px rgba(139,92,246,.28);
-}
-.hub-video-card.card-click-flash .config-thumb::after {
-  opacity: 1;
-}
-@media (prefers-reduced-motion: reduce) {
-  .hub-video-card.reveal.visible,
-  .hub-video-card .community-preview,
-  .hub-video-card .config-thumb::after {
-    transition-duration: .01ms !important;
-  }
-}
-
-
-/* v15: visible card interactions independent of reveal/IntersectionObserver. */
-.hub-video-card {
   transform-origin: center 44%;
-  transition-property: transform, filter, opacity !important;
-  transition-duration: 310ms, 240ms, 620ms !important;
-  transition-timing-function: cubic-bezier(.18,.9,.27,1), ease, ease !important;
-  transition-delay: 0ms !important;
-  cursor: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .3s cubic-bezier(.22,.8,.3,1),
+              filter .28s ease, opacity .62s ease !important;
 }
 .hub-video-card:is(:hover, :focus-visible, .hub-motion-hover) {
-  transform: translate3d(0, -9px, 0) scale(1.025) !important;
-  filter: brightness(1.11) !important;
-  transition-delay: 0ms !important;
+  transform: translate3d(0, -4px, 0) scale(1.009) !important;
+  filter: brightness(1.035);
+}
+/* Keep the original thumbnail border; do not add another inset frame. */
+.hub-video-card .config-thumb {
+  transition: border-color .25s ease, box-shadow .3s ease, filter .3s ease;
 }
 .hub-video-card:is(:hover, :focus-visible, .hub-motion-hover) .config-thumb {
-  border-color: rgba(197,175,255,.90) !important;
-  box-shadow: 0 25px 46px rgba(0,0,0,.48), 0 0 0 1px rgba(183,156,255,.18), 0 0 44px rgba(139,92,246,.28) !important;
-  transition-delay: 0ms !important;
+  border-color: rgba(183,156,255,.4);
+  box-shadow: 0 19px 36px rgba(0,0,0,.29), 0 0 20px rgba(139,92,246,.085);
 }
-.hub-video-card:is(:hover, :focus-visible, .hub-motion-hover) .config-thumb::after {
-  opacity: 1 !important;
+.hub-video-card .community-preview {
+  transition: transform .48s cubic-bezier(.22,.8,.3,1), filter .3s ease;
+}
+.hub-video-card:is(:hover, :focus-visible, .hub-motion-hover) .community-preview {
+  transform: scale(1.018);
+  filter: saturate(1.035) brightness(1.025);
 }
 .hub-video-card:is(:hover, :focus-visible, .hub-motion-hover) .thumb-shine {
-  opacity: 1 !important;
-}
-.hub-video-card:is(:hover, :focus-visible, .hub-motion-hover) .video-card-copy h3 {
-  color: #c9b5ff !important;
-  transition: color .22s ease !important;
+  opacity: .55;
 }
 .hub-video-card:is(:active, .card-click-flash, .hub-motion-press) {
-  transform: translate3d(0, -1px, 0) scale(.963) !important;
-  filter: brightness(1.22) !important;
-  transition-duration: 90ms !important;
-  transition-delay: 0ms !important;
+  transform: translate3d(0, -1px, 0) scale(.988) !important;
+  filter: brightness(1.065) !important;
+  transition-duration: .1s !important;
 }
 .hub-video-card:is(:active, .card-click-flash, .hub-motion-press) .config-thumb {
-  border-color: #d6c2ff !important;
-  box-shadow: 0 8px 19px rgba(0,0,0,.34), 0 0 38px rgba(183,156,255,.36) !important;
+  border-color: rgba(183,156,255,.52);
+  box-shadow: 0 12px 26px rgba(0,0,0,.34), 0 0 21px rgba(139,92,246,.11);
 }
 @media (prefers-reduced-motion: reduce) {
-  .hub-video-card { transition-duration: 0ms !important; }
+  .hub-video-card, .hub-video-card .community-preview {
+    transition-duration: .01ms !important;
+  }
 }
