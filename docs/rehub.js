@@ -1229,12 +1229,22 @@ function initHubRoundedScrollbars() {
     // even though ResizeObserver sees no size change; realign the thumb at the end.
     surface.addEventListener('transitionend', e => {
       if (e.target !== surface || e.propertyName !== 'transform') return;
-      // Calculate the thumb's final position before starting its fade-in.
+      // Finish positioning after the modal has expanded. The scrollbar starts
+      // hidden, then its fade begins on a separate rendered frame: otherwise
+      // display:none -> display:block and opacity:0 -> 1 can happen together,
+      // skipping the fade entirely in Chromium/Firefox.
       sync();
       if (backdrop.id === 'detailModal' &&
           backdrop.classList.contains('open') &&
-          backdrop.classList.contains('official-scroll-reveal')) {
-        backdrop.classList.add('scrollbar-ready');
+          backdrop.classList.contains('official-scroll-reveal') &&
+          !track.hidden) {
+        // Commit the starting (opacity:0) style before revealing the track.
+        track.getBoundingClientRect();
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          if (backdrop.classList.contains('open') &&
+              backdrop.classList.contains('official-scroll-reveal') &&
+              !track.hidden) backdrop.classList.add('scrollbar-ready');
+        }));
       }
     });
     if('ResizeObserver' in window){ const ro=new ResizeObserver(sync);ro.observe(scroller);ro.observe(surface); }
@@ -1307,6 +1317,7 @@ function initUpload() {
   const previewDrop = $('#previewDrop');
   const configTitle = $('#uploadFileTitle');
   const configMeta = $('#uploadFileMeta');
+  const clearConfigFile = $('#clearConfigFile');
   const previewTitle = $('#previewFileTitle');
   const previewMeta = $('#previewFileMeta');
   const previewImage = $('#previewImage');
@@ -1326,6 +1337,7 @@ function initUpload() {
     }
     const config = selectedConfigs[selectedGender];
     configDrop.classList.toggle('has-file', !!config);
+    if (clearConfigFile) clearConfigFile.hidden = !config;
     configTitle.textContent = config?.originalName || `Выбрать XML · ${selectedGender === 'male' ? 'мужская' : 'женская'} версия`;
     configMeta.textContent = config
       ? `${config.bindCount} биндов · ${Math.max(1,Math.round(config.exportedBytes/1024))} КБ · только <binds>`
@@ -1346,8 +1358,10 @@ function initUpload() {
     configMeta.textContent = 'Сохраняется только <binds>…</binds>';
     try {
       const extracted = await extractBindsFile(file);
+      if (revision !== uploadRevision) return; // Сброшенный файл не должен появиться вновь после чтения.
       selectedConfigs[gender] = { ...extracted, originalName: file.name };
     } catch (error) {
+      if (revision !== uploadRevision) return;
       selectedConfigs[gender] = null;
       showToast(error.message || 'Не удалось прочитать XML.');
     } finally {
@@ -1355,6 +1369,15 @@ function initUpload() {
       configInput.value = '';
     }
   };
+
+  clearConfigFile?.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    ++uploadRevision; // Отменяет ещё выполняющееся извлечение XML.
+    selectedConfigs[selectedGender] = null;
+    configInput.value = '';
+    renderVersion();
+  });
 
   const setPreview = async file => {
     if (!file) return;

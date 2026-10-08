@@ -374,6 +374,22 @@ label,
 .detail-preview.has-image .detail-preview-badge { z-index: 3; }
 
 .upload-files-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+/* v39: удаление выбранного XML без сброса других полей формы. */
+.upload-config-wrap { position: relative; min-width: 0; }
+.upload-config-wrap > .upload-drop { height: 100%; }
+.upload-file-clear {
+  position: absolute; top: 10px; right: 10px; z-index: 3;
+  width: 27px; height: 27px; display: grid; place-items: center;
+  border: 1px solid rgba(183,156,255,.24); border-radius: 7px;
+  background: rgba(19,17,28,.92); color: #a9a0bc;
+  cursor: pointer;
+  transition: background .16s ease, color .16s ease, border-color .16s ease, transform .16s ease;
+}
+.upload-file-clear[hidden] { display: none; }
+.upload-file-clear svg { width: 14px; height: 14px; pointer-events: none; }
+.upload-file-clear:hover { color: #f3e9ff; background: rgba(139,92,246,.18); border-color: rgba(183,156,255,.63); transform: scale(1.04); }
+.upload-file-clear:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 2px; }
+
 .preview-upload-drop { position: relative; overflow: hidden; }
 .preview-upload-drop.has-preview { border-style: solid; }
 .preview-upload-drop #previewImage { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .44; filter: saturate(.82) brightness(.63); }
@@ -1010,6 +1026,26 @@ label,
 }
 .hub-rounded-track:hover .hub-rounded-thumb,
 .hub-rounded-track.dragging .hub-rounded-thumb { left:2px; width:8px; background:#c9b4ff; }
+/* The official card thumb only fades in AFTER the card expansion ends. */
+#detailModal.official-scroll-reveal .hub-rounded-track {
+  opacity: 0;
+  pointer-events: none;
+}
+#detailModal.official-scroll-reveal.scrollbar-ready .hub-rounded-track {
+  pointer-events: auto;
+  animation: rehub-official-scrollbar-fade .32s cubic-bezier(.22, 1, .36, 1) both;
+}
+@keyframes rehub-official-scrollbar-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #detailModal.official-scroll-reveal.scrollbar-ready .hub-rounded-track {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 .rehub-markdown-field { position:relative; }
 .rehub-markdown-toolbar {
   display:flex; align-items:center; gap:3px; flex-wrap:wrap;
@@ -1186,3 +1222,11 @@ label,
 .rehub-link-popup, .rehub-link-popup * {cursor:none!important;}
 @media(hover:none),(pointer:coarse){.rehub-link-popup,.rehub-link-popup *{cursor:auto!important;}}
 @media(prefers-reduced-motion:reduce){.rehub-link-popup{animation:none;}}
+
+/* Outline paperclip for the Markdown link action (user upload + admin). */
+#uploadForm .rehub-markdown-toolbar button[data-md="link"] svg,
+.admin-page .admin-markdown-actions button[data-md="link"] svg {
+  display: block; flex: none; width: 14px; height: 14px;
+  fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round;
+}

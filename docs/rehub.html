@@ -8,7 +8,7 @@
   <title>ReHub — мастерская конфигов</title>
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="rehub.css?v=36">
+  <link rel="stylesheet" href="rehub.css?v=39">
 
   <style>
     #openUploadTop {
@@ -348,12 +348,17 @@
       </div>
       <form class="upload-form" id="uploadForm">
         <div class="upload-files-grid">
-          <label class="upload-drop interactive" id="uploadDrop">
-            <input id="configFile" type="file" accept=".xml,text/xml,application/xml">
-            <span class="upload-drop-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4m0 0-4 4m4-4 4 4M5 20h14"/></svg></span>
-            <strong id="uploadFileTitle">Выбрать XML-конфиг</strong>
-            <small id="uploadFileMeta">До 1 МБ · будет экспортирован только блок <binds></small>
-          </label>
+          <div class="upload-config-wrap">
+            <label class="upload-drop interactive" id="uploadDrop">
+              <input id="configFile" type="file" accept=".xml,text/xml,application/xml">
+              <span class="upload-drop-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4m0 0-4 4m4-4 4 4M5 20h14"/></svg></span>
+              <strong id="uploadFileTitle">Выбрать XML-конфиг</strong>
+              <small id="uploadFileMeta">До 1 МБ · будет экспортирован только блок &lt;binds&gt;</small>
+            </label>
+            <button type="button" id="clearConfigFile" class="upload-file-clear interactive" title="Убрать выбранный XML" aria-label="Убрать выбранный XML" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+            </button>
+          </div>
 
           <label class="upload-drop preview-upload-drop interactive" id="previewDrop">
             <input id="previewFile" type="file" accept="image/jpeg,image/png,image/webp">
@@ -392,7 +397,7 @@
               <button type="button" data-md="list" title="Маркированный список" aria-label="Список">☷</button>
               <button type="button" data-md="quote" title="Цитата" aria-label="Цитата">❞</button>
               <button type="button" data-md="code" title="Код" aria-label="Код">&lt;/&gt;</button>
-              <button type="button" data-md="link" title="Добавить ссылку" aria-label="Ссылка">↗</button>
+              <button type="button" data-md="link" title="Добавить ссылку" aria-label="Ссылка"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 6-8.5 8.5a3 3 0 0 0 4.24 4.24l8.48-8.48a5 5 0 0 0-7.07-7.07l-8.49 8.48a7 7 0 0 0 9.9 9.9l8.49-8.49"/></svg></button>
             </div>
           </div>
         </div>
@@ -425,6 +430,6 @@
 
   <script src="rehub-rich-editor.js?v=33"></script>
   <script src="rehub-config.js?v=1"></script>
-  <script src="rehub.js?v=37"></script>
+  <script src="rehub.js?v=39"></script>
 </body>
 </html>
