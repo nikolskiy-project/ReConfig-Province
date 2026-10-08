@@ -471,7 +471,7 @@ function downloadPathForCard(card) {
   const ref = configRefForCard(card);
   if (!ref || !card?.dataset.downloadUrl || !REHUB_API) return '';
   const [type, id] = ref.split(':');
-  const gender = type === 'community' ? (card?.dataset.hasFemale === 'true' && card?.dataset.hasMale === 'true' ? selectedDetailGender : (card?.dataset.singleGender || 'male')) : 'male';
+  const gender = card?.dataset.hasFemale === 'true' && card?.dataset.hasMale === 'true' ? selectedDetailGender : (card?.dataset.singleGender || 'male');
   return `${REHUB_API}/api/download/${type}/${encodeURIComponent(id)}${gender === 'female' ? '?gender=female' : ''}`;
 }
 
@@ -579,6 +579,80 @@ async function downloadSelectedConfig(button) {
   }
 }
 
+// Safe, dependency-free Markdown for public descriptions. Raw HTML is always escaped.
+function escapeDescriptionHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function renderDescriptionInline(value) {
+  const tokens = [];
+  const source = String(value ?? '').replace(/[\u0000\u0001]/g, '');
+  const text = source.replace(/`([^`\n]+)`|\[([^\]\n]+)\]\(([^\s()]+)\)/g, (all, code, caption, link) => {
+    let html;
+    if (code !== undefined) {
+      html = `<code>${escapeDescriptionHtml(code)}</code>`;
+    } else {
+      let allowed = false;
+      try { const u = new URL(link); allowed = ['https:', 'http:'].includes(u.protocol); } catch (_) {}
+      if (!allowed) return all;
+      html = `<a href="${escapeDescriptionHtml(link)}" target="_blank" rel="noopener noreferrer nofollow">${escapeDescriptionHtml(caption)}</a>`;
+    }
+    const key = tokens.push(html) - 1;
+    return `\u0001${key}\u0001`;
+  });
+  const formatted = escapeDescriptionHtml(text)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    .replace(/~~(.+?)~~/g, '<del>$1</del>')
+    .replace(/(^|[^\w])\*([^*\n]+)\*/g, '$1<em>$2</em>')
+    .replace(/(^|[^\w])_([^_\n]+)_/g, '$1<em>$2</em>');
+  return formatted.replace(/\u0001(\d+)\u0001/g, (_, key) => tokens[Number(key)] || '');
+}
+function renderDescriptionMarkdown(source) {
+  const lines = String(source ?? '').replace(/\r\n?/g, '\n').split('\n');
+  const out = [], paragraph = [], list = [];
+  let listTag = '', quote = [], code = null;
+  const flushParagraph = () => {
+    if (paragraph.length) out.push(`<p>${paragraph.map(renderDescriptionInline).join('<br>')}</p>`);
+    paragraph.length = 0;
+  };
+  const flushList = () => {
+    if (listTag) out.push(`<${listTag}>${list.map(x => `<li>${renderDescriptionInline(x)}</li>`).join('')}</${listTag}>`);
+    listTag = ''; list.length = 0;
+  };
+  const flushQuote = () => {
+    if (quote.length) out.push(`<blockquote>${quote.map(renderDescriptionInline).join('<br>')}</blockquote>`);
+    quote = [];
+  };
+  for (const line of lines) {
+    if (code !== null) {
+      if (/^\s*```/.test(line)) { out.push(`<pre><code>${escapeDescriptionHtml(code.join('\n'))}</code></pre>`); code = null; }
+      else code.push(line);
+      continue;
+    }
+    if (/^\s*```/.test(line)) { flushParagraph(); flushList(); flushQuote(); code=[]; continue; }
+    if (!line.trim()) { flushParagraph(); flushList(); flushQuote(); continue; }
+    const h = line.match(/^\s{0,3}(#{1,4})\s+(.+)$/);
+    if (h) { flushParagraph(); flushList(); flushQuote(); out.push(`<h${h[1].length}>${renderDescriptionInline(h[2])}</h${h[1].length}>`); continue; }
+    if (/^\s{0,3}(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line)) { flushParagraph(); flushList(); flushQuote(); out.push('<hr>'); continue; }
+    const quoteMatch = line.match(/^\s{0,3}>\s?(.*)$/);
+    if (quoteMatch) { flushParagraph(); flushList(); quote.push(quoteMatch[1]); continue; }
+    flushQuote();
+    const ul = line.match(/^\s{0,3}[-*+]\s+(.+)$/);
+    const ol = line.match(/^\s{0,3}\d+[.)]\s+(.+)$/);
+    if (ul || ol) {
+      flushParagraph();
+      const tag = ul ? 'ul' : 'ol';
+      if (listTag && listTag !== tag) flushList();
+      listTag = tag; list.push((ul || ol)[1]); continue;
+    }
+    flushList();
+    paragraph.push(line);
+  }
+  if (code !== null) out.push(`<pre><code>${escapeDescriptionHtml(code.join('\n'))}</code></pre>`);
+  flushParagraph(); flushList(); flushQuote();
+  return out.join('');
+}
+
 function openCard(card) {
   const modal = $('#detailModal');
   if (!modal) return;
@@ -596,7 +670,7 @@ function openCard(card) {
   $('#detailKicker').textContent = isCommunity ? 'Конфиг сообщества' : 'Официальный конфиг';
   $('#detailTitle').textContent = title;
   $('#detailPreviewLabel').textContent = card.dataset.label || title;
-  $('#detailDescription').textContent = card.dataset.description || '';
+  $('#detailDescription').innerHTML = renderDescriptionMarkdown(card.dataset.description || '');
   $('#detailStatus').textContent = status;
   $('#detailAuthorName').textContent = card.dataset.author || (isCommunity ? 'Пользователь ReHub' : 'ReConfig Province');
   $('#detailAuthorMeta').textContent = isCommunity ? 'Автор сообщества' : 'Официальный автор · ✓';
@@ -625,8 +699,10 @@ function openCard(card) {
 
   activeDetailCard = card;
   selectedDetailGender = card.dataset.singleGender || 'male';
-  const genderRow = $('#detailGenderRow');
-  if (genderRow) genderRow.hidden = !(isCommunity && card.dataset.hasFemale === 'true' && card.dataset.hasMale === 'true');
+  const hasTwoVersions = ready && !!downloadUrl &&
+    card.dataset.hasFemale === 'true' && card.dataset.hasMale === 'true';
+  $('#detailStatusFact').hidden = hasTwoVersions;
+  $('#detailGenderFact').hidden = !hasTwoVersions;
   updateGenderSwitch($('#detailGenderSwitch'), selectedDetailGender);
   const primary = $('#detailPrimary');
   const canDownload = !!downloadPathForCard(card);
@@ -856,6 +932,14 @@ function makeCommunityCard(item, index = 0) {
 }
 
 
+function setOfficialCardGenders(card, item) {
+  const variants = Array.isArray(item?.gender_variants) && item.gender_variants.length
+    ? item.gender_variants : (item?.preset_ready ? ['male', 'female'] : ['male']);
+  card.dataset.hasMale = variants.includes('male') ? 'true' : 'false';
+  card.dataset.hasFemale = variants.includes('female') ? 'true' : 'false';
+  card.dataset.singleGender = card.dataset.hasMale === 'true' ? 'male' : 'female';
+}
+
 function makeOfficialCard(item) {
   const card=document.createElement('article');
   card.className='hub-video-card interactive-card reveal';
@@ -871,6 +955,7 @@ function makeOfficialCard(item) {
   card.dataset.author=item.author||'ReConfig Province';
   card.dataset.previewUrl=item.preview_url||''; card.dataset.downloadUrl=item.download_url||'';
   card.dataset.symbol='star';
+  setOfficialCardGenders(card, item);
   const thumb=document.createElement('div'); thumb.className='config-thumb';
   if(item.preview_url){const img=document.createElement('img');img.className='community-preview official-preview-image';img.src=item.preview_url;img.alt='';img.loading='lazy';thumb.appendChild(img);}
   const grid=document.createElement('div');grid.className='thumb-grid';thumb.appendChild(grid);
@@ -891,6 +976,7 @@ function applyOfficialConfig(item) {
   if(!card){card=makeOfficialCard(item);$('#hubGrid')?.appendChild(card);observeReveals(card.parentElement);return;}
   const label=item.category||card.dataset.label||'Официальный';
   card.dataset.officialSlot = item.slot;
+  setOfficialCardGenders(card, item);
   card.dataset.title=item.title||label; card.dataset.description=item.description||''; card.dataset.status='Доступен'; card.dataset.statusKind='ready'; card.dataset.tags=`${label}|Официальный|ReConfig`; card.dataset.author=item.author||'ReConfig Province'; card.dataset.previewUrl=item.preview_url||''; card.dataset.downloadUrl=item.download_url||''; card.dataset.search=`${card.dataset.search||''} ${item.title||''} ${label} ${item.description||''} ${item.author||''}`;
   const thumb=card.querySelector('.config-thumb');
   if(thumb&&item.preview_url){let image=thumb.querySelector('.official-preview-image');if(!image){image=document.createElement('img');image.className='community-preview official-preview-image';image.alt='';image.loading='lazy';thumb.insertBefore(image,thumb.firstChild);}image.src=item.preview_url;}

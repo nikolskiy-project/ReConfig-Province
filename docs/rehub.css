@@ -918,3 +918,29 @@ label,
 .community-optional-remember input { accent-color:#8b5cf6; width:15px; height:15px; cursor:pointer; }
 .community-optional-actions { display:flex; gap:9px; flex-wrap:wrap; justify-content:flex-end; margin-top:18px; }
 @media(max-width:460px){.community-optional-actions .btn{flex:1;}}
+
+/* v23 — multiline Markdown description, safely rendered from publication text. */
+.hub-detail-modal .detail-description { margin-top:22px; color:var(--muted); font-size:11px; line-height:1.75; overflow-wrap:anywhere; user-select:text; -webkit-user-select:text; }
+.hub-detail-modal .detail-description > :first-child { margin-top:0; }
+.hub-detail-modal .detail-description > :last-child { margin-bottom:0; }
+.hub-detail-modal .detail-description p { margin:0 0 10px; }
+.hub-detail-modal .detail-description h1,.hub-detail-modal .detail-description h2,.hub-detail-modal .detail-description h3,.hub-detail-modal .detail-description h4 { margin:15px 0 7px; color:#eeeaf9; font-size:13px; font-weight:680; letter-spacing:0; line-height:1.5; }
+.hub-detail-modal .detail-description h1 { font-size:17px; }
+.hub-detail-modal .detail-description h2 { font-size:15px; }
+.hub-detail-modal .detail-description strong { color:#e7defb; font-weight:700; }
+.hub-detail-modal .detail-description em { color:#cbc4db; }
+.hub-detail-modal .detail-description ul,.hub-detail-modal .detail-description ol { margin:7px 0 13px 19px; padding:0; }
+.hub-detail-modal .detail-description li { padding:2px 0; }
+.hub-detail-modal .detail-description a { color:var(--accent-light); text-decoration:underline; text-underline-offset:3px; }
+.hub-detail-modal .detail-description a:hover { color:#d8caff; }
+.hub-detail-modal .detail-description code { font-family:Consolas,monospace; font-size:.96em; color:#cbb5ff; background:rgba(139,92,246,.09); border:1px solid rgba(139,92,246,.13); padding:1px 4px; border-radius:4px; user-select:text; }
+.hub-detail-modal .detail-description pre { overflow:auto; max-width:100%; padding:10px; margin:8px 0 13px; border-radius:8px; border:1px solid var(--border); background:#0a0a11; }
+.hub-detail-modal .detail-description pre code { background:transparent; border:0; padding:0; white-space:pre; }
+.hub-detail-modal .detail-description blockquote { margin:10px 0; padding:7px 12px; border-left:3px solid var(--accent); border-radius:0 7px 7px 0; background:rgba(139,92,246,.045); }
+.hub-detail-modal .detail-description hr { margin:14px 0; border:0; border-top:1px solid var(--border); }
+/* v23 — gender selector occupies the right-hand fact cell, never a third row. */
+.hub-detail-modal .detail-facts > [hidden] { display:none !important; }
+.hub-detail-modal .detail-facts .detail-gender-fact { min-width:0; }
+.hub-detail-modal .detail-facts .detail-gender-fact .community-gender-switch { width:100%; min-width:0; margin-top:7px; box-sizing:border-box; }
+.hub-detail-modal .detail-facts .detail-gender-fact .community-gender-button { min-width:0; padding:8px 3px; font-size:9px; }
+@media(max-width:420px) { .hub-detail-modal .detail-facts .detail-gender-fact .community-gender-button { font-size:8px; padding:8px 1px; } }

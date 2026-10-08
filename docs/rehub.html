@@ -8,7 +8,7 @@
   <title>ReHub — мастерская конфигов</title>
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="rehub.css?v=22">
+  <link rel="stylesheet" href="rehub.css?v=23">
 
   <style>
     #openUploadTop {
@@ -315,18 +315,18 @@
           <span class="kicker" id="detailKicker">Официальный конфиг</span>
           <h2 id="detailTitle">ОКБ г. Мирный</h2>
           <div class="detail-author"><img id="detailAuthorAvatar" src="assets/logo.png" alt=""><span><strong id="detailAuthorName">ReConfig Province</strong><small id="detailAuthorMeta">Официальный автор · ✓</small></span></div>
-          <p id="detailDescription"></p>
+          <div class="detail-description" id="detailDescription"></div>
           <div class="detail-tags" id="detailTags"></div>
           <div class="detail-facts">
             <span><small>Формат</small><strong>XML / бинды</strong></span>
-            <span><small>Статус</small><strong id="detailStatus">—</strong></span>
-          </div>
-          <div class="community-download-gender" id="detailGenderRow" hidden>
-            <span>Версия биндов для скачивания</span>
-            <div class="community-gender-switch" id="detailGenderSwitch" role="group" aria-label="Выбор версии биндов">
-              <button class="community-gender-button interactive active" type="button" data-gender="male" aria-pressed="true">Мужская</button>
-              <button class="community-gender-button interactive" type="button" data-gender="female" aria-pressed="false">Женская</button>
-            </div>
+            <span id="detailStatusFact"><small>Статус</small><strong id="detailStatus">—</strong></span>
+            <span class="detail-gender-fact" id="detailGenderFact" hidden>
+              <small>Версия XML</small>
+              <div class="community-gender-switch" id="detailGenderSwitch" role="group" aria-label="Выбор версии биндов для скачивания">
+                <button class="community-gender-button interactive active" type="button" data-gender="male" aria-pressed="true">Мужская</button>
+                <button class="community-gender-button interactive" type="button" data-gender="female" aria-pressed="false">Женская</button>
+              </div>
+            </span>
           </div>
           <div class="detail-actions">
             <button class="btn btn-primary interactive" id="detailPrimary" type="button">Скачать XML</button>
@@ -384,7 +384,7 @@
               <button class="community-gender-button interactive" type="button" data-gender="female" aria-pressed="false">Женская <i class="community-gender-ready" id="communityReadyFemale" aria-hidden="true"></i></button>
             </div>
           </div>
-          <label class="wide"><span>Описание</span><textarea name="description" rows="4" maxlength="600" required placeholder="Коротко расскажи, для чего этот набор биндов"></textarea></label>
+          <label class="wide"><span>Описание</span><textarea name="description" rows="4" maxlength="600" required placeholder="Описание: переносы строк, **жирный текст**, списки и ссылки"></textarea></label>
         </div>
         <div class="upload-notice">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
@@ -414,6 +414,6 @@
   <div class="hub-toast" id="hubToast" role="status" aria-live="polite"></div>
 
   <script src="rehub-config.js?v=1"></script>
-  <script src="rehub.js?v=22"></script>
+  <script src="rehub.js?v=23"></script>
 </body>
 </html>
