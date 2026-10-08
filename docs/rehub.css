@@ -938,9 +938,48 @@ label,
 .hub-detail-modal .detail-description pre code { background:transparent; border:0; padding:0; white-space:pre; }
 .hub-detail-modal .detail-description blockquote { margin:10px 0; padding:7px 12px; border-left:3px solid var(--accent); border-radius:0 7px 7px 0; background:rgba(139,92,246,.045); }
 .hub-detail-modal .detail-description hr { margin:14px 0; border:0; border-top:1px solid var(--border); }
-/* v23 — gender selector occupies the right-hand fact cell, never a third row. */
-.hub-detail-modal .detail-facts > [hidden] { display:none !important; }
-.hub-detail-modal .detail-facts .detail-gender-fact { min-width:0; }
-.hub-detail-modal .detail-facts .detail-gender-fact .community-gender-switch { width:100%; min-width:0; margin-top:7px; box-sizing:border-box; }
-.hub-detail-modal .detail-facts .detail-gender-fact .community-gender-button { min-width:0; padding:8px 3px; font-size:9px; }
-@media(max-width:420px) { .hub-detail-modal .detail-facts .detail-gender-fact .community-gender-button { font-size:8px; padding:8px 1px; } }
+/* v24 — the version switch IS the right fact cell, without a nested frame or caption. */
+.hub-detail-modal .detail-facts > [hidden] { display: none !important; }
+.hub-detail-modal .detail-facts > .detail-gender-fact {
+  display: flex;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  align-self: stretch;
+}
+.hub-detail-modal .detail-facts > .detail-gender-fact .community-gender-switch {
+  flex: 1 1 auto;
+  align-self: stretch;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #111118;
+  box-sizing: border-box;
+}
+/* Same gliding pill as the other switchers, but no second outline. */
+.hub-detail-modal .detail-facts > .detail-gender-fact .community-gender-switch::before {
+  border: 0;
+  border-radius: 7px;
+  box-shadow: 0 3px 12px rgba(0,0,0,.18);
+}
+.hub-detail-modal .detail-facts > .detail-gender-fact .community-gender-button {
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 7px 5px;
+  font-size: 9px;
+  border: 0;
+  box-shadow: none;
+}
+@media (max-width: 420px) {
+  .hub-detail-modal .detail-facts > .detail-gender-fact .community-gender-button {
+    font-size: 8px;
+    padding: 7px 2px;
+  }
+}
