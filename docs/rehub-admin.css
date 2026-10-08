@@ -801,45 +801,59 @@ body.page-dragging { cursor: none !important; }
 }
 
 
-/* v12 — perfectly aligned 3-way switches: one marker, three exact equal cells. */
+/* v13 — measured 3-way indicators: no percent/transform drift.
+   The indicator is aligned with the target button's actual pixel box. */
 .program-segmented {
   --segment-pad: 3px;
   --segment-gap: 0px;
-  grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  align-items: stretch !important;
   gap: 0 !important;
   padding: var(--segment-pad) !important;
+  box-sizing: border-box;
 }
-.program-segmented::before {
-  left: var(--segment-pad) !important;
+.program-segmented[data-index]::before {
+  box-sizing: border-box !important;
+  left: var(--seg-marker-left, 3px) !important;
+  width: var(--seg-marker-width, 0px) !important;
   top: var(--segment-pad) !important;
   bottom: var(--segment-pad) !important;
-  width: calc((100% - var(--segment-pad) * 2) / 3) !important;
+  transform: none !important;
+  opacity: 0 !important;
+  border: 1px solid var(--border) !important;
   border-radius: 6px !important;
-  transform: translate3d(0,0,0) !important;
-  transition: transform .38s cubic-bezier(.2,1.08,.32,1), box-shadow .22s ease !important;
+  transition: left .34s cubic-bezier(.22,1,.36,1), width .34s cubic-bezier(.22,1,.36,1), opacity .12s ease !important;
 }
-.program-segmented[data-index="1"]::before {
-  left: var(--segment-pad) !important;
-  transform: translate3d(100%,0,0) !important;
-}
-.program-segmented[data-index="2"]::before {
-  left: var(--segment-pad) !important;
-  transform: translate3d(200%,0,0) !important;
+.program-segmented.segment-marker-ready[data-index]::before {
+  opacity: 1 !important;
 }
 .program-segmented .segment-btn {
+  position: relative;
+  z-index: 1;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 0 !important;
   min-height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding-left: 8px !important;
-  padding-right: 8px !important;
+  margin: 0 !important;
+  padding: 8px !important;
   border: 0 !important;
+  background: transparent !important;
   box-shadow: none !important;
+  text-align: center;
 }
 .program-segmented .segment-btn.active {
   border: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
+}
+.admin-tabs.program-segmented,
+.admin-review-viewbar.program-segmented {
+  display: grid !important;
+  overflow: hidden !important;
 }
 
 /* Official faction select: same connected shutter as before, but overlayed as a whole control. */

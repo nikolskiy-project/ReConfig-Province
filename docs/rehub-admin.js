@@ -744,5 +744,42 @@ function bindModeration(){
   addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#reviewOverlay').hidden)closeReview();});
 }
 
-function init(){initCursor();initAdminHeader();initAdminDragScroll();initCustomScrollbar();initProgramSelects();observeAdminReveals();$('#loginForm').addEventListener('submit',e=>{e.preventDefault();login($('#adminKeyInput').value);});$('#logoutBtn').addEventListener('click',logout);$('#officialFactionSelect').addEventListener('change',e=>loadSlot(e.target.value));$('#newOfficialFaction').addEventListener('click',beginNewOfficial);$('#reloadOfficial').addEventListener('click',()=>currentSlot?loadSlot(currentSlot):beginNewOfficial());$('#officialForm').addEventListener('submit',submit);bindFiles();bindModeration();if(adminKey)login(adminKey);}
+
+/* Place the animated indicator on the actual button rectangle.
+   Prevents sub-pixel drift from % widths, borders and CSS transforms. */
+function initMeasuredSegmentMarkers() {
+  document.querySelectorAll('.program-segmented[data-index]').forEach(group => {
+    const buttons = Array.from(group.querySelectorAll(':scope > .segment-btn'));
+    if (!buttons.length) return;
+    let frame = 0;
+    const sync = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (!group.isConnected || !group.getClientRects().length) return;
+        const raw = Number(group.dataset.index);
+        const index = Number.isInteger(raw) && raw >= 0 && raw < buttons.length
+          ? raw : Math.max(0, buttons.findIndex(button => button.classList.contains('active')));
+        const selected = buttons[index];
+        if (!selected || !selected.offsetWidth) return;
+        // offsetLeft and offsetWidth use the same box geometry as the grid's buttons.
+        group.style.setProperty('--seg-marker-left', `${selected.offsetLeft}px`);
+        group.style.setProperty('--seg-marker-width', `${selected.offsetWidth}px`);
+        group.classList.add('segment-marker-ready');
+      });
+    };
+    const mutations = new MutationObserver(sync);
+    mutations.observe(group, { attributes: true, attributeFilter: ['data-index'] });
+    buttons.forEach(button => mutations.observe(button, { attributes: true, attributeFilter: ['class'] }));
+    if ('ResizeObserver' in window) {
+      const sizes = new ResizeObserver(sync);
+      sizes.observe(group);
+      buttons.forEach(button => sizes.observe(button));
+    }
+    addEventListener('resize', sync, { passive: true });
+    group.addEventListener('click', sync);
+    sync();
+  });
+}
+
+function init(){initMeasuredSegmentMarkers();initCursor();initAdminHeader();initAdminDragScroll();initCustomScrollbar();initProgramSelects();observeAdminReveals();$('#loginForm').addEventListener('submit',e=>{e.preventDefault();login($('#adminKeyInput').value);});$('#logoutBtn').addEventListener('click',logout);$('#officialFactionSelect').addEventListener('change',e=>loadSlot(e.target.value));$('#newOfficialFaction').addEventListener('click',beginNewOfficial);$('#reloadOfficial').addEventListener('click',()=>currentSlot?loadSlot(currentSlot):beginNewOfficial());$('#officialForm').addEventListener('submit',submit);bindFiles();bindModeration();if(adminKey)login(adminKey);}
 addEventListener('DOMContentLoaded',init);
