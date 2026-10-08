@@ -215,7 +215,7 @@ function initCursor() {
 }
 
 function initCustomScrollbar() {
-  if (!matchMedia('(pointer:fine)').matches || innerWidth < 900) return;
+  // Track also remains available in narrower windows and on touch devices.
 
   document.querySelector('.site-scrollbar')?.remove();
 
@@ -265,7 +265,7 @@ function initCustomScrollbar() {
     const { maxScroll, maxThumbTop } = getMetrics();
     if (maxScroll <= 0 || maxThumbTop <= 0) return;
     const thumbTop = Math.max(0, Math.min(maxThumbTop, clientY - rect.top - grabOffset));
-    scroller.scrollTop = (thumbTop / maxThumbTop) * maxScroll;
+    window.scrollTo(0, (thumbTop / maxThumbTop) * maxScroll);
     sync();
   };
 
@@ -357,7 +357,7 @@ function initAdminDragScroll() {
   if (!matchMedia('(pointer:fine)').matches || innerWidth < 900) return;
   let dragging=false,moved=false,startY=0,startScroll=0,lastY=0,lastTime=0,lastMoveTime=0,velocity=0,inertiaFrame=0,suppressClick=false;
   const root=document.documentElement;
-  const interactiveSelector='a,button,input,textarea,select,[contenteditable="true"],pre,code,.site-scrollbar-thumb,.admin-review-modal,.admin-community-card,.admin-slot,.upload-drop';
+  const interactiveSelector='a,button,input,textarea,select,[contenteditable="true"],pre,code,.site-scrollbar,.site-scrollbar-thumb,.admin-review-modal,.admin-community-card,.admin-slot,.upload-drop';
   const maxScroll=()=>Math.max(0,root.scrollHeight-innerHeight);
   const setState=enabled=>{root.classList.toggle('page-kinetic',enabled);document.body.classList.toggle('page-kinetic',enabled);};
   const cancel=()=>{if(inertiaFrame)cancelAnimationFrame(inertiaFrame);inertiaFrame=0;velocity=0;if(!dragging)setState(false);};
@@ -1038,5 +1038,37 @@ function initMeasuredSegmentMarkers() {
   });
 }
 
-function init(){initMeasuredSegmentMarkers();initReviewInnerScrollbar();initReviewCodeScrollbar();initCursor();initAdminHeader();initAdminDragScroll();initCustomScrollbar();initProgramSelects();observeAdminReveals();$('#loginForm').addEventListener('submit',e=>{e.preventDefault();login($('#adminKeyInput').value);});$('#logoutBtn').addEventListener('click',logout);$('#officialFactionSelect').addEventListener('change',e=>loadSlot(e.target.value));$('#newOfficialFaction').addEventListener('click',beginNewOfficial);$('#reloadOfficial').addEventListener('click',()=>currentSlot?loadSlot(currentSlot):beginNewOfficial());$('#officialForm').addEventListener('submit',submit);bindFiles();bindModeration();if(adminKey)login(adminKey);}
+
+
+/* Rounded scrollbars for admin text inputs too (including review/rejection text). */
+function initAdminRoundedTextareas(){
+  const elements=$$('#officialDescription, #rejectReasonInput');
+  elements.forEach(area=>{
+    if(!area || area.dataset.roundScroll)return;
+    area.dataset.roundScroll='1';area.classList.add('admin-rounded-textarea');
+    const parent=area.parentElement;if(!parent)return;
+    parent.classList.add('admin-text-scroll-parent');
+    const track=document.createElement('div');track.className='rehub-text-track';track.hidden=true;
+    const thumb=document.createElement('div');thumb.className='rehub-text-thumb';track.appendChild(thumb);parent.appendChild(track);
+    let drag=false,pid=null,grab=0;
+    const metric=()=>{const total=Math.max(0,area.scrollHeight-area.clientHeight),h=track.clientHeight;const th=Math.min(h,Math.max(25,h*area.clientHeight/Math.max(1,area.scrollHeight)));return{total,th,travel:Math.max(0,h-th)}};
+    const sync=()=>{
+      track.hidden=area.scrollHeight<=area.clientHeight+2 || !area.getClientRects().length;
+      if(track.hidden)return;
+      track.style.top=`${area.offsetTop+7}px`;track.style.height=`${Math.max(20,area.clientHeight-14)}px`;
+      const {total,th,travel}=metric();thumb.style.height=`${th}px`;
+      thumb.style.transform=`translate3d(0,${total?area.scrollTop/total*travel:0}px,0)`;
+    };
+    const move=y=>{const {total,travel}=metric();if(!travel)return;const top=Math.max(0,Math.min(travel,y-track.getBoundingClientRect().top-grab));area.scrollTop=top/travel*total;sync()};
+    track.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();e.stopPropagation();drag=true;pid=e.pointerId;grab=e.target===thumb?e.clientY-thumb.getBoundingClientRect().top:metric().th/2;track.classList.add('dragging');try{track.setPointerCapture(pid)}catch(_){}if(e.target!==thumb)move(e.clientY)});
+    track.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==pid)return;e.preventDefault();move(e.clientY)},{passive:false});
+    const finish=e=>{if(!drag||(e?.pointerId!=null&&e.pointerId!==pid))return;drag=false;track.classList.remove('dragging');try{track.releasePointerCapture(pid)}catch(_){}pid=null};
+    track.addEventListener('pointerup',finish);track.addEventListener('pointercancel',finish);
+    area.addEventListener('scroll',sync,{passive:true});area.addEventListener('input',sync);
+    if('ResizeObserver' in window)new ResizeObserver(sync).observe(area);
+    requestAnimationFrame(sync);
+  });
+}
+
+function init(){initAdminRoundedTextareas();initMeasuredSegmentMarkers();initReviewInnerScrollbar();initReviewCodeScrollbar();initCursor();initAdminHeader();initAdminDragScroll();initCustomScrollbar();initProgramSelects();observeAdminReveals();$('#loginForm').addEventListener('submit',e=>{e.preventDefault();login($('#adminKeyInput').value);});$('#logoutBtn').addEventListener('click',logout);$('#officialFactionSelect').addEventListener('change',e=>loadSlot(e.target.value));$('#newOfficialFaction').addEventListener('click',beginNewOfficial);$('#reloadOfficial').addEventListener('click',()=>currentSlot?loadSlot(currentSlot):beginNewOfficial());$('#officialForm').addEventListener('submit',submit);bindFiles();bindModeration();if(adminKey)login(adminKey);}
 addEventListener('DOMContentLoaded',init);

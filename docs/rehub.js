@@ -435,6 +435,7 @@ function setModal(modal, open) {
   modal.classList.toggle('open', open);
   modal.setAttribute('aria-hidden', open ? 'false' : 'true');
   document.body.classList.toggle('modal-open', $$('.hub-modal-backdrop.open').length > 0);
+  requestAnimationFrame(()=>window.rehubSyncModalScrollbars?.());
 }
 
 function showToast(text) {
@@ -1095,6 +1096,167 @@ function updateGenderSwitch(group, gender) {
   });
 }
 
+
+
+// v25: modal scrollbars with truly rounded thumbs (Firefox ignores native thumb radius).
+function initHubRoundedScrollbars() {
+  const pairs = [
+    { backdrop: $('#detailModal'), surface: $('#detailModal .hub-detail-modal'), scroller: $('#detailScroll') },
+    { backdrop: $('#uploadModal'), surface: $('#uploadModal .upload-modal'), scroller: $('#uploadModal .upload-modal') }
+  ];
+  const syncers = [];
+  pairs.forEach(({backdrop,surface,scroller}) => {
+    if(!backdrop || !surface || !scroller) return;
+    const track = document.createElement('div');
+    track.className = 'hub-rounded-track'; track.hidden = true;
+    const thumb = document.createElement('div'); thumb.className = 'hub-rounded-thumb';
+    track.appendChild(thumb); backdrop.appendChild(track);
+    let dragging = false, pointerId = null, grab = 0;
+    const metrics = () => {
+      const viewport = scroller.clientHeight, total = scroller.scrollHeight;
+      const height = track.clientHeight;
+      const th = Math.min(height, Math.max(28, height * viewport / Math.max(total,1)));
+      return {totalScroll:Math.max(0,total-viewport), travel:Math.max(0,height-th), th};
+    };
+    const sync = () => {
+      const visible = backdrop.classList.contains('open') && scroller.scrollHeight > scroller.clientHeight+2;
+      track.hidden = !visible;
+      if(!visible) return;
+      const r = surface.getBoundingClientRect();
+      const paddingTop = 9, paddingBottom = 9;
+      track.style.left = `${r.right - 17}px`;
+      track.style.top = `${r.top+paddingTop}px`;
+      track.style.height = `${Math.max(20,r.height-paddingTop-paddingBottom)}px`;
+      const {totalScroll, travel, th} = metrics();
+      thumb.style.height = `${th}px`;
+      thumb.style.transform = `translate3d(0,${totalScroll ? (scroller.scrollTop/totalScroll)*travel : 0}px,0)`;
+    };
+    const scrollToPointer = clientY => {
+      const {totalScroll,travel}=metrics();
+      if(travel<=0) return;
+      const top=Math.max(0,Math.min(travel,clientY-track.getBoundingClientRect().top-grab));
+      scroller.scrollTop=(top/travel)*totalScroll;
+      sync();
+    };
+    track.addEventListener('pointerdown',e=>{
+      if(e.button!==0)return;
+      e.preventDefault();e.stopPropagation();
+      dragging=true;pointerId=e.pointerId;
+      grab=e.target===thumb?e.clientY-thumb.getBoundingClientRect().top:metrics().th/2;
+      track.classList.add('dragging');
+      try{track.setPointerCapture(e.pointerId);}catch(_){}
+      if(e.target!==thumb)scrollToPointer(e.clientY);
+    });
+    track.addEventListener('pointermove',e=>{
+      if(!dragging || e.pointerId!==pointerId)return;
+      e.preventDefault();scrollToPointer(e.clientY);
+    },{passive:false});
+    const finish=e=>{
+      if(!dragging || (e?.pointerId!=null && e.pointerId!==pointerId))return;
+      dragging=false;track.classList.remove('dragging');
+      try{track.releasePointerCapture(pointerId);}catch(_){}pointerId=null;
+    };
+    track.addEventListener('pointerup',finish);
+    track.addEventListener('pointercancel',finish);
+    scroller.addEventListener('scroll',sync,{passive:true});
+    if('ResizeObserver' in window){ const ro=new ResizeObserver(sync);ro.observe(scroller);ro.observe(surface); }
+    syncers.push(sync);
+  });
+  const syncAll=()=>syncers.forEach(fn=>fn());
+  window.rehubSyncModalScrollbars=syncAll;
+  addEventListener('resize',syncAll,{passive:true});
+  [$('#detailModal'),$('#uploadModal')].forEach(backdrop=>{
+    if(!backdrop)return;
+    new MutationObserver(syncAll).observe(backdrop,{attributes:true,attributeFilter:['class']});
+  });
+  syncAll();
+}
+
+// Shared small rounded scrollbar for a multiline input; preserves native selection and wheel scrolling.
+function installReHubTextareaTrack(textarea) {
+  if(!textarea || textarea.dataset.roundScroll==='1')return;
+  const parent=textarea.parentElement;if(!parent)return;
+  textarea.dataset.roundScroll='1';
+  const track=document.createElement('div');track.className='rehub-text-track';track.hidden=true;
+  const thumb=document.createElement('div');thumb.className='rehub-text-thumb';track.appendChild(thumb);
+  parent.appendChild(track);
+  let dragging=false, pid=null, grab=0;
+  const metrics=()=>{
+    const total=Math.max(0,textarea.scrollHeight-textarea.clientHeight);
+    const th=Math.min(track.clientHeight,Math.max(25,track.clientHeight*textarea.clientHeight/Math.max(1,textarea.scrollHeight)));
+    return {total,th,travel:Math.max(0,track.clientHeight-th)};
+  };
+  const sync=()=>{
+    track.hidden=textarea.scrollHeight<=textarea.clientHeight+2;
+    if(track.hidden)return;
+    track.style.top=`${textarea.offsetTop+7}px`;
+    track.style.height=`${Math.max(20,textarea.clientHeight-14)}px`;
+    const {total,th,travel}=metrics();thumb.style.height=`${th}px`;
+    thumb.style.transform=`translate3d(0,${total?(textarea.scrollTop/total)*travel:0}px,0)`;
+  };
+  const move=y=>{
+    const {total,travel}=metrics();if(!travel)return;
+    const top=Math.max(0,Math.min(travel,y-track.getBoundingClientRect().top-grab));
+    textarea.scrollTop=(top/travel)*total;sync();
+  };
+  track.addEventListener('pointerdown',e=>{
+    if(e.button!==0)return;e.preventDefault();e.stopPropagation();dragging=true;pid=e.pointerId;
+    grab=e.target===thumb?e.clientY-thumb.getBoundingClientRect().top:metrics().th/2;
+    track.classList.add('dragging');try{track.setPointerCapture(pid)}catch(_){}
+    if(e.target!==thumb)move(e.clientY);
+  });
+  track.addEventListener('pointermove',e=>{if(!dragging||e.pointerId!==pid)return;e.preventDefault();move(e.clientY);},{passive:false});
+  const finish=e=>{if(!dragging||(e?.pointerId!=null&&e.pointerId!==pid))return;dragging=false;track.classList.remove('dragging');try{track.releasePointerCapture(pid)}catch(_){}pid=null};
+  track.addEventListener('pointerup',finish);track.addEventListener('pointercancel',finish);
+  textarea.addEventListener('scroll',sync,{passive:true});textarea.addEventListener('input',sync);
+  if('ResizeObserver' in window){new ResizeObserver(sync).observe(textarea)}
+  requestAnimationFrame(sync);
+}
+
+function initReHubMarkdownToolbar() {
+  const area=$('#uploadForm textarea[name="description"]');
+  const toolbar=$('#uploadForm .rehub-markdown-toolbar');
+  if(!area||!toolbar)return;
+  // Keep the selection when pressing a formatting button.
+  toolbar.addEventListener('mousedown',e=>{if(e.target.closest('button'))e.preventDefault();});
+  const edit=action=>{
+    const s=area.selectionStart,e=area.selectionEnd;
+    const selected=area.value.slice(s,e);
+    const startOfLine=area.value.lastIndexOf('\n',Math.max(0,s-1))+1;
+    let a=s,b=e,replacement='',cursorA=0,cursorB=0;
+    const wrap=(prefix,suffix,placeholder)=>{
+      const middle=selected||placeholder;
+      replacement=prefix+middle+suffix;
+      cursorA=a+prefix.length;cursorB=cursorA+middle.length;
+    };
+    if(action==='bold')wrap('**','**','жирный текст');
+    else if(action==='italic')wrap('*','*','курсив');
+    else if(action==='code')wrap('`','`','код');
+    else if(action==='link')wrap('[','](https://example.com)','название ссылки');
+    else if(['heading','list','quote'].includes(action)){
+      const prefix=action==='heading'?'## ':action==='list'?'- ':'> ';
+      a=startOfLine;const original=area.value.slice(a,e);
+      replacement=prefix+original.replace(/\n/g,`\n${prefix}`);
+      cursorA=a+prefix.length;cursorB=a+replacement.length;
+    }else return;
+    if(area.value.length-(b-a)+replacement.length>area.maxLength){showToast('Превышен лимит описания.');return;}
+    area.focus({preventScroll:true});
+    area.setRangeText(replacement,a,b,'end');
+    area.setSelectionRange(cursorA,cursorB);
+    area.dispatchEvent(new Event('input',{bubbles:true}));
+  };
+  toolbar.addEventListener('click',e=>{
+    const button=e.target.closest('button[data-md]');if(!button)return;
+    e.preventDefault();e.stopPropagation();edit(button.dataset.md);
+  });
+  area.addEventListener('keydown',e=>{
+    if(!(e.ctrlKey||e.metaKey)||e.altKey)return;
+    const key=e.key.toLowerCase();
+    if(key==='b'||key==='i'){e.preventDefault();edit(key==='b'?'bold':'italic');}
+  });
+  installReHubTextareaTrack(area);
+}
+
 function initUpload() {
   const configInput = $('#configFile');
   const previewInput = $('#previewFile');
@@ -1286,6 +1448,8 @@ initProgramSelects();
 initSearch();
 initModals();
 initUpload();
+initHubRoundedScrollbars();
+initReHubMarkdownToolbar();
 addEventListener('hashchange', openSharedConfig);
 loadCommunityConfigs();
 bindCursorHover();

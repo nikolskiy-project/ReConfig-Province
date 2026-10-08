@@ -1134,3 +1134,30 @@ body.page-dragging { cursor: none !important; }
 .admin-review-controls .admin-review-gender > span { flex:0 0 auto; white-space:nowrap; }
 .admin-review-controls .admin-review-gender .admin-gender-switch { flex:1 1 auto; min-width:0; max-width:300px; width:100%; margin:0; box-sizing:border-box; }
 @media(max-width:800px){ .admin-review-controls{ grid-template-columns:minmax(0,1fr); row-gap:10px; } .admin-review-controls .admin-review-gender{justify-content:flex-start} .admin-review-controls .admin-review-gender .admin-gender-switch{max-width:350px;} }
+
+
+/* v25 - one document scrolling root; custom track follows the actual page scroll. */
+html:has(body.admin-page) {
+  min-height:100%; overflow-y:auto!important; overflow-x:hidden!important;
+  scrollbar-width:none!important; -ms-overflow-style:none!important;
+}
+html:has(body.admin-page)::-webkit-scrollbar {display:none!important;width:0!important;height:0!important;}
+html:has(body.admin-page) > body.admin-page {
+  min-height:100vh!important; height:auto!important;
+  overflow:visible!important;
+}
+html:has(body.admin-review-open) { overflow:hidden!important; }
+/* Match the same lavender rounded thumb used by the opened ReHub modal. */
+.admin-page .site-scrollbar-thumb,
+#reviewOverlay .admin-review-inner-thumb,
+#reviewOverlay .admin-review-code-thumb {background:#a98aec!important;border-radius:999px!important;}
+.admin-page .site-scrollbar:is(:hover,.dragging) .site-scrollbar-thumb,
+#reviewOverlay .admin-review-inner-track:is(:hover,.dragging) .admin-review-inner-thumb,
+#reviewOverlay .admin-review-code-track:is(:hover,.dragging) .admin-review-code-thumb {background:#c9b4ff!important;}
+.admin-page .admin-text-scroll-parent { position:relative; }
+.admin-page textarea.admin-rounded-textarea { scrollbar-width:none!important;-ms-overflow-style:none!important; }
+.admin-page textarea.admin-rounded-textarea::-webkit-scrollbar {display:none!important;width:0!important;height:0!important;}
+.admin-page .rehub-text-track {position:absolute;z-index:5;right:5px;width:11px;border-radius:999px;touch-action:none;user-select:none;cursor:none!important;}
+.admin-page .rehub-text-track[hidden] {display:none!important;}
+.admin-page .rehub-text-thumb {position:absolute;left:3px;top:0;width:5px;min-height:25px;border-radius:999px;background:#a98aec;will-change:transform;transition:left .16s ease,width .16s ease,background .16s ease;}
+.admin-page .rehub-text-track:is(:hover,.dragging) .rehub-text-thumb {left:2px;width:7px;background:#c9b4ff;}
