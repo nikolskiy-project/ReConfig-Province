@@ -1069,3 +1069,67 @@ label,
 #uploadForm .rehub-markdown-toolbar button[data-md="code"] {
   width:33px; min-width:33px; white-space:nowrap; font-family:monospace;
 }
+
+/* v29 — a live Markdown editor visually replaces only the description textarea.
+   Original textarea stays in the form, preserving the API's Markdown payload. */
+#uploadForm textarea.rehub-rich-source,
+.admin-page textarea#officialDescription.rehub-rich-source {
+  position:absolute!important; left:0!important; top:16px!important;
+  width:1px!important; height:1px!important; min-height:0!important;
+  margin:0!important; padding:0!important; border:0!important;
+  overflow:hidden!important; opacity:0!important; pointer-events:none!important;
+}
+.rehub-markdown-field .rehub-rich-editor {
+  display:block; width:100%; min-width:0;
+  height:104px; max-height:104px;
+  overflow-x:hidden; overflow-y:auto;
+  background:#101017; border:1px solid var(--border); border-radius:9px;
+  padding:10px 17px 41px 11px;
+  color:var(--text); font:inherit; font-size:11px; line-height:1.65;
+  text-align:left; overflow-wrap:anywhere; white-space:pre-wrap;
+  user-select:text!important; -webkit-user-select:text!important;
+  outline:none; cursor:text; scrollbar-width:none; -ms-overflow-style:none;
+  overscroll-behavior:contain; touch-action:pan-y;
+  transition:border-color .16s ease,box-shadow .16s ease;
+}
+.rehub-markdown-field .rehub-rich-editor::-webkit-scrollbar { display:none; width:0; }
+.rehub-markdown-field .rehub-rich-editor:focus {
+  border-color:rgba(139,92,246,.62);
+  box-shadow:0 0 0 3px rgba(139,92,246,.06);
+}
+.rehub-markdown-field .rehub-rich-editor:empty::before {
+  content:attr(data-placeholder); color:#5c5c6b; pointer-events:none;
+}
+.rehub-markdown-field .rehub-rich-editor * { cursor:text; }
+.rehub-markdown-field .rehub-rich-editor ::selection { color:#fff; background:rgba(139,92,246,.60); }
+.rehub-markdown-field .rehub-rich-editor > :first-child { margin-top:0; }
+.rehub-markdown-field .rehub-rich-editor > :last-child { margin-bottom:0; }
+.rehub-markdown-field .rehub-rich-editor p { margin:0 0 8px; }
+.rehub-markdown-field .rehub-rich-editor h1,.rehub-markdown-field .rehub-rich-editor h2,
+.rehub-markdown-field .rehub-rich-editor h3,.rehub-markdown-field .rehub-rich-editor h4 {
+  margin:6px 0; font-size:13px; font-weight:700; line-height:1.45; color:#eee9ff;
+}
+.rehub-markdown-field .rehub-rich-editor h1 {font-size:16px;}
+.rehub-markdown-field .rehub-rich-editor h2 {font-size:14px;}
+.rehub-markdown-field .rehub-rich-editor strong {color:#e7defb;font-weight:700;}
+.rehub-markdown-field .rehub-rich-editor em {color:#d0c6df;}
+.rehub-markdown-field .rehub-rich-editor ul,.rehub-markdown-field .rehub-rich-editor ol {padding-left:20px;margin:3px 0 9px;}
+.rehub-markdown-field .rehub-rich-editor li {padding:1px 0;}
+.rehub-markdown-field .rehub-rich-editor blockquote {border-left:2px solid #9b73e6;background:rgba(139,92,246,.07);border-radius:0 5px 5px 0;padding:3px 9px;margin:5px 0;}
+.rehub-markdown-field .rehub-rich-editor code {font-family:Consolas,monospace;background:rgba(139,92,246,.13);color:#d9c6ff;padding:1px 3px;border-radius:4px;}
+.rehub-markdown-field .rehub-rich-editor a {color:#bba0ff;text-decoration:underline; text-underline-offset:2px;}
+.rehub-markdown-field .rehub-rich-editor pre {padding:7px 9px;background:#0c0c13;border:1px solid var(--border);border-radius:5px;margin:4px 0;white-space:pre-wrap;}
+.rehub-markdown-toolbar button.md-active,
+#uploadForm .rehub-markdown-toolbar button.md-active,
+.admin-page .admin-markdown-actions button.md-active {
+  color:#d8bfff!important; background:rgba(139,92,246,.21)!important;
+  border-radius:5px; box-shadow:inset 0 0 0 1px rgba(183,156,255,.19);
+}
+.rehub-markdown-field .rehub-rich-scroll-track {right:5px;z-index:6;}
+.hub-modal,.hub-detail-scroll,.hub-upload-scroll,.detail-description pre,.admin-review-scroll,
+.admin-review-code,.admin-page .admin-reject-box textarea {
+  overscroll-behavior:contain;
+}
+@media(max-width:450px){
+  .rehub-markdown-field .rehub-rich-editor{height:114px;max-height:114px;}
+}

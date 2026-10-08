@@ -311,9 +311,7 @@ function initDragScroll() {
       const overflowY = style.overflowY;
       const scrollable = (overflowY === 'auto' || overflowY === 'scroll') && node.scrollHeight > node.clientHeight + 1;
       if (scrollable) {
-        const canUp = node.scrollTop > 0;
-        const canDown = node.scrollTop + node.clientHeight < node.scrollHeight - 1;
-        if ((deltaY < 0 && canUp) || (deltaY > 0 && canDown)) return true;
+        return true; // even at the edge: no scroll chaining to the page
       }
       node = node.parentElement;
     }
@@ -353,7 +351,7 @@ function initDragScroll() {
   addEventListener('wheel', e => {
     if (e.ctrlKey || e.metaKey || dragging || document.body.classList.contains('modal-open')) return;
     if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
-    if (wheelCanUseOwnScroller(e.target, e.deltaY)) return;
+    if (wheelCanUseOwnScroller(e.target, e.deltaY)) { cancelInertia(); return; }
     e.preventDefault();
     velocity += normalizeWheelDelta(e) * .0078;
     velocity = Math.max(-3.4, Math.min(3.4, velocity));
@@ -1214,47 +1212,12 @@ function installReHubTextareaTrack(textarea) {
 }
 
 function initReHubMarkdownToolbar() {
-  const area=$('#uploadForm textarea[name="description"]');
-  const toolbar=$('#uploadForm .rehub-markdown-toolbar');
-  if(!area||!toolbar)return;
-  // Keep the selection when pressing a formatting button.
-  toolbar.addEventListener('mousedown',e=>{if(e.target.closest('button'))e.preventDefault();});
-  const edit=action=>{
-    const s=area.selectionStart,e=area.selectionEnd;
-    const selected=area.value.slice(s,e);
-    const startOfLine=area.value.lastIndexOf('\n',Math.max(0,s-1))+1;
-    let a=s,b=e,replacement='',cursorA=0,cursorB=0;
-    const wrap=(prefix,suffix,placeholder)=>{
-      const middle=selected||placeholder;
-      replacement=prefix+middle+suffix;
-      cursorA=a+prefix.length;cursorB=cursorA+middle.length;
-    };
-    if(action==='bold')wrap('**','**','жирный текст');
-    else if(action==='italic')wrap('*','*','курсив');
-    else if(action==='code')wrap('`','`','код');
-    else if(action==='link')wrap('[','](https://example.com)','название ссылки');
-    else if(['heading','list','quote'].includes(action)){
-      const prefix=action==='heading'?'## ':action==='list'?'- ':'> ';
-      a=startOfLine;const original=area.value.slice(a,e);
-      replacement=prefix+original.replace(/\n/g,`\n${prefix}`);
-      cursorA=a+prefix.length;cursorB=a+replacement.length;
-    }else return;
-    if(area.value.length-(b-a)+replacement.length>area.maxLength){showToast('Превышен лимит описания.');return;}
-    area.focus({preventScroll:true});
-    area.setRangeText(replacement,a,b,'end');
-    area.setSelectionRange(cursorA,cursorB);
-    area.dispatchEvent(new Event('input',{bubbles:true}));
-  };
-  toolbar.addEventListener('click',e=>{
-    const button=e.target.closest('button[data-md]');if(!button)return;
-    e.preventDefault();e.stopPropagation();edit(button.dataset.md);
-  });
-  area.addEventListener('keydown',e=>{
-    if(!(e.ctrlKey||e.metaKey)||e.altKey)return;
-    const key=e.key.toLowerCase();
-    if(key==='b'||key==='i'){e.preventDefault();edit(key==='b'?'bold':'italic');}
-  });
-  installReHubTextareaTrack(area);
+  window.rehubUserDescriptionEditor = window.attachReHubRichEditor?.(
+    $('#uploadForm textarea[name="description"]'),
+    $('#uploadForm .rehub-markdown-toolbar'),
+    renderDescriptionMarkdown,
+    showToast
+  );
 }
 
 function initUpload() {

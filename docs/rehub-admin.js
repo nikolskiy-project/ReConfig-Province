@@ -331,10 +331,10 @@ function initAdminDragScroll() {
   const finish=()=>{if(!dragging)return;dragging=false;root.classList.remove('page-dragging');document.body.classList.remove('page-dragging');if(moved){suppressClick=true;begin();setTimeout(()=>suppressClick=false,110);}else setState(false);};
   addEventListener('mouseup',finish);addEventListener('blur',finish);
   document.addEventListener('click',e=>{if(!suppressClick)return;e.preventDefault();e.stopPropagation();suppressClick=false;},true);
-  const ownScroller=(target,dy)=>{let node=target instanceof Element?target:null;while(node&&node!==document.body&&node!==root){const st=getComputedStyle(node),scrollable=(st.overflowY==='auto'||st.overflowY==='scroll')&&node.scrollHeight>node.clientHeight+1;if(scrollable){const up=node.scrollTop>0,down=node.scrollTop+node.clientHeight<node.scrollHeight-1;if((dy<0&&up)||(dy>0&&down))return true;}node=node.parentElement;}return false;};
+  const ownScroller=(target,dy)=>{let node=target instanceof Element?target:null;while(node&&node!==document.body&&node!==root){const st=getComputedStyle(node),scrollable=(st.overflowY==='auto'||st.overflowY==='scroll')&&node.scrollHeight>node.clientHeight+1;if(scrollable){const up=node.scrollTop>0,down=node.scrollTop+node.clientHeight<node.scrollHeight-1;return true;}node=node.parentElement;}return false;};
   const norm=e=>{let d=e.deltaY;if(e.deltaMode===1)d*=16;else if(e.deltaMode===2)d*=innerHeight;return Math.max(-190,Math.min(190,d));};
   const wheelStart=()=>{if(inertiaFrame)return;setState(true);let prev=performance.now();const tick=now=>{const dt=Math.min(32,Math.max(1,now-prev));prev=now;const limit=maxScroll(),before=scrollY,next=Math.max(0,Math.min(limit,before+velocity*dt));scrollTo(0,next);velocity*=Math.pow(.885,dt/16.667);if(next<=0||next>=limit)velocity*=.28;if(Math.abs(velocity)>.012)inertiaFrame=requestAnimationFrame(tick);else{inertiaFrame=0;velocity=0;setState(false);}};inertiaFrame=requestAnimationFrame(tick);};
-  addEventListener('wheel',e=>{if(e.ctrlKey||e.metaKey||dragging||document.body.classList.contains('admin-review-open'))return;if(Math.abs(e.deltaY)<Math.abs(e.deltaX)||ownScroller(e.target,e.deltaY))return;e.preventDefault();velocity+=norm(e)*.0078;velocity=Math.max(-3.4,Math.min(3.4,velocity));wheelStart();},{passive:false});
+  addEventListener('wheel',e=>{if(e.ctrlKey||e.metaKey||dragging||document.body.classList.contains('admin-review-open'))return;if(Math.abs(e.deltaY)<Math.abs(e.deltaX)||ownScroller(e.target,e.deltaY)){if(ownScroller(e.target,e.deltaY))cancel();return;}e.preventDefault();velocity+=norm(e)*.0078;velocity=Math.max(-3.4,Math.min(3.4,velocity));wheelStart();},{passive:false});
   addEventListener('keydown',cancel);
 }
 
@@ -422,12 +422,12 @@ function fillForm(meta, seed=seededFor(currentSlot)) {
   currentMeta=meta||null;creatingOfficial=false;
   const faction=meta?.category||seed?.faction||'';
   const title=meta?.title||seed?.title||faction||'';
-  $('#officialFaction').value=faction;$('#officialTitle').value=title;$('#officialAuthor').value=meta?.author||'ReConfig Province';$('#officialDescription').value=meta?.description||'';
+  $('#officialFaction').value=faction;$('#officialTitle').value=title;$('#officialAuthor').value=meta?.author||'ReConfig Province';$('#officialDescription').value=meta?.description||'';window.rehubAdminDescriptionEditor?.refresh();
   $('#adminEditorTitle').textContent=title||'Официальный конфиг';$('#editorState').textContent=meta?`Опубликован · обновлён ${new Date(meta.updated_at||meta.created_at).toLocaleString('ru-RU')}`:'Новая публикация';
   $('#officialSubmit').textContent=meta?'Обновить официальный конфиг':'Опубликовать официальный';$('#adminNoticeText').textContent=meta?'Поля без нового XML или превью сохранят текущие файлы. Фракцию и название можно изменить.':'Официальная публикация сразу появится в закреплённой секции без модерации.';resetFiles();
 }
 function beginNewOfficial(){
-  creatingOfficial=true;currentSlot='';currentMeta=null;$('#officialFaction').value='';$('#officialTitle').value='';$('#officialAuthor').value='ReConfig Province';$('#officialDescription').value='';$('#adminEditorTitle').textContent='Новая фракция';$('#editorState').textContent='Новая официальная публикация';$('#officialSubmit').textContent='Опубликовать официальный';$('#adminNoticeText').textContent='Укажи фракцию — ReHub создаст для неё отдельную закреплённую карточку.';resetFiles();$('#officialFaction').focus();
+  creatingOfficial=true;currentSlot='';currentMeta=null;$('#officialFaction').value='';$('#officialTitle').value='';$('#officialAuthor').value='ReConfig Province';$('#officialDescription').value='';window.rehubAdminDescriptionEditor?.refresh();$('#adminEditorTitle').textContent='Новая фракция';$('#editorState').textContent='Новая официальная публикация';$('#officialSubmit').textContent='Опубликовать официальный';$('#adminNoticeText').textContent='Укажи фракцию — ReHub создаст для неё отдельную закреплённую карточку.';resetFiles();$('#officialFaction').focus();
 }
 async function loadSlot(slot) {
   if(!slot)return;currentSlot=slot;creatingOfficial=false;$('#officialFactionSelect').value=slot;refreshProgramSelect($('#officialFactionSelect'));
@@ -771,14 +771,14 @@ function openReview(item,status){
       ? '<strong>Удалить отклонённую публикацию?</strong><br>Она исчезнет из истории модерации, а XML, превью и метаданные будут полностью удалены из GitHub.'
       : '<strong>Удалить публикацию?</strong><br>Она исчезнет из мастерской, а XML, превью и метаданные будут полностью удалены из GitHub.';
   }
-  $('#deleteConfirmBox').hidden=true;
+  resetDeleteCurtain();
   const reviewScroll=$('#reviewScroll');if(reviewScroll)reviewScroll.scrollTop=0;
   $('#reviewOverlay').hidden=false;document.body.classList.add('admin-review-open');bindAdminCursorHover();requestAnimationFrame(()=>window.syncAdminScrollbar?.());
   loadReviewPreview();
   requestAnimationFrame(() => { window.syncAdminReviewScrollbar?.(); window.syncAdminReviewCodeScrollbar?.(); });
 }
 function closeReview(){
-  $('#reviewOverlay').hidden=true;document.body.classList.remove('admin-review-open');selectedSubmission=null;$('#rejectBox').hidden=true;$('#deleteConfirmBox').hidden=true;reviewMediaMode='cover';requestAnimationFrame(()=>window.syncAdminScrollbar?.());
+  $('#reviewOverlay').hidden=true;document.body.classList.remove('admin-review-open');selectedSubmission=null;$('#rejectBox').hidden=true;resetDeleteCurtain();reviewMediaMode='cover';requestAnimationFrame(()=>window.syncAdminScrollbar?.());
 }
 async function approveSelected(){
   if(!selectedSubmission||selectedSubmission.status!=='pending')return;
@@ -795,9 +795,31 @@ async function rejectSelected(){
   catch(e){toast(e.detail||e.message);}finally{btn.disabled=false;btn.textContent=old;}
 }
 
+let deleteCurtainTimer=0;
+function resetDeleteCurtain(){
+  clearTimeout(deleteCurtainTimer);
+  const area=$('#approvedDeleteArea'), panel=$('#deleteConfirmBox'), button=$('#reviewDelete');
+  area.classList.remove('confirming');panel.hidden=true;panel.inert=true;
+  button.setAttribute('aria-expanded','false');
+}
+function closeDeleteCurtain(){
+  const area=$('#approvedDeleteArea'), panel=$('#deleteConfirmBox'), button=$('#reviewDelete');
+  area.classList.remove('confirming');panel.inert=true;
+  button.setAttribute('aria-expanded','false');
+  clearTimeout(deleteCurtainTimer);
+  deleteCurtainTimer=setTimeout(()=>{if(!area.classList.contains('confirming')){panel.hidden=true;button.focus({preventScroll:true});}},330);
+}
 function beginDeleteApproved(){
-  if(!selectedSubmission || !['approved','rejected'].includes(selectedSubmission.status)) return;
-  $('#deleteConfirmBox').hidden=false;
+  if(!selectedSubmission || !['approved','rejected'].includes(selectedSubmission.status))return;
+  clearTimeout(deleteCurtainTimer);
+  const area=$('#approvedDeleteArea'),panel=$('#deleteConfirmBox'),button=$('#reviewDelete');
+  panel.hidden=false;panel.inert=false;
+  button.setAttribute('aria-expanded','true');
+  requestAnimationFrame(()=>{
+    area.classList.add('confirming');
+    // keep the expanding sheet visible inside the independently scrolling review card
+    setTimeout(()=>{window.syncAdminReviewScrollbar?.();},300);
+  });
   bindAdminCursorHover();
 }
 
@@ -1035,7 +1057,7 @@ function bindModeration(){
   $('#reviewXmlLink').addEventListener('click',downloadReviewConfig);
   $('#reviewPreviewLink').addEventListener('click',openReviewPreviewOriginal);
   $('#reviewDelete').addEventListener('click',beginDeleteApproved);
-  $('#deleteCancel').addEventListener('click',()=>{$('#deleteConfirmBox').hidden=true;});
+  $('#deleteCancel').addEventListener('click',closeDeleteCurtain);
   $('#deleteConfirm').addEventListener('click',deleteApprovedSelected);
   addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#reviewOverlay').hidden)closeReview();});
 }
@@ -1081,47 +1103,16 @@ function initMeasuredSegmentMarkers() {
 
 /* Rounded scrollbars for admin text inputs too (including review/rejection text). */
 function initAdminMarkdownDescription(){
-  const area=$('#officialDescription');
-  const buttons=$('.admin-markdown-actions');
-  if(!area||!buttons)return;
-  // Keep selection when clicking a formatting icon.
-  buttons.addEventListener('mousedown',e=>{if(e.target.closest('button'))e.preventDefault();});
-  const apply=action=>{
-    const s=area.selectionStart,e=area.selectionEnd, selected=area.value.slice(s,e);
-    const lineStart=area.value.lastIndexOf('\n',Math.max(0,s-1))+1;
-    let from=s,to=e,replacement='',selStart=0,selEnd=0;
-    const wrap=(left,right,fallback)=>{
-      const inner=selected||fallback;replacement=left+inner+right;
-      selStart=from+left.length;selEnd=selStart+inner.length;
-    };
-    if(action==='bold')wrap('**','**','жирный текст');
-    else if(action==='italic')wrap('*','*','курсив');
-    else if(action==='code')wrap('`','`','код');
-    else if(action==='link')wrap('[','](https://example.com)','название ссылки');
-    else if(['heading','list','quote'].includes(action)){
-      const prefix=action==='heading'?'## ':action==='list'?'- ':'> ';
-      from=lineStart;
-      replacement=prefix+area.value.slice(from,e).replace(/\n/g,`\n${prefix}`);
-      selStart=from+prefix.length;selEnd=from+replacement.length;
-    }else return;
-    if(area.maxLength>0 && area.value.length-(to-from)+replacement.length>area.maxLength){toast('Превышен лимит описания.');return;}
-    area.focus({preventScroll:true});area.setRangeText(replacement,from,to,'end');
-    area.setSelectionRange(selStart,selEnd);
-    area.dispatchEvent(new Event('input',{bubbles:true}));
-  };
-  buttons.addEventListener('click',e=>{
-    const button=e.target.closest('button[data-md]');if(!button)return;
-    e.preventDefault();e.stopPropagation();apply(button.dataset.md);
-  });
-  area.addEventListener('keydown',e=>{
-    if(!(e.ctrlKey||e.metaKey)||e.altKey)return;
-    const key=e.key.toLowerCase();
-    if(key==='b'||key==='i'){e.preventDefault();apply(key==='b'?'bold':'italic');}
-  });
+  window.rehubAdminDescriptionEditor = window.attachReHubRichEditor?.(
+    $('#officialDescription'),
+    $('.admin-markdown-actions'),
+    renderAdminDescriptionMarkdown,
+    toast
+  );
 }
 
 function initAdminRoundedTextareas(){
-  const elements=$$('#officialDescription, #rejectReasonInput');
+  const elements=$$('#rejectReasonInput');
   elements.forEach(area=>{
     if(!area || area.dataset.roundScroll)return;
     area.dataset.roundScroll='1';area.classList.add('admin-rounded-textarea');

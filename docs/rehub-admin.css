@@ -1227,3 +1227,45 @@ html:has(> body.admin-review-open) { overflow-y:hidden !important; }
   flex:0 0 33px; width:33px; min-width:33px;
   white-space:nowrap; font-family:monospace;
 }
+
+/* v29: Visual Markdown and the same field sizing as before. */
+.admin-page .admin-markdown-field .rehub-rich-editor { height:88px; max-height:88px; }
+.admin-page .rehub-rich-editor { cursor:none!important; }
+.admin-page .rehub-rich-editor * {cursor:none!important;}
+
+/* v29: Delete confirmation slides open *in place of* the publication-delete button.
+   Never adds a second dialog or popup. */
+.admin-approved-delete {overflow:visible;}
+.admin-approved-delete > #reviewDelete {
+  box-sizing:border-box; max-height:52px; min-height:0;
+  overflow:hidden; transform-origin:center top;
+  transition:max-height .28s cubic-bezier(.22,1,.36,1),
+             opacity .19s ease,transform .28s cubic-bezier(.22,1,.36,1),
+             padding .28s ease,border-width .28s ease;
+}
+.admin-approved-delete.confirming > #reviewDelete {
+  max-height:0; height:0; padding-top:0; padding-bottom:0;
+  border-top-width:0;border-bottom-width:0;
+  opacity:0; transform:translateY(-7px) scaleY(.84); pointer-events:none;
+}
+.admin-approved-delete > .admin-delete-confirm {
+  box-sizing:border-box; margin:0;
+  max-height:0; padding-top:0;padding-bottom:0;
+  border-top-width:0;border-bottom-width:0;
+  overflow:hidden; opacity:0; transform:translateY(-9px) scaleY(.94);
+  transform-origin:top center; pointer-events:none;
+  transition:max-height .34s cubic-bezier(.22,1,.36,1),
+             padding .3s cubic-bezier(.22,1,.36,1),
+             border-width .3s ease,opacity .22s ease,
+             transform .34s cubic-bezier(.22,1,.36,1);
+}
+.admin-approved-delete > .admin-delete-confirm[hidden] {display:none!important;}
+.admin-approved-delete.confirming > .admin-delete-confirm {
+  max-height:230px; padding:13px; border-top-width:1px;border-bottom-width:1px;
+  opacity:1; transform:translateY(0) scaleY(1); pointer-events:auto;
+}
+@media(prefers-reduced-motion:reduce){
+  .admin-approved-delete > #reviewDelete,.admin-approved-delete > .admin-delete-confirm{transition:none;}
+}
+/* Preserve the original full button height after cancelling the slide-out. */
+.admin-approved-delete:not(.confirming) > #reviewDelete {min-height:44px;}
