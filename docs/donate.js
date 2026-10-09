@@ -41,6 +41,108 @@ const DONATION_LINKS = { donatello: '' };
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
   }
+  // Выбор CryptoBot: соседние способы собираются за карточкой,
+  // затем сама карточка разворачивается в форму оплаты. Возврат — обратный.
+  const methodGrid = byId('donateMethods');
+  const cryptoMethod = byId('cryptoMethod');
+  const cryptoDetails = byId('cryptoDetails');
+  const cryptoSelect = byId('cryptoSelect');
+  const cryptoBack = byId('cryptoBack');
+  const otherMethods = [...methodGrid.querySelectorAll('.donate-method:not(.donate-method-crypto)')];
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  let cryptoOpen = false;
+  let cryptoAnimating = false;
+  const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+  function animateOtherCards(folding) {
+    if (reducedMotion.matches || typeof cryptoMethod.animate !== 'function') return Promise.resolve();
+    const target = cryptoMethod.getBoundingClientRect();
+    const promises = otherMethods.map(method => {
+      const rect = method.getBoundingClientRect();
+      const x = (target.left + target.width/2) - (rect.left + rect.width/2);
+      const y = (target.top + target.height/2) - (rect.top + rect.height/2);
+      const collapsed = { transform: `translate3d(${x}px,${y}px,0) scale(.76)`, opacity: 0, filter: 'blur(3px)' };
+      const normal = { transform: 'translate3d(0,0,0) scale(1)', opacity: 1, filter: 'blur(0px)' };
+      const animation = method.animate(folding ? [normal, collapsed] : [collapsed, normal], {
+        duration: folding ? 420 : 440,
+        easing: 'cubic-bezier(.22,1,.36,1)',
+        fill: 'both'
+      });
+      return animation.finished.catch(() => {}).then(() => animation.cancel());
+    });
+    return Promise.all(promises);
+  }
+
+  function updateCryptoAccess(open) {
+    cryptoDetails.inert = !open;
+    cryptoDetails.setAttribute('aria-hidden', String(!open));
+    cryptoMethod.setAttribute('aria-expanded', String(open));
+    if (open) {
+      cryptoMethod.removeAttribute('role');
+      cryptoMethod.removeAttribute('tabindex');
+      cryptoMethod.removeAttribute('aria-label');
+    } else {
+      cryptoMethod.setAttribute('role', 'button');
+      cryptoMethod.setAttribute('tabindex', '0');
+      cryptoMethod.setAttribute('aria-label', 'Выбрать CryptoBot для поддержки');
+    }
+  }
+
+  async function openCryptoForm() {
+    if (cryptoOpen || cryptoAnimating) return;
+    cryptoAnimating = true;
+    methodGrid.classList.add('is-transitioning');
+    try {
+      await animateOtherCards(true);
+      methodGrid.classList.add('is-crypto-focused');
+      cryptoMethod.classList.add('is-expanded');
+      cryptoOpen = true;
+      updateCryptoAccess(true);
+      // Дайте CSS раскрыть поля и затем подведите карточку в видимую область.
+      if (!reducedMotion.matches) await sleep(260);
+      cryptoMethod.scrollIntoView({ behavior: reducedMotion.matches ? 'auto' : 'smooth', block: 'nearest' });
+      cryptoBack.focus({ preventScroll: true });
+    } finally {
+      methodGrid.classList.remove('is-transitioning');
+      cryptoAnimating = false;
+    }
+  }
+
+  async function closeCryptoForm() {
+    if (!cryptoOpen || cryptoAnimating) return;
+    cryptoAnimating = true;
+    methodGrid.classList.add('is-transitioning');
+    try {
+      cryptoMethod.classList.remove('is-expanded');
+      cryptoOpen = false;
+      updateCryptoAccess(false);
+      if (!reducedMotion.matches) await sleep(400);
+      if (!reducedMotion.matches) methodGrid.classList.add('is-returning');
+      methodGrid.classList.remove('is-crypto-focused');
+      // Соседние карточки изначально скрыты, затем выезжают из-за CryptoBot.
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      const restoreCards = animateOtherCards(false);
+      methodGrid.classList.remove('is-returning');
+      await restoreCards;
+      cryptoMethod.focus({ preventScroll: true });
+    } finally {
+      methodGrid.classList.remove('is-transitioning', 'is-returning');
+      cryptoAnimating = false;
+    }
+  }
+
+  cryptoSelect.addEventListener('click', event => { event.stopPropagation(); openCryptoForm(); });
+  cryptoMethod.addEventListener('click', event => {
+    if (!cryptoOpen && !event.target.closest('button,a,input,textarea,select')) openCryptoForm();
+  });
+  cryptoMethod.addEventListener('keydown', event => {
+    if (!cryptoOpen && (event.key === 'Enter' || event.key === ' ') && event.target === cryptoMethod) {
+      event.preventDefault();
+      openCryptoForm();
+    }
+  });
+  cryptoBack.addEventListener('click', event => { event.stopPropagation(); closeCryptoForm(); });
+
   // Счёт создаётся сервером: никакого Crypto Pay API token в исходниках сайта.
   let selectedCryptoAmount = '3';
   const customCryptoAmount = byId('cryptoCustomAmount');
@@ -186,7 +288,7 @@ function initDragScroll() {
   let inertiaFrame = 0;
   let suppressClick = false;
 
-  const interactiveSelector = 'a, button, input, textarea, select, [contenteditable="true"], .site-scrollbar-thumb';
+  const interactiveSelector = 'a, button, input, textarea, select, [contenteditable="true"], .site-scrollbar-thumb, .donate-method-crypto';
   const root = document.documentElement;
 
   const maxScroll = () => Math.max(0, root.scrollHeight - innerHeight);
