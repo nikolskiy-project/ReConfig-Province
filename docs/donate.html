@@ -8,7 +8,7 @@
   <title>Поддержать проект — ReConfig Province</title>
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="donate.css?v=7">
+  <link rel="stylesheet" href="donate.css?v=8">
 </head>
 <body class="donate-page">
   <div class="page-noise" aria-hidden="true"></div>
@@ -54,7 +54,7 @@
           <button class="donate-action donate-action-primary donate-crypto-select interactive" type="button" id="cryptoSelect">Выбрать CryptoBot <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
         </div>
         <div class="donate-crypto-details" id="cryptoDetails" inert aria-hidden="true"><div class="donate-crypto-details-inner">
-        <button class="donate-crypto-back interactive" type="button" id="cryptoBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg> Все способы поддержки</button>
+        <button class="donate-crypto-back interactive" type="button" id="cryptoBack" aria-label="Вернуться к выбору способов поддержки"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg> Все способы поддержки</button>
         <div class="donate-crypto-amounts" id="cryptoAmounts" role="group" aria-label="Сумма поддержки в USDT">
           <button class="donate-amount interactive" type="button" data-amount="1" aria-pressed="false">1 USDT</button>
           <button class="donate-amount interactive" type="button" data-amount="3" aria-pressed="true">3 USDT</button>
@@ -75,6 +75,7 @@
         <p class="donate-field-helper" id="cryptoCommentHelp">Будет указан в описании счёта при оплате</p>
         <div class="donate-crypto-hint" id="cryptoStatus" aria-live="polite">Безопасная оплата через Crypto Bot</div>
         <button class="donate-action donate-action-primary interactive" type="button" id="cryptoLink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9"/><path d="M20 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5"/></svg><span>Создать счёт</span></button>
+        <button class="donate-crypto-return interactive" type="button" id="cryptoBackBottom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg><span>Вернуться к выбору способов</span></button>
         </div></div>
       </article>
 
@@ -100,6 +101,6 @@
     <span class="copyright">© <span id="year"></span> Nikolskiy</span>
   </footer>
   <div class="donate-toast" id="donateToast" role="status" aria-live="polite"></div>
-  <script src="donate.js?v=7"></script>
+  <script src="donate.js?v=8"></script>
 </body>
 </html>

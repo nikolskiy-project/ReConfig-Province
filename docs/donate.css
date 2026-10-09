@@ -192,3 +192,63 @@ html.donate-auto-center, body.donate-auto-center { overflow-anchor: none; }
     transition: none; transform: none;
   }
 }
+
+
+/* v8: видимый возврат к выбору способов — доступен и внизу длинной формы. */
+.donate-method-crypto.is-expanded .donate-crypto-details-inner > :nth-child(9) { transition-delay: .39s; }
+.donate-crypto-return {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; min-height: 41px; margin-top: 10px; padding: 9px 12px;
+  border: 1px solid rgba(183,156,255,.20); border-radius: 9px;
+  background: rgba(139,92,246,.055); color: #bba8e6;
+  font: inherit; font-size: 11px; font-weight: 650; cursor: pointer;
+  transition: color .2s ease, background-color .2s ease, border-color .2s ease, transform .22s cubic-bezier(.22,1,.36,1);
+}
+.donate-crypto-return svg { width: 15px; height: 15px; flex: 0 0 15px; transition: transform .2s ease; }
+.donate-crypto-return:hover, .donate-crypto-return:focus-visible {
+  color: #f6f2ff; border-color: rgba(183,156,255,.50); background: rgba(139,92,246,.16);
+}
+.donate-crypto-return:hover svg, .donate-crypto-back:hover svg { transform: translateX(-3px); }
+.donate-crypto-return:active { transform: scale(.985); }
+.donate-crypto-back { border-radius: 7px; transition: color .2s ease, background-color .2s ease; }
+.donate-crypto-back svg { transition: transform .2s ease; }
+.donate-crypto-back:focus-visible, .donate-crypto-return:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 3px; }
+
+/* v8: единовременное последовательное появление страницы после входа.
+   translate вместо transform — не перебиваем hover и превращение карточек. */
+@keyframes donatePageEnter {
+  from { opacity: 0; translate: 0 15px; }
+  to { opacity: 1; translate: 0 0; }
+}
+@keyframes donateHeaderEnter {
+  from { opacity: 0; translate: 0 -9px; }
+  to { opacity: 1; translate: 0 0; }
+}
+.donate-page .topbar .brand,
+.donate-page .topbar .nav,
+.donate-page .topbar .header-github {
+  animation: donateHeaderEnter .55s cubic-bezier(.22,1,.36,1) both;
+}
+.donate-page .topbar .nav { animation-delay: .07s; }
+.donate-page .topbar .header-github { animation-delay: .13s; }
+.donate-eyebrow { animation: donatePageEnter .59s .10s cubic-bezier(.22,1,.36,1) both; }
+.donate-hero h1 { animation: donatePageEnter .68s .18s cubic-bezier(.22,1,.36,1) both; }
+.donate-lead { animation: donatePageEnter .68s .27s cubic-bezier(.22,1,.36,1) both; }
+.donate-methods .donate-method { animation: donatePageEnter .71s cubic-bezier(.22,1,.36,1) both; }
+.donate-methods .donate-method:nth-child(1) { animation-delay: .34s; }
+.donate-methods .donate-method:nth-child(2) { animation-delay: .43s; }
+.donate-methods .donate-method:nth-child(3) { animation-delay: .52s; }
+.donate-thanks { animation: donatePageEnter .7s .64s cubic-bezier(.22,1,.36,1) both; }
+.donate-disclaimer { animation: donatePageEnter .65s .70s cubic-bezier(.22,1,.36,1) both; }
+.donate-footer { animation: donatePageEnter .65s .74s cubic-bezier(.22,1,.36,1) both; }
+
+/* Аккуратный отклик иконок без вечных анимационных циклов. */
+.donate-method-icon { transition: transform .28s cubic-bezier(.22,1,.36,1), border-color .2s ease, background-color .2s ease; }
+.donate-method:hover .donate-method-icon { transform: translateY(-2px); border-color: rgba(183,156,255,.40); }
+
+@media (prefers-reduced-motion: reduce) {
+  .donate-page .topbar .brand, .donate-page .topbar .nav, .donate-page .topbar .header-github,
+  .donate-eyebrow, .donate-hero h1, .donate-lead, .donate-methods .donate-method,
+  .donate-thanks, .donate-disclaimer, .donate-footer { animation: none !important; opacity: 1; translate: none; }
+  .donate-crypto-return, .donate-crypto-return svg, .donate-crypto-back svg, .donate-method-icon { transition: none !important; }
+}

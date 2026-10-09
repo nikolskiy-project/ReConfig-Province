@@ -48,6 +48,7 @@ const DONATION_LINKS = { donatello: '' };
   const cryptoDetails = byId('cryptoDetails');
   const cryptoSelect = byId('cryptoSelect');
   const cryptoBack = byId('cryptoBack');
+  const cryptoBackBottom = byId('cryptoBackBottom');
   const otherMethods = [...methodGrid.querySelectorAll('.donate-method:not(.donate-method-crypto)')];
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   let cryptoOpen = false;
@@ -143,6 +144,42 @@ const DONATION_LINKS = { donatello: '' };
     centeringFrame = requestAnimationFrame(tick);
   }
 
+  // Возвращаем к выбору способов одновременно со сворачиванием формы.
+  // Пока сетка меняет высоту, цель прокрутки уточняется каждый кадр.
+  function scrollToMethodsWhileClosing() {
+    stopAutoCenter();
+    window.cancelPageInertia?.();
+    const sequence = ++centeringSequence;
+    const startedAt = performance.now();
+    let lastFrame = startedAt;
+    centeringActive = true;
+    document.documentElement.classList.add('page-kinetic', 'donate-auto-center');
+    document.body.classList.add('page-kinetic', 'donate-auto-center');
+
+    const tick = now => {
+      if (!centeringActive || sequence !== centeringSequence) return;
+      const dt = Math.min(40, Math.max(1, now - lastFrame));
+      lastFrame = now;
+      const elapsed = now - startedAt;
+      const headerBottom = Math.max(0, topbar.getBoundingClientRect().bottom) + 22;
+      const rect = methodGrid.getBoundingClientRect();
+      const target = Math.max(0, Math.min(maxPageScroll(), scrollY + rect.top - headerBottom));
+      if (reducedMotion.matches) {
+        window.scrollTo(0, target);
+      } else {
+        const smoothing = 1 - Math.exp(-dt / 105);
+        window.scrollTo(0, scrollY + (target - scrollY) * smoothing);
+      }
+      if (!reducedMotion.matches && (elapsed < 610 || (Math.abs(target - scrollY) > 2 && elapsed < 1060))) {
+        centeringFrame = requestAnimationFrame(tick);
+      } else {
+        if (!reducedMotion.matches) window.scrollTo(0, target);
+        stopAutoCenter();
+      }
+    };
+    centeringFrame = requestAnimationFrame(tick);
+  }
+
   const mobileCardHeights = new Map();
   function prepareMobileCollapse() {
     if (innerWidth > 980) return;
@@ -228,6 +265,7 @@ const DONATION_LINKS = { donatello: '' };
       methodGrid.classList.remove('is-crypto-focused');
       cryptoOpen = false;
       updateCryptoAccess(false);
+      scrollToMethodsWhileClosing();
       if (!reducedMotion.matches) await sleep(580);
       finishMobileTransition();
       // После закрытия возвращаем исходные отступы, не меняя остальное оформление.
@@ -248,7 +286,20 @@ const DONATION_LINKS = { donatello: '' };
       openCryptoForm();
     }
   });
-  cryptoBack.addEventListener('click', event => { event.stopPropagation(); closeCryptoForm(); });
+  const returnToChoices = event => {
+    event.stopPropagation();
+    closeCryptoForm();
+  };
+  cryptoBack.addEventListener('click', returnToChoices);
+  cryptoBackBottom.addEventListener('click', returnToChoices);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && cryptoOpen && !cryptoAnimating) {
+      event.preventDefault();
+      closeCryptoForm().then(() => {
+        if (!cryptoOpen) cryptoSelect.focus({ preventScroll: true });
+      });
+    }
+  });
 
   // Счёт создаётся сервером: никакого Crypto Pay API token в исходниках сайта.
   let selectedCryptoAmount = '3';
