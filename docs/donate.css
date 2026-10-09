@@ -97,33 +97,40 @@
 @media (max-width: 640px) { .donate-note-field { margin-top: 14px; } }
 
 
-/* CryptoBot — главный способ поддержки. Сначала компактная карточка, затем редактор платежа. */
+/* CryptoBot: один непрерывный переход; соседние карточки уходят за него
+   одновременно с раскрытием полей, без промежуточного скачка сетки. */
 .donate-method-crypto { position: relative; z-index: 3; cursor: pointer; outline: none; }
 .donate-method-crypto:not(.is-expanded):hover { border-color: rgba(183,156,255,.65); box-shadow: 0 22px 48px rgba(62,39,120,.22); transform: translateY(-4px); }
 .donate-method-crypto:not(.is-expanded):focus-visible { outline: 2px solid var(--accent-light); outline-offset: 4px; }
-.donate-method-crypto.is-expanded { cursor: default; min-height: 0; transform: none; border-color: rgba(183,156,255,.44); }
+.donate-method-crypto { width: 100%; margin-left: 0; transition: width .52s cubic-bezier(.22,1,.36,1), margin-left .52s cubic-bezier(.22,1,.36,1), border-color .2s ease, box-shadow .2s ease; }
+.donate-method-crypto.is-expanded { cursor: default; transform: none !important; border-color: rgba(183,156,255,.44); width: calc(100% + 44px); margin-left: -22px; }
 .donate-method-crypto .donate-method-body { margin-bottom: 20px; }
 .donate-crypto-compact { margin-top: auto; transition: opacity .19s ease, transform .25s ease, max-height .26s ease, margin .26s ease; max-height: 110px; overflow: hidden; opacity: 1; }
 .donate-crypto-compact-hint { display: block; margin-bottom: 3px; color: #a79bbd; font-size: 11px; line-height: 1.5; }
 .donate-crypto-select { margin-top: 10px; }
-.donate-crypto-details { display: grid; grid-template-rows: 0fr; opacity: 0; visibility: hidden; transform: translateY(12px); transition: grid-template-rows .42s cubic-bezier(.22,1,.36,1), opacity .32s ease, transform .42s cubic-bezier(.22,1,.36,1), visibility 0s .42s; pointer-events: none; }
+.donate-crypto-details { display: grid; grid-template-rows: 0fr; opacity: 0; visibility: hidden; transform: translateY(7px); transition: grid-template-rows .54s cubic-bezier(.22,1,.36,1), opacity .43s ease, transform .54s cubic-bezier(.22,1,.36,1), visibility 0s .54s; pointer-events: none; }
 .donate-crypto-details-inner { min-height: 0; overflow: hidden; }
-.donate-method-crypto.is-expanded .donate-crypto-details { grid-template-rows: 1fr; opacity: 1; visibility: visible; transform: translateY(0); transition: grid-template-rows .42s cubic-bezier(.22,1,.36,1), opacity .32s ease, transform .42s cubic-bezier(.22,1,.36,1), visibility 0s; pointer-events: auto; }
+.donate-method-crypto.is-expanded .donate-crypto-details { grid-template-rows: 1fr; opacity: 1; visibility: visible; transform: translateY(0); transition: grid-template-rows .54s cubic-bezier(.22,1,.36,1), opacity .43s ease, transform .54s cubic-bezier(.22,1,.36,1), visibility 0s; pointer-events: auto; }
 .donate-method-crypto.is-expanded .donate-crypto-compact { max-height: 0; margin: 0; opacity: 0; transform: translateY(-9px); pointer-events: none; }
 .donate-crypto-back { display: inline-flex; align-items: center; gap: 6px; padding: 6px 0 13px; margin: 0 0 6px; background: none; border: 0; color: #b6a0e8; font-size: 11px; font-weight: 650; cursor: pointer; transition: color .2s ease; }
 .donate-crypto-back svg { width: 15px; height: 15px; }
 .donate-crypto-back:hover { color: #fff; }
-.donate-methods.is-crypto-focused { grid-template-columns: minmax(0, 580px); justify-content: center; }
-.donate-methods.is-crypto-focused .donate-method:not(.donate-method-crypto) { display: none; }
-.donate-methods.is-crypto-focused .donate-method-crypto { width: 100%; }
+.donate-methods { align-items: start; }
+.donate-methods .donate-method:not(.donate-method-crypto) { transition: opacity .40s ease, transform .54s cubic-bezier(.22,1,.36,1), filter .54s ease, border-color .2s ease, box-shadow .2s ease; }
+.donate-methods.is-crypto-focused .donate-method:not(.donate-method-crypto) { opacity: 0; filter: blur(2px); pointer-events: none; }
+.donate-methods.is-crypto-focused .donate-method:first-child { transform: translate3d(calc(100% + 16px), 18px, 0) scale(.86); }
+.donate-methods.is-crypto-focused .donate-method:last-child { transform: translate3d(calc(-100% - 16px), 18px, 0) scale(.86); }
 .donate-methods.is-transitioning .donate-method { pointer-events: none; }
 .donate-methods.is-crypto-focused .donate-method-crypto .donate-crypto-amounts { margin-top: 6px; }
 @media (max-width: 980px) {
-  .donate-methods.is-crypto-focused { grid-template-columns: minmax(0, 660px); }
+  .donate-methods { transition: row-gap .54s cubic-bezier(.22,1,.36,1); }
+  .donate-method-crypto.is-expanded { width: 100%; margin-left: 0; }
+  .donate-methods .donate-method:not(.donate-method-crypto) { overflow: hidden; transition: max-height .54s cubic-bezier(.22,1,.36,1), padding .54s cubic-bezier(.22,1,.36,1), border-width .54s cubic-bezier(.22,1,.36,1), opacity .4s ease, transform .54s cubic-bezier(.22,1,.36,1), filter .54s ease; }
+  .donate-methods.is-crypto-focused { row-gap: 0; }
+  .donate-methods.is-crypto-focused .donate-method:not(.donate-method-crypto) { padding-top: 0; padding-bottom: 0; border-top-width: 0; border-bottom-width: 0; }
+  .donate-methods.is-crypto-focused .donate-method:first-child { transform: translate3d(0, 70px, 0) scale(.86); }
+  .donate-methods.is-crypto-focused .donate-method:last-child { transform: translate3d(0, -70px, 0) scale(.86); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .donate-crypto-compact, .donate-crypto-details, .donate-crypto-back { transition: none !important; }
+  .donate-crypto-compact, .donate-crypto-details, .donate-crypto-back, .donate-method-crypto, .donate-methods, .donate-methods .donate-method:not(.donate-method-crypto) { transition: none !important; }
 }
-
-/* При возврате соседние карточки выходят из-за CryptoBot без мигания. */
-.donate-methods.is-returning .donate-method:not(.donate-method-crypto) { opacity: 0; }

@@ -41,8 +41,8 @@ const DONATION_LINKS = { donatello: '' };
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
   }
-  // Выбор CryptoBot: соседние способы собираются за карточкой,
-  // затем сама карточка разворачивается в форму оплаты. Возврат — обратный.
+  // Одновременное превращение CryptoBot в форму и уход соседних карточек.
+  // Без ожидания первой анимации: все элементы двигаются в одном переходе.
   const methodGrid = byId('donateMethods');
   const cryptoMethod = byId('cryptoMethod');
   const cryptoDetails = byId('cryptoDetails');
@@ -54,29 +54,39 @@ const DONATION_LINKS = { donatello: '' };
   let cryptoAnimating = false;
   const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-  function animateOtherCards(folding) {
-    if (reducedMotion.matches || typeof cryptoMethod.animate !== 'function') return Promise.resolve();
-    const target = cryptoMethod.getBoundingClientRect();
-    const promises = otherMethods.map(method => {
-      const rect = method.getBoundingClientRect();
-      const x = (target.left + target.width/2) - (rect.left + rect.width/2);
-      const y = (target.top + target.height/2) - (rect.top + rect.height/2);
-      const collapsed = { transform: `translate3d(${x}px,${y}px,0) scale(.76)`, opacity: 0, filter: 'blur(3px)' };
-      const normal = { transform: 'translate3d(0,0,0) scale(1)', opacity: 1, filter: 'blur(0px)' };
-      const animation = method.animate(folding ? [normal, collapsed] : [collapsed, normal], {
-        duration: folding ? 420 : 440,
-        easing: 'cubic-bezier(.22,1,.36,1)',
-        fill: 'both'
-      });
-      return animation.finished.catch(() => {}).then(() => animation.cancel());
+  const mobileCardHeights = new Map();
+  function prepareMobileCollapse() {
+    if (innerWidth > 980) return;
+    otherMethods.forEach(method => {
+      const height = Math.ceil(method.getBoundingClientRect().height);
+      mobileCardHeights.set(method, height);
+      // CSS cannot interpolate max-height:auto — provide an exact pixel start.
+      method.style.maxHeight = `${height}px`;
     });
-    return Promise.all(promises);
+    // Commit the starting heights before beginning the CSS transitions.
+    void methodGrid.offsetHeight;
+  }
+
+  function setMobileCardHeights(expanded) {
+    if (!mobileCardHeights.size) return;
+    otherMethods.forEach(method => {
+      method.style.maxHeight = expanded ? '0px' : `${mobileCardHeights.get(method)}px`;
+    });
+  }
+
+  function finishMobileTransition() {
+    otherMethods.forEach(method => method.style.removeProperty('max-height'));
+    mobileCardHeights.clear();
   }
 
   function updateCryptoAccess(open) {
     cryptoDetails.inert = !open;
     cryptoDetails.setAttribute('aria-hidden', String(!open));
     cryptoMethod.setAttribute('aria-expanded', String(open));
+    otherMethods.forEach(method => {
+      method.inert = open;
+      method.setAttribute('aria-hidden', String(open));
+    });
     if (open) {
       cryptoMethod.removeAttribute('role');
       cryptoMethod.removeAttribute('tabindex');
@@ -93,15 +103,15 @@ const DONATION_LINKS = { donatello: '' };
     cryptoAnimating = true;
     methodGrid.classList.add('is-transitioning');
     try {
-      await animateOtherCards(true);
+      prepareMobileCollapse();
       methodGrid.classList.add('is-crypto-focused');
       cryptoMethod.classList.add('is-expanded');
+      setMobileCardHeights(true);
       cryptoOpen = true;
       updateCryptoAccess(true);
-      // Дайте CSS раскрыть поля и затем подведите карточку в видимую область.
-      if (!reducedMotion.matches) await sleep(260);
-      cryptoMethod.scrollIntoView({ behavior: reducedMotion.matches ? 'auto' : 'smooth', block: 'nearest' });
-      cryptoBack.focus({ preventScroll: true });
+      if (!reducedMotion.matches) await sleep(580);
+      // Keep the other mobile cards at zero height while CryptoBot is open.
+      // Clearing max-height here would make invisible cards occupy empty space.
     } finally {
       methodGrid.classList.remove('is-transitioning');
       cryptoAnimating = false;
@@ -113,20 +123,16 @@ const DONATION_LINKS = { donatello: '' };
     cryptoAnimating = true;
     methodGrid.classList.add('is-transitioning');
     try {
+      // Expand the mobile siblings during the same frame as the form closes.
       cryptoMethod.classList.remove('is-expanded');
+      setMobileCardHeights(false);
+      methodGrid.classList.remove('is-crypto-focused');
       cryptoOpen = false;
       updateCryptoAccess(false);
-      if (!reducedMotion.matches) await sleep(400);
-      if (!reducedMotion.matches) methodGrid.classList.add('is-returning');
-      methodGrid.classList.remove('is-crypto-focused');
-      // Соседние карточки изначально скрыты, затем выезжают из-за CryptoBot.
-      await new Promise(resolve => requestAnimationFrame(resolve));
-      const restoreCards = animateOtherCards(false);
-      methodGrid.classList.remove('is-returning');
-      await restoreCards;
-      cryptoMethod.focus({ preventScroll: true });
+      if (!reducedMotion.matches) await sleep(580);
+      finishMobileTransition();
     } finally {
-      methodGrid.classList.remove('is-transitioning', 'is-returning');
+      methodGrid.classList.remove('is-transitioning');
       cryptoAnimating = false;
     }
   }
