@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f0f13">
+  <meta name="description" content="Поддержать ReConfig Province и ReHub — способы сказать спасибо разработчику проекта.">
+  <title>Поддержать проект — ReConfig Province</title>
+  <link rel="icon" href="assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="donate.css?v=2">
+</head>
+<body class="donate-page">
+  <div class="page-noise" aria-hidden="true"></div>
+  <div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
+  <div class="cursor-dot" id="cursorDot" aria-hidden="true"></div>
+  <div class="cursor-ring" id="cursorRing" aria-hidden="true"></div>
+
+  <header class="topbar" id="topbar">
+    <a class="brand interactive" href="index.html" aria-label="ReConfig Province — на главную">
+      <img src="assets/logo.png" alt="" class="brand-logo">
+      <span class="brand-copy"><strong>ReConfig Province</strong><small>by Nikolskiy</small></span>
+    </a>
+    <nav class="nav" aria-label="Навигация">
+      <a href="index.html">Главная</a>
+      <a href="rehub.html">Мастерская</a>
+      <a href="donate.html" aria-current="page">Поддержать</a>
+    </nav>
+    <a class="header-github interactive" href="index.html" title="Вернуться на главную"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg><span>На главную</span></a>
+  </header>
+
+  <main class="donate-content">
+    <div class="donate-orb donate-orb-a" aria-hidden="true"></div>
+    <div class="donate-orb donate-orb-b" aria-hidden="true"></div>
+    <section class="donate-hero" aria-labelledby="donate-title">
+      <div class="donate-eyebrow"><span class="donate-spark"></span> ПОДДЕРЖКА ПРОЕКТА</div>
+      <h1 id="donate-title">Спасибо, что вы <span>с нами.</span></h1>
+      <p class="donate-lead">ReConfig Province и ReHub развиваются благодаря интересу сообщества. Если хочется поддержать проект — можно выбрать любой удобный способ. Это полностью добровольно.</p>
+    </section>
+
+    <section class="donate-methods" aria-label="Способы поддержки">
+      <article class="donate-method donate-method-primary">
+        <div class="donate-method-top"><span class="donate-method-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M3 10h18M7 14h4"/></svg></span><span class="donate-method-tag">В ИГРЕ</span></div>
+        <div class="donate-method-body"><h2>Игровой банк</h2><p>Для игроков Province. Перевод на указанный игровой счёт.</p></div>
+        <div class="donate-account" aria-label="Номер игрового счёта"><span>Номер счёта</span><strong id="gameAccount">707793</strong></div>
+        <button id="copyAccount" class="donate-action donate-action-primary interactive" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg><span>Скопировать номер</span></button>
+      </article>
+
+      <article class="donate-method">
+        <div class="donate-method-top"><span class="donate-method-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="m22 2-7 20-4.5-9.5L1 8l21-6Z"/></svg></span><span class="donate-method-tag">TELEGRAM</span></div>
+        <div class="donate-method-body"><h2>CryptoBot</h2><p>Поддержка в USDT через Crypto Pay. Выбери сумму — откроется счёт в Telegram.</p></div>
+        <div class="donate-crypto-amounts" id="cryptoAmounts" role="group" aria-label="Сумма поддержки в USDT">
+          <button class="donate-amount interactive" type="button" data-amount="1" aria-pressed="false">1 USDT</button>
+          <button class="donate-amount interactive" type="button" data-amount="3" aria-pressed="true">3 USDT</button>
+          <button class="donate-amount interactive" type="button" data-amount="5" aria-pressed="false">5 USDT</button>
+        </div>
+        <div class="donate-crypto-hint" id="cryptoStatus" aria-live="polite">Безопасная оплата через Crypto Bot</div>
+        <button class="donate-action donate-action-outline interactive" type="button" id="cryptoLink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9"/><path d="M20 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5"/></svg><span>Создать счёт</span></button>
+      </article>
+
+      <article class="donate-method">
+        <div class="donate-method-top"><span class="donate-method-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"/></svg></span><span class="donate-method-tag">БАНКОВСКАЯ КАРТА</span></div>
+        <div class="donate-method-body"><h2>Donatello</h2><p>Удобный способ поддержать банковской картой. Доступность оплаты зависит от страны и банка.</p></div>
+        <div class="donate-link-note" id="donatelloStatus">Личная страница ещё не добавлена</div>
+        <a class="donate-action donate-action-outline interactive donate-inactive" id="donatelloLink" aria-disabled="true" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9"/><path d="M20 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5"/></svg><span>Поддержать картой</span></a>
+      </article>
+    </section>
+
+    <section class="donate-thanks" aria-label="Нематериальная поддержка">
+      <span class="donate-thanks-symbol"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"/></svg></span>
+      <div class="donate-thanks-copy"><h2>Не обязательно отправлять деньги</h2><p>Пользоваться программой, рассказывать о ней друзьям, делиться идеями или поставить звезду на GitHub — уже большая помощь. Спасибо!</p></div>
+      <a href="https://github.com/nikolskiy-project/ReConfig-Province" target="_blank" rel="noopener noreferrer" class="donate-thanks-link interactive">GitHub <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9"/><path d="M20 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5"/></svg></a>
+    </section>
+    <p class="donate-disclaimer">Поддержка добровольная и не влияет на доступ к программе и её возможностям.</p>
+  </main>
+
+  <footer class="donate-footer">
+    <div class="footer-brand"><img src="assets/logo.png" alt=""><div><strong>ReConfig Province</strong><span>Спасибо за поддержку</span></div></div>
+    <div class="footer-links"><a href="index.html">Главная</a><a href="rehub.html">ReHub</a></div>
+    <span class="copyright">© <span id="year"></span> Nikolskiy</span>
+  </footer>
+  <div class="donate-toast" id="donateToast" role="status" aria-live="polite"></div>
+  <script src="donate.js?v=2"></script>
+</body>
+</html>
