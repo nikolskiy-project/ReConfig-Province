@@ -1,7 +1,7 @@
 .donate-page { background: #0f0f13; }
 .donate-page .nav a[aria-current="page"] { color: #f0eaff; background: rgba(139,92,246,.13); }
 .donate-page button { font: inherit; }
-.donate-content { width: min(calc(100% - 36px), 1110px); min-height: calc(100vh - 108px); margin: 0 auto; position: relative; padding: 126px 0 86px; }
+.donate-content { width: min(calc(100% - 36px), 1110px); min-height: calc(100vh - 108px); margin: 0 auto; position: relative; padding: 126px 0 calc(86px + var(--donate-center-extra, 0px)); }
 .donate-orb { position: absolute; pointer-events: none; border-radius: 50%; filter: blur(75px); z-index: -1; }
 .donate-orb-a { top: 100px; left: 11%; width: 290px; height: 290px; background: rgba(139,92,246,.10); }
 .donate-orb-b { top: 155px; right: 9%; width: 260px; height: 240px; background: rgba(99,102,241,.07); }
@@ -54,7 +54,7 @@
   .donate-thanks { max-width: 660px; margin: 18px auto 0; }
 }
 @media (max-width: 640px) {
-  .donate-content { width: calc(100% - 28px); padding-top: 95px; padding-bottom: 64px; }
+  .donate-content { width: calc(100% - 28px); padding-top: 95px; padding-bottom: calc(64px + var(--donate-center-extra, 0px)); }
   .donate-hero { margin-bottom: 32px; }
   .donate-hero h1 { font-size: 43px; line-height: 1.04; letter-spacing: -1.9px; }
   .donate-lead { font-size: 13px; margin-top: 18px; line-height: 1.73; }
@@ -133,4 +133,15 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .donate-crypto-compact, .donate-crypto-details, .donate-crypto-back, .donate-method-crypto, .donate-methods, .donate-methods .donate-method:not(.donate-method-crypto) { transition: none !important; }
+}
+
+/* Ненавязчивая подсветка, когда развернутая карточка доезжает до центра. */
+@keyframes donateFocusArrived {
+  0% { box-shadow: 0 14px 32px rgba(0,0,0,.14), 0 0 0 0 rgba(139,92,246,.0); }
+  42% { box-shadow: 0 22px 46px rgba(0,0,0,.23), 0 0 0 4px rgba(139,92,246,.13); }
+  100% { box-shadow: 0 14px 32px rgba(0,0,0,.14), 0 0 0 0 rgba(139,92,246,.0); }
+}
+.donate-method-crypto.is-centered { animation: donateFocusArrived .76s cubic-bezier(.22,1,.36,1); }
+@media (prefers-reduced-motion: reduce) {
+  .donate-method-crypto.is-centered { animation: none; }
 }

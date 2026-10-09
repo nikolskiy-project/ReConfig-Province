@@ -54,6 +54,82 @@ const DONATION_LINKS = { donatello: '' };
   let cryptoAnimating = false;
   const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+  // После завершения раскрытия мягко подводим карточку к центру экрана.
+  // Используем собственный animation frame: он не конкурирует с инерцией страницы.
+  const content = document.querySelector('.donate-content');
+  let centeringFrame = 0;
+  let centeringActive = false;
+  let centeringSequence = 0;
+  let centerGlowTimer = 0;
+  const easeOutQuint = t => 1 - Math.pow(1 - t, 5);
+  const maxPageScroll = () => Math.max(0, document.documentElement.scrollHeight - innerHeight);
+  function stopAutoCenter() {
+    centeringSequence++;
+    if (centeringFrame) cancelAnimationFrame(centeringFrame);
+    centeringFrame = 0;
+    if (centeringActive) {
+      document.documentElement.classList.remove('page-kinetic');
+      document.body.classList.remove('page-kinetic');
+    }
+    centeringActive = false;
+  }
+  // Любое ручное действие берёт приоритет над автоматическим движением.
+  ['wheel', 'touchstart', 'pointerdown', 'keydown'].forEach(name => {
+    window.addEventListener(name, () => { if (centeringActive) stopAutoCenter(); }, { capture: true, passive: true });
+  });
+
+  function centerExpandedCrypto() {
+    if (!cryptoOpen || !cryptoMethod.classList.contains('is-expanded')) return;
+    stopAutoCenter();
+    window.cancelPageInertia?.();
+    const rect = cryptoMethod.getBoundingClientRect();
+    const headerBottom = Math.max(0, topbar.getBoundingClientRect().bottom) + 16;
+    const viewBottom = innerHeight - 18;
+    const usableHeight = Math.max(1, viewBottom - headerBottom);
+    // Высокую мобильную форму показываем с начала, чтобы поля не оказались за шапкой.
+    const desiredTop = rect.height > usableHeight
+      ? headerBottom
+      : headerBottom + (usableHeight - rect.height) / 2;
+    const desiredScroll = Math.max(0, rect.top + scrollY - desiredTop);
+    // Без небольшой нижней свободной области браузер мог бы остановить
+    // прокрутку до центра из-за конца документа.
+    const missingSpace = Math.max(0, desiredScroll - maxPageScroll());
+    content.style.setProperty('--donate-center-extra', `${Math.ceil(missingSpace + (missingSpace > 0 ? 16 : 0))}px`);
+    const target = Math.max(0, Math.min(maxPageScroll(), desiredScroll));
+    const start = scrollY;
+    const distance = target - start;
+    if (Math.abs(distance) < 2 || reducedMotion.matches) {
+      window.scrollTo(0, target);
+      return;
+    }
+    const sequence = ++centeringSequence;
+    const duration = Math.max(400, Math.min(840, 450 + Math.abs(distance) * .30));
+    let startedAt = null;
+    centeringActive = true;
+    // В styles.css включен scroll-behavior:smooth; для покадровой
+    // анимации здесь нужен scroll-behavior:auto во избежание рывков.
+    document.documentElement.classList.add('page-kinetic');
+    document.body.classList.add('page-kinetic');
+    const step = now => {
+      if (!centeringActive || sequence !== centeringSequence) return;
+      if (startedAt === null) startedAt = now;
+      const fraction = Math.min(1, (now - startedAt) / duration);
+      window.scrollTo(0, start + distance * easeOutQuint(fraction));
+      if (fraction < 1) {
+        centeringFrame = requestAnimationFrame(step);
+      } else {
+        centeringFrame = 0;
+        centeringActive = false;
+        document.documentElement.classList.remove('page-kinetic');
+        document.body.classList.remove('page-kinetic');
+        cryptoMethod.classList.add('is-centered');
+        clearTimeout(centerGlowTimer);
+        centerGlowTimer = setTimeout(() => cryptoMethod.classList.remove('is-centered'), 780);
+      }
+    };
+    centeringFrame = requestAnimationFrame(step);
+  }
+
   const mobileCardHeights = new Map();
   function prepareMobileCollapse() {
     if (innerWidth > 980) return;
@@ -110,6 +186,10 @@ const DONATION_LINKS = { donatello: '' };
       cryptoOpen = true;
       updateCryptoAccess(true);
       if (!reducedMotion.matches) await sleep(580);
+      // Сначала раскрытие карточки, затем отдельный мягкий подвод к центру.
+      // На мобильном браузере даём сетке закончить перерасчёт высоты.
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      centerExpandedCrypto();
       // Keep the other mobile cards at zero height while CryptoBot is open.
       // Clearing max-height here would make invisible cards occupy empty space.
     } finally {
@@ -121,6 +201,9 @@ const DONATION_LINKS = { donatello: '' };
   async function closeCryptoForm() {
     if (!cryptoOpen || cryptoAnimating) return;
     cryptoAnimating = true;
+    stopAutoCenter();
+    clearTimeout(centerGlowTimer);
+    cryptoMethod.classList.remove('is-centered');
     methodGrid.classList.add('is-transitioning');
     try {
       // Expand the mobile siblings during the same frame as the form closes.
@@ -131,6 +214,8 @@ const DONATION_LINKS = { donatello: '' };
       updateCryptoAccess(false);
       if (!reducedMotion.matches) await sleep(580);
       finishMobileTransition();
+      // После закрытия возвращаем исходные отступы, не меняя остальное оформление.
+      content.style.removeProperty('--donate-center-extra');
     } finally {
       methodGrid.classList.remove('is-transitioning');
       cryptoAnimating = false;
