@@ -43,18 +43,47 @@ const DONATION_LINKS = { donatello: '' };
   }
   // Счёт создаётся сервером: никакого Crypto Pay API token в исходниках сайта.
   let selectedCryptoAmount = '3';
+  const customCryptoAmount = byId('cryptoCustomAmount');
+  const cryptoComment = byId('cryptoComment');
   const cryptoButton = byId('cryptoLink');
   const cryptoLabel = cryptoButton.querySelector('span');
-  byId('cryptoAmounts').querySelectorAll('[data-amount]').forEach(button => {
+  const amountButtons = [...byId('cryptoAmounts').querySelectorAll('[data-amount]')];
+  function syncCryptoAmounts() {
+    amountButtons.forEach(item => {
+      item.setAttribute('aria-pressed', String(item.dataset.amount === selectedCryptoAmount));
+    });
+  }
+  amountButtons.forEach(button => {
     button.addEventListener('click', () => {
       selectedCryptoAmount = button.dataset.amount;
-      byId('cryptoAmounts').querySelectorAll('[data-amount]').forEach(item => {
-        item.setAttribute('aria-pressed', String(item === button));
-      });
+      customCryptoAmount.value = '';
+      syncCryptoAmounts();
     });
   });
+  customCryptoAmount.addEventListener('input', () => {
+    selectedCryptoAmount = '';
+    syncCryptoAmounts();
+  });
+  function parseDonationAmount(raw) {
+    const value = String(raw).trim().replace(',', '.');
+    if (!/^(?:\d{1,4})(?:\.\d{1,2})?$/.test(value)) return null;
+    const amount = Number(value);
+    if (!Number.isFinite(amount) || amount < 1 || amount > 1000) return null;
+    return Number(amount.toFixed(2)).toString();
+  }
   cryptoButton.addEventListener('click', async () => {
     if (cryptoButton.disabled) return;
+    const amount = parseDonationAmount(selectedCryptoAmount || customCryptoAmount.value);
+    if (!amount) {
+      showToast('Укажите сумму от 1 до 1000 USDT (не больше 2 знаков после запятой)');
+      customCryptoAmount.focus({ preventScroll: true });
+      return;
+    }
+    const comment = cryptoComment.value.trim();
+    if (comment.length > 160) {
+      showToast('Комментарий слишком длинный (максимум 160 символов)');
+      return;
+    }
     cryptoButton.disabled = true;
     cryptoLabel.textContent = 'Создаём счёт…';
     try {
@@ -65,7 +94,7 @@ const DONATION_LINKS = { donatello: '' };
         response = await fetch(CRYPTO_DONATIONS_API, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ amount: selectedCryptoAmount }),
+          body: JSON.stringify({ amount, comment }),
           signal: controller.signal,
           cache: 'no-store'
         });
@@ -126,7 +155,7 @@ const DONATION_LINKS = { donatello: '' };
     document.body.classList.add('cursor-active');
   }, { passive: true });
   addEventListener('mouseleave', () => document.body.classList.remove('cursor-active'));
-  document.querySelectorAll('a,button').forEach(el => {
+  document.querySelectorAll('a,button,input,textarea').forEach(el => {
     el.addEventListener('mouseenter', () => document.body.classList.add('cursor-hover'));
     el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-hover'));
   });

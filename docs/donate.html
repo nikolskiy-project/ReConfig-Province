@@ -4,11 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0f0f13">
-  <meta name="description" content="Поддержать ReConfig Province и ReHub — способы сказать спасибо разработчику проекта.">
+  <meta name="description" content="Поддержать ReConfig Province — способы сказать спасибо разработчику проекта.">
   <title>Поддержать проект — ReConfig Province</title>
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="donate.css?v=2">
+  <link rel="stylesheet" href="donate.css?v=3">
 </head>
 <body class="donate-page">
   <div class="page-noise" aria-hidden="true"></div>
@@ -35,7 +35,7 @@
     <section class="donate-hero" aria-labelledby="donate-title">
       <div class="donate-eyebrow"><span class="donate-spark"></span> ПОДДЕРЖКА ПРОЕКТА</div>
       <h1 id="donate-title">Спасибо, что вы <span>с нами.</span></h1>
-      <p class="donate-lead">ReConfig Province и ReHub развиваются благодаря интересу сообщества. Если хочется поддержать проект — можно выбрать любой удобный способ. Это полностью добровольно.</p>
+      <p class="donate-lead">ReConfig Province развивается благодаря интересу сообщества. Если хочется поддержать проект — можно выбрать любой удобный способ. Это полностью добровольно.</p>
     </section>
 
     <section class="donate-methods" aria-label="Способы поддержки">
@@ -48,12 +48,25 @@
 
       <article class="donate-method">
         <div class="donate-method-top"><span class="donate-method-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="m22 2-7 20-4.5-9.5L1 8l21-6Z"/></svg></span><span class="donate-method-tag">TELEGRAM</span></div>
-        <div class="donate-method-body"><h2>CryptoBot</h2><p>Поддержка в USDT через Crypto Pay. Выбери сумму — откроется счёт в Telegram.</p></div>
+        <div class="donate-method-body"><h2>CryptoBot</h2><p>Поддержка в USDT через Crypto Pay. Выбери сумму или укажи свою и добавь комментарий к платежу.</p></div>
         <div class="donate-crypto-amounts" id="cryptoAmounts" role="group" aria-label="Сумма поддержки в USDT">
           <button class="donate-amount interactive" type="button" data-amount="1" aria-pressed="false">1 USDT</button>
           <button class="donate-amount interactive" type="button" data-amount="3" aria-pressed="true">3 USDT</button>
           <button class="donate-amount interactive" type="button" data-amount="5" aria-pressed="false">5 USDT</button>
         </div>
+        <label class="donate-field" for="cryptoCustomAmount">
+          <span class="donate-field-label">Или своя сумма</span>
+          <span class="donate-field-input-wrap">
+            <input class="donate-field-input interactive" id="cryptoCustomAmount" type="text" inputmode="decimal" autocomplete="off" maxlength="8" placeholder="Например, 12.50" aria-describedby="cryptoAmountHelp">
+            <span class="donate-field-unit">USDT</span>
+          </span>
+        </label>
+        <p class="donate-field-helper" id="cryptoAmountHelp">От 1 до 1000 USDT, до двух знаков после запятой</p>
+        <label class="donate-field donate-note-field" for="cryptoComment">
+          <span class="donate-field-label">Комментарий <span class="donate-optional">необязательно</span></span>
+          <textarea class="donate-field-input donate-field-textarea interactive" id="cryptoComment" rows="2" maxlength="160" placeholder="Например, спасибо за программу!" aria-describedby="cryptoCommentHelp"></textarea>
+        </label>
+        <p class="donate-field-helper" id="cryptoCommentHelp">Будет указан в описании счёта при оплате</p>
         <div class="donate-crypto-hint" id="cryptoStatus" aria-live="polite">Безопасная оплата через Crypto Bot</div>
         <button class="donate-action donate-action-outline interactive" type="button" id="cryptoLink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9"/><path d="M20 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5"/></svg><span>Создать счёт</span></button>
       </article>
@@ -76,10 +89,10 @@
 
   <footer class="donate-footer">
     <div class="footer-brand"><img src="assets/logo.png" alt=""><div><strong>ReConfig Province</strong><span>Спасибо за поддержку</span></div></div>
-    <div class="footer-links"><a href="index.html">Главная</a><a href="rehub.html">ReHub</a></div>
+    <div class="footer-links"><a href="index.html">Главная</a><a href="rehub.html">Мастерская</a></div>
     <span class="copyright">© <span id="year"></span> Nikolskiy</span>
   </footer>
   <div class="donate-toast" id="donateToast" role="status" aria-live="polite"></div>
-  <script src="donate.js?v=2"></script>
+  <script src="donate.js?v=3"></script>
 </body>
 </html>

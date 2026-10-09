@@ -76,3 +76,22 @@
 .donate-crypto-hint { margin-top: 10px; color: #9292a2; font-size: 11px; line-height: 1.45; }
 .donate-action:disabled { cursor: wait; opacity: .72; transform: none !important; }
 @media (prefers-reduced-motion: reduce) { .donate-amount { transition: none; } }
+
+/* Сумма и назначение платежа — компактные поля в едином стиле ReConfig Province. */
+.donate-field { display: block; margin-top: 13px; min-width: 0; }
+.donate-field-label { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 7px; font-size: 11px; font-weight: 620; color: #c9c2d9; }
+.donate-optional { color: #797589; font-weight: 450; font-size: 10px; }
+.donate-field-input-wrap { display: flex; align-items: center; gap: 9px; min-width: 0; border: 1px solid rgba(183,156,255,.18); border-radius: 9px; background: rgba(11,11,19,.55); transition: border-color .16s ease, background .16s ease, box-shadow .16s ease; }
+.donate-field-input-wrap:focus-within { border-color: rgba(183,156,255,.72); box-shadow: 0 0 0 3px rgba(139,92,246,.10); background: rgba(15,13,24,.9); }
+.donate-field-input { box-sizing: border-box; min-width: 0; display: block; width: 100%; outline: none; border: 0; background: transparent; color: #f0eaff; font: inherit; font-size: 12px; user-select: text; -webkit-user-select: text; }
+.donate-field-input::placeholder { color: #696579; }
+.donate-field-input-wrap input { padding: 11px 12px; }
+.donate-field-unit { padding-right: 12px; font-size: 10px; font-weight: 700; color: #a68de5; }
+.donate-note-field { margin-top: 16px; }
+.donate-field-textarea { min-height: 65px; max-height: 116px; resize: vertical; padding: 11px 12px; border: 1px solid rgba(183,156,255,.18); border-radius: 9px; background: rgba(11,11,19,.55); line-height: 1.5; transition: border-color .16s ease,box-shadow .16s ease, background .16s ease; }
+.donate-field-textarea:focus { border-color: rgba(183,156,255,.72); box-shadow: 0 0 0 3px rgba(139,92,246,.10); background: rgba(15,13,24,.9); }
+.donate-field-helper { font-size: 10px; line-height: 1.5; color: #838091; margin-top: 6px; }
+.donate-method:has(.donate-field) .donate-method-body { margin-bottom: 19px; }
+.donate-method:has(.donate-field) .donate-crypto-amounts { margin-top: auto; }
+.donate-page.cursor-active .donate-field-input, .donate-page.cursor-active .donate-field-input-wrap { cursor: text; }
+@media (max-width: 640px) { .donate-note-field { margin-top: 14px; } }
