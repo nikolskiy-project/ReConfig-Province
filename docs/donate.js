@@ -54,80 +54,93 @@ const DONATION_LINKS = { donatello: '' };
   let cryptoAnimating = false;
   const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-  // После завершения раскрытия мягко подводим карточку к центру экрана.
-  // Используем собственный animation frame: он не конкурирует с инерцией страницы.
+  // Центрирование начинается ОДНОВРЕМЕННО с превращением карточки.
+  // Точка назначения пересчитывается во время CSS-анимации, потому что
+  // высота CryptoBot и расположение соседних карточек меняются на ходу.
   const content = document.querySelector('.donate-content');
   let centeringFrame = 0;
   let centeringActive = false;
   let centeringSequence = 0;
   let centerGlowTimer = 0;
-  const easeOutQuint = t => 1 - Math.pow(1 - t, 5);
+  let morphGlowTimer = 0;
   const maxPageScroll = () => Math.max(0, document.documentElement.scrollHeight - innerHeight);
+
   function stopAutoCenter() {
     centeringSequence++;
     if (centeringFrame) cancelAnimationFrame(centeringFrame);
     centeringFrame = 0;
-    if (centeringActive) {
-      document.documentElement.classList.remove('page-kinetic');
-      document.body.classList.remove('page-kinetic');
-    }
     centeringActive = false;
+    document.documentElement.classList.remove('page-kinetic', 'donate-auto-center');
+    document.body.classList.remove('page-kinetic', 'donate-auto-center');
   }
-  // Любое ручное действие берёт приоритет над автоматическим движением.
+
+  // Ручное движение имеет приоритет и не борется с автопрокруткой.
   ['wheel', 'touchstart', 'pointerdown', 'keydown'].forEach(name => {
     window.addEventListener(name, () => { if (centeringActive) stopAutoCenter(); }, { capture: true, passive: true });
   });
 
-  function centerExpandedCrypto() {
-    if (!cryptoOpen || !cryptoMethod.classList.contains('is-expanded')) return;
+  function centerCryptoWhileExpanding() {
     stopAutoCenter();
     window.cancelPageInertia?.();
-    const rect = cryptoMethod.getBoundingClientRect();
-    const headerBottom = Math.max(0, topbar.getBoundingClientRect().bottom) + 16;
-    const viewBottom = innerHeight - 18;
-    const usableHeight = Math.max(1, viewBottom - headerBottom);
-    // Высокую мобильную форму показываем с начала, чтобы поля не оказались за шапкой.
-    const desiredTop = rect.height > usableHeight
-      ? headerBottom
-      : headerBottom + (usableHeight - rect.height) / 2;
-    const desiredScroll = Math.max(0, rect.top + scrollY - desiredTop);
-    // Без небольшой нижней свободной области браузер мог бы остановить
-    // прокрутку до центра из-за конца документа.
-    const missingSpace = Math.max(0, desiredScroll - maxPageScroll());
-    content.style.setProperty('--donate-center-extra', `${Math.ceil(missingSpace + (missingSpace > 0 ? 16 : 0))}px`);
-    const target = Math.max(0, Math.min(maxPageScroll(), desiredScroll));
-    const start = scrollY;
-    const distance = target - start;
-    if (Math.abs(distance) < 2 || reducedMotion.matches) {
-      window.scrollTo(0, target);
-      return;
-    }
+    if (!cryptoOpen) return;
+
     const sequence = ++centeringSequence;
-    const duration = Math.max(400, Math.min(840, 450 + Math.abs(distance) * .30));
-    let startedAt = null;
+    const startedAt = performance.now();
+    let lastFrame = startedAt;
+    let extraSpace = 0;
     centeringActive = true;
-    // В styles.css включен scroll-behavior:smooth; для покадровой
-    // анимации здесь нужен scroll-behavior:auto во избежание рывков.
-    document.documentElement.classList.add('page-kinetic');
-    document.body.classList.add('page-kinetic');
-    const step = now => {
-      if (!centeringActive || sequence !== centeringSequence) return;
-      if (startedAt === null) startedAt = now;
-      const fraction = Math.min(1, (now - startedAt) / duration);
-      window.scrollTo(0, start + distance * easeOutQuint(fraction));
-      if (fraction < 1) {
-        centeringFrame = requestAnimationFrame(step);
+    document.documentElement.classList.add('page-kinetic', 'donate-auto-center');
+    document.body.classList.add('page-kinetic', 'donate-auto-center');
+
+    const tick = now => {
+      if (!centeringActive || sequence !== centeringSequence || !cryptoOpen) return;
+      const dt = Math.min(40, Math.max(1, now - lastFrame));
+      lastFrame = now;
+      const elapsed = now - startedAt;
+      const rect = cryptoMethod.getBoundingClientRect();
+      const headerBottom = Math.max(0, topbar.getBoundingClientRect().bottom) + 16;
+      const available = Math.max(1, innerHeight - headerBottom - 18);
+      // Крупная мобильная форма остаётся видна с начала, не заезжая под шапку.
+      const desiredTop = rect.height > available
+        ? headerBottom
+        : headerBottom + (available - rect.height) / 2;
+      const desiredScroll = Math.max(0, scrollY + rect.top - desiredTop);
+
+      // Внизу страницы добавляем лишь реально необходимый запас места,
+      // чтобы можно было поставить карточку ровно по центру.
+      const missingSpace = Math.max(0, desiredScroll - maxPageScroll());
+      if (missingSpace > 1) {
+        extraSpace += Math.ceil(missingSpace + 3);
+        content.style.setProperty('--donate-center-extra', `${extraSpace}px`);
+      }
+      const target = Math.max(0, Math.min(maxPageScroll(), desiredScroll));
+
+      if (reducedMotion.matches) {
+        window.scrollTo(0, target);
       } else {
-        centeringFrame = 0;
-        centeringActive = false;
-        document.documentElement.classList.remove('page-kinetic');
-        document.body.classList.remove('page-kinetic');
+        // Пружинящее, но без колебаний, следование за карточкой прямо в момент
+        // раскрытия; начальные 60 мс дают мягкий разгон без скачка.
+        const ramp = Math.min(1, Math.max(.16, elapsed / 85));
+        const smoothing = (1 - Math.exp(-dt / 125)) * ramp;
+        const next = scrollY + (target - scrollY) * smoothing;
+        window.scrollTo(0, next);
+      }
+      const closeEnough = Math.abs(target - scrollY) < 1.7;
+      // CSS-разворот длится 540 мс. Даём позиции дойти до финального центра
+      // и завершаем, не оставляя длинного "хвоста" после анимации.
+      if (!reducedMotion.matches && (elapsed < 650 || (!closeEnough && elapsed < 1150))) {
+        centeringFrame = requestAnimationFrame(tick);
+        return;
+      }
+      if (!reducedMotion.matches && !closeEnough) window.scrollTo(0, target);
+      stopAutoCenter();
+      if (cryptoOpen) {
         cryptoMethod.classList.add('is-centered');
         clearTimeout(centerGlowTimer);
         centerGlowTimer = setTimeout(() => cryptoMethod.classList.remove('is-centered'), 780);
       }
     };
-    centeringFrame = requestAnimationFrame(step);
+    centeringFrame = requestAnimationFrame(tick);
   }
 
   const mobileCardHeights = new Map();
@@ -185,11 +198,13 @@ const DONATION_LINKS = { donatello: '' };
       setMobileCardHeights(true);
       cryptoOpen = true;
       updateCryptoAccess(true);
+      // Запускаем скролл и оформление одновременно с раскрытием карточки,
+      // а не после ожидания окончания CSS transition.
+      cryptoMethod.classList.add('is-morphing');
+      clearTimeout(morphGlowTimer);
+      morphGlowTimer = setTimeout(() => cryptoMethod.classList.remove('is-morphing'), 820);
+      centerCryptoWhileExpanding();
       if (!reducedMotion.matches) await sleep(580);
-      // Сначала раскрытие карточки, затем отдельный мягкий подвод к центру.
-      // На мобильном браузере даём сетке закончить перерасчёт высоты.
-      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      centerExpandedCrypto();
       // Keep the other mobile cards at zero height while CryptoBot is open.
       // Clearing max-height here would make invisible cards occupy empty space.
     } finally {
@@ -203,7 +218,8 @@ const DONATION_LINKS = { donatello: '' };
     cryptoAnimating = true;
     stopAutoCenter();
     clearTimeout(centerGlowTimer);
-    cryptoMethod.classList.remove('is-centered');
+    clearTimeout(morphGlowTimer);
+    cryptoMethod.classList.remove('is-centered', 'is-morphing');
     methodGrid.classList.add('is-transitioning');
     try {
       // Expand the mobile siblings during the same frame as the form closes.

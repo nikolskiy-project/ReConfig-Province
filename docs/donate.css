@@ -145,3 +145,50 @@
 @media (prefers-reduced-motion: reduce) {
   .donate-method-crypto.is-centered { animation: none; }
 }
+
+/* v7: синхронное раскрытие CryptoBot и прокрутка, без рывков scroll anchoring. */
+html.donate-auto-center, body.donate-auto-center { overflow-anchor: none; }
+
+/* Небольшой световой акцент во время превращения, без изменения размеров. */
+@keyframes donateCryptoMorphGlow {
+  0%   { box-shadow: 0 14px 32px rgba(0,0,0,.14), 0 0 0 0 rgba(139,92,246,0); }
+  50%  { box-shadow: 0 23px 48px rgba(24,12,51,.33), 0 0 0 3px rgba(139,92,246,.15); }
+  100% { box-shadow: 0 18px 38px rgba(0,0,0,.20), 0 0 0 0 rgba(139,92,246,0); }
+}
+.donate-method-crypto.is-morphing {
+  animation: donateCryptoMorphGlow .76s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes donateCryptoIconEnter {
+  0% { transform: translateY(0) scale(1); }
+  42% { transform: translateY(-3px) scale(1.095); }
+  100% { transform: translateY(0) scale(1); }
+}
+.donate-method-crypto.is-morphing .donate-method-icon {
+  animation: donateCryptoIconEnter .65s cubic-bezier(.22,1,.36,1) both;
+}
+/* Поля появляются не одним резким блоком, а последовательно во время роста карточки. */
+.donate-crypto-details-inner > * {
+  opacity: 0;
+  transform: translate3d(0, 11px, 0);
+  transition: opacity .36s ease, transform .45s cubic-bezier(.22,1,.36,1);
+  transition-delay: 0s;
+}
+.donate-method-crypto.is-expanded .donate-crypto-details-inner > * {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+.donate-method-crypto.is-expanded .donate-crypto-details-inner > :nth-child(1) { transition-delay: .05s; }
+.donate-method-crypto.is-expanded .donate-crypto-details-inner > :nth-child(2) { transition-delay: .10s; }
+.donate-method-crypto.is-expanded .donate-crypto-details-inner > :nth-child(3) { transition-delay: .15s; }
+.donate-method-crypto.is-expanded .donate-crypto-details-inner > :nth-child(4) { transition-delay: .20s; }
+.donate-method-crypto.is-expanded .donate-crypto-details-inner > :nth-child(5) { transition-delay: .24s; }
+.donate-method-crypto.is-expanded .donate-crypto-details-inner > :nth-child(6) { transition-delay: .28s; }
+.donate-method-crypto.is-expanded .donate-crypto-details-inner > :nth-child(7) { transition-delay: .32s; }
+.donate-method-crypto.is-expanded .donate-crypto-details-inner > :nth-child(8) { transition-delay: .36s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .donate-method-crypto.is-morphing, .donate-method-crypto.is-morphing .donate-method-icon { animation: none; }
+  .donate-crypto-details-inner > *, .donate-method-crypto.is-expanded .donate-crypto-details-inner > * {
+    transition: none; transform: none;
+  }
+}
