@@ -619,6 +619,11 @@ async function downloadSelectedConfig(button) {
     link.remove();
     setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
     showToast('XML-файл скачан.');
+    if (card.dataset.communityId) {
+      const countHeader = response.headers.get('X-ReHub-Downloads');
+      if (countHeader !== null && countHeader !== '') setCommunityDownloadCount(card.dataset.communityId, Number(countHeader));
+      else void refreshCommunityDownloadCounts();
+    }
   } catch (error) {
     showToast(error?.name === 'AbortError' ? 'Сервер долго не отвечает. Попробуй ещё раз.' : (error.message || 'Ошибка скачивания XML.'));
   } finally {
@@ -909,6 +914,46 @@ function escapeText(value) {
   return String(value ?? '');
 }
 
+// Actual download counts are provided by the Worker. Never fabricate a "0" on a missing API.
+const communityDownloadCounts = new Map();
+function formatCommunityDownloads(value) {
+  if (!Number.isSafeInteger(value) || value < 0) return '— скачиваний';
+  const n = value;
+  const word = n % 10 === 1 && n % 100 !== 11 ? 'скачивание' :
+    (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'скачивания' : 'скачиваний');
+  return `${n.toLocaleString('ru-RU')} ${word}`;
+}
+function setCommunityDownloadCount(id, value) {
+  if (!/^[a-f0-9]{12}$/.test(String(id))) return;
+  const n = Number(value);
+  if (!Number.isSafeInteger(n) || n < 0) return;
+  communityDownloadCounts.set(id, n);
+  $$('.community-card').forEach(card => {
+    if (card.dataset.communityId !== id) return;
+    const label = card.querySelector('.thumb-downloads-label');
+    if (label) label.textContent = formatCommunityDownloads(n);
+  });
+}
+async function refreshCommunityDownloadCounts() {
+  if (!REHUB_API) return;
+  try {
+    // A dedicated lightweight endpoint avoids caching the counter inside catalog.json.
+    const response = await fetch(`${REHUB_API}/api/download-stats`, {
+      headers: { Accept: 'application/json' }, cache: 'no-store'
+    });
+    if (!response.ok) return;
+    const data = await response.json();
+    const counts = data?.counts;
+    if (!counts || typeof counts !== 'object' || Array.isArray(counts)) return;
+    $$('.community-card').forEach(card => {
+      const id = card.dataset.communityId;
+      if (!id) return;
+      const value = Object.prototype.hasOwnProperty.call(counts, id) ? counts[id] : 0;
+      setCommunityDownloadCount(id, value);
+    });
+  } catch (_) { /* Older Worker deployments do not expose this endpoint yet. */ }
+}
+
 function makeCommunityCard(item, index = 0) {
   const card = document.createElement('article');
   card.className = 'hub-video-card community-card interactive-card reveal';
@@ -947,13 +992,28 @@ function makeCommunityCard(item, index = 0) {
     fallback.innerHTML = iconMap.star;
     thumb.appendChild(fallback);
   }
-  const state = document.createElement('span');
-  state.className = 'thumb-state ready';
-  state.textContent = item.verified ? 'Проверено' : 'Сообщество';
+  // The verification badge belongs in the same top-left position as "Закреплено".
+  if (item.verified) {
+    const verified = document.createElement('span');
+    verified.className = 'thumb-pin community-verified-pin';
+    verified.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 19 6v5c0 4.8-2.9 8-7 10-4.1-2-7-5.2-7-10V6l7-3Z"/><path d="m9.5 12 1.7 1.7 3.7-4"/></svg>Проверено';
+    thumb.appendChild(verified);
+  }
+  const downloads = document.createElement('span');
+  downloads.className = 'thumb-state thumb-downloads';
+  downloads.title = 'Количество скачиваний XML с сайта ReHub';
+  const countLabel = document.createElement('span');
+  countLabel.className = 'thumb-downloads-label';
+  const initialCount = communityDownloadCounts.has(card.dataset.communityId)
+    ? communityDownloadCounts.get(card.dataset.communityId) : Number(item.downloads);
+  countLabel.textContent = formatCommunityDownloads(
+    item.downloads == null && !communityDownloadCounts.has(card.dataset.communityId) ? null : initialCount
+  );
+  downloads.appendChild(countLabel);
   const shine = document.createElement('div');
   shine.className = 'thumb-shine';
   shine.setAttribute('aria-hidden', 'true');
-  thumb.append(state, shine);
+  thumb.append(downloads, shine);
 
   const meta = document.createElement('div');
   meta.className = 'video-card-meta';
@@ -1078,6 +1138,7 @@ async function loadCommunityConfigs() {
     const communityItems = items.filter(item => item && item.official !== true);
     grid.innerHTML = '';
     communityItems.forEach((item, index) => grid.appendChild(makeCommunityCard(item, index)));
+    void refreshCommunityDownloadCounts();
     rebuildCategorySelect(communityItems, items);
     observeReveals(grid);
 
@@ -1314,12 +1375,46 @@ function initUploadGuide() {
   const guide = document.getElementById('uploadGuide');
   const toggle = document.getElementById('uploadGuideToggle');
   const content = document.getElementById('uploadGuideContent');
-  if (!guide || !toggle || !content) return;
+  const scroller = guide?.closest('.upload-modal');
+  if (!guide || !toggle || !content || !scroller) return;
+  scroller.style.overflowAnchor = 'none';
+
+  let scrollFrame = 0;
+  const cancelGuideScroll = () => {
+    if (scrollFrame) cancelAnimationFrame(scrollFrame);
+    scrollFrame = 0;
+  };
+  ['wheel', 'pointerdown', 'touchstart', 'keydown'].forEach(type => {
+    scroller.addEventListener(type, cancelGuideScroll, { passive: true, capture: true });
+  });
   toggle.addEventListener('click', () => {
+    cancelGuideScroll();
     const open = !guide.classList.contains('is-open');
     guide.classList.toggle('is-open', open);
     toggle.setAttribute('aria-expanded', String(open));
     content.setAttribute('aria-hidden', String(!open));
+    if (!open) return;
+
+    const start = scroller.scrollTop;
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const duration = reduceMotion ? 0 : 600;
+    const began = performance.now();
+    // The target is recomputed while the grid expands. This keeps the heading
+    // and the first tips in view rather than scrolling to an outdated height.
+    const frame = now => {
+      if (!guide.classList.contains('is-open') || !scroller.closest('#uploadModal.open')) {
+        scrollFrame = 0;
+        return;
+      }
+      const position = scroller.scrollTop + guide.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+      const target = Math.max(start, Math.max(0, position - 15));
+      const progress = duration ? Math.min(1, (now - began) / duration) : 1;
+      const eased = 1 - Math.pow(1 - progress, 3);
+      scroller.scrollTop = start + (target - start) * eased;
+      if (progress < 1) scrollFrame = requestAnimationFrame(frame);
+      else scrollFrame = 0;
+    };
+    scrollFrame = requestAnimationFrame(frame);
   });
 }
 

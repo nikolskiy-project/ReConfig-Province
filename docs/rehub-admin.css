@@ -1269,3 +1269,28 @@ html:has(> body.admin-review-open) { overflow-y:hidden !important; }
 }
 /* Preserve the original full button height after cancelling the slide-out. */
 .admin-approved-delete:not(.confirming) > #reviewDelete {min-height:44px;}
+
+/* v43: the old upload notice was replaced with advice on the public form,
+   but Admin still has this notice. Constrain its SVG so it cannot fill the editor. */
+.admin-page .upload-notice.admin-notice {
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  padding: 10px 11px;
+  border: 1px solid rgba(139,92,246,.13);
+  border-radius: 9px;
+  background: rgba(139,92,246,.035);
+  color: #878795;
+  font-size: 9px;
+  line-height: 1.45;
+}
+.admin-page .upload-notice.admin-notice > svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+  min-width: 15px;
+  max-width: 15px;
+  color: var(--accent-light);
+  margin-top: 1px;
+}
