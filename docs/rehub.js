@@ -730,7 +730,13 @@ function openCard(card) {
   $('#detailDescription').innerHTML = renderDescriptionMarkdown(card.dataset.description || '');
   $('#detailStatus').textContent = status;
   $('#detailAuthorName').textContent = card.dataset.author || (isCommunity ? 'Пользователь ReHub' : 'ReConfig Province');
-  $('#detailAuthorMeta').textContent = isCommunity ? 'Автор сообщества' : 'Официальный автор · ✓';
+  $('#detailAuthorMeta').textContent = isCommunity ? (card.dataset.authorVerified === 'true' ? '✓ Проверенный автор' : 'Автор сообщества') : 'Официальный автор · ✓';
+  const authorNameEl = $('#detailAuthorName');
+  if (isCommunity && card.dataset.authorUsername) {
+    const link=document.createElement('a');link.href='authors.html?user='+encodeURIComponent(card.dataset.authorUsername);
+    link.className='account-author-link';link.textContent=card.dataset.author||card.dataset.authorUsername;
+    authorNameEl.replaceChildren(link);
+  }
   $('#detailPreviewSmall').textContent = isCommunity ? 'ReHub Community' : 'ReConfig Province';
   $('#detailPreviewKind').textContent = isCommunity ? 'Пользовательский конфиг' : 'Официальный конфиг';
   $('#detailPreviewBadge').textContent = isCommunity ? 'Сообщество' : 'Закреплено';
@@ -883,7 +889,10 @@ function initModals() {
   const upload = $('#uploadModal');
   const detail = $('#detailModal');
   ['#openUploadTop','#openUploadHero','#openUploadCommunity','#openUploadEmpty'].forEach(sel => {
-    $(sel)?.addEventListener('click', () => setModal(upload, true));
+    $(sel)?.addEventListener('click', () => {
+      if (window.reconfigRequireAccount) window.reconfigRequireAccount(() => setModal(upload, true));
+      else showToast('Подожди загрузки входа в аккаунт.');
+    });
   });
   $('#closeUpload')?.addEventListener('click', () => setModal(upload, false));
   $('#cancelUpload')?.addEventListener('click', () => setModal(upload, false));
@@ -969,6 +978,8 @@ function makeCommunityCard(item, index = 0) {
   card.dataset.tags = `${escapeText(item.category || 'Другое')}|Сообщество|${item.verified ? 'Проверено|' : ''}ReHub`;
   card.dataset.symbol = 'star';
   card.dataset.author = escapeText(item.author || 'Пользователь');
+  card.dataset.authorUsername = /^[a-zA-Z][a-zA-Z0-9_]{2,23}$/.test(String(item.author_username||'')) ? item.author_username : '';
+  card.dataset.authorVerified = item.author_verified === true ? 'true' : 'false';
   card.dataset.communityId = /^[a-f0-9]{12}$/.test(String(item.id || '')) ? item.id : '';
   card.dataset.previewUrl = escapeText(item.preview_url || '');
   card.dataset.downloadUrl = escapeText(item.download_url || '');
@@ -1026,8 +1037,16 @@ function makeCommunityCard(item, index = 0) {
   const h3 = document.createElement('h3');
   h3.textContent = item.title || 'Конфиг сообщества';
   const p = document.createElement('p');
-  p.textContent = item.author || 'Пользователь';
-  if (item.verified) { const check=document.createElement('span'); check.className='verified-dot'; check.textContent='✓'; p.append(' ',check); }
+  if (card.dataset.authorUsername) {
+    const authorLink=document.createElement('a');
+    authorLink.href='authors.html?user='+encodeURIComponent(card.dataset.authorUsername);
+    authorLink.className='account-author-link';
+    authorLink.textContent=item.author||'Пользователь';
+    authorLink.addEventListener('click',e=>e.stopPropagation());
+    authorLink.addEventListener('keydown',e=>e.stopPropagation());
+    p.append(authorLink);
+    if (item.author_verified) { const badge=document.createElement('span');badge.className='account-author-verified';badge.title='Проверенный автор';badge.textContent='✓';p.append(' ',badge); }
+  } else p.textContent = item.author || 'Пользователь';
   const small = document.createElement('small');
   small.textContent = `${item.verified ? 'Проверенный конфиг' : 'Сообщество'} · ${item.category || 'Другое'}`;
   copy.append(h3, p, small);
@@ -1568,10 +1587,16 @@ function initUpload() {
     }
     if (!REHUB_API || REHUB_API.includes('YOUR-WORKER')) { showToast('Сначала укажи адрес API в rehub-config.js.'); return; }
 
+    const account = window.reconfigCurrentAccount?.();
+    if (!account || !window.reconfigAccountToken?.()) {
+      showToast('Для публикации нужен вход в аккаунт.');
+      window.reconfigRequireAccount?.(() => setModal($('#uploadModal'), true));
+      return;
+    }
     const fields = new FormData(form);
     const payload = new FormData();
     payload.append('title', String(fields.get('title') || '').trim());
-    payload.append('author', String(fields.get('author') || '').trim());
+    payload.append('author', account.username);
     payload.append('category', String(fields.get('category') || 'Другое'));
     payload.append('description', String(fields.get('description') || '').trim());
     if (selectedConfigs.male?.file) payload.append('config_male', selectedConfigs.male.file, selectedConfigs.male.file.name);
@@ -1583,7 +1608,7 @@ function initUpload() {
     const oldText = submit.textContent;
     submit.textContent = 'Отправляю…';
     try {
-      const response = await fetch(`${REHUB_API}/api/submissions`, { method: 'POST', body: payload });
+      const response = await fetch(`${REHUB_API}/api/submissions`, { method: 'POST', body: payload, headers: { Authorization: `Bearer ${window.reconfigAccountToken()}` } });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || `Ошибка API ${response.status}`);
       showToast(`Отправлено на модерацию · ID ${result.id}`);

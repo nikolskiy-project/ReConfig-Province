@@ -9,6 +9,7 @@
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="rehub.css?v=43">
+  <link rel="stylesheet" href="accounts.css?v=1">
 
   <style>
     #openUploadTop {
@@ -55,9 +56,11 @@
     <nav class="nav" aria-label="Навигация ReHub">
       <a href="#official">Закреплённые</a>
       <a href="#community">Сообщество</a>
-      <a href="donate.html">Поддержать</a>
+      <a href="authors.html">Авторы</a>
     </nav>
 
+    <div class="rehub-top-actions">
+    <button class="header-github interactive reconfig-login-top" id="openAccount" type="button" aria-label="Войти в аккаунт"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 21c0-4.5 3-7 7.5-7s7.5 2.5 7.5 7"/></svg><span id="accountButtonLabel">Войти</span></button>
     <button class="header-github interactive" id="openUploadTop" type="button" title="Загрузить конфиг в ReHub" aria-label="Загрузить конфиг в ReHub">
       <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 16V4m0 0-4 4m4-4 4 4"/>
@@ -65,6 +68,7 @@
       </svg>
       <span>Загрузить</span>
     </button>
+    </div>
   </header>
 
   <main>
@@ -292,7 +296,7 @@
 
   <footer class="rehub-footer">
     <div class="footer-brand"><img src="assets/logo.png" alt=""><div><strong>ReConfig Province</strong><span>ReHub — мастерская конфигов</span></div></div>
-    <div class="footer-links"><a href="donate.html">Поддержать</a><a href="index.html">Главная</a><a href="#home">Наверх</a><a href="https://github.com/nikolskiy-project/ReConfig-Province" target="_blank" rel="noreferrer">GitHub</a></div>
+    <div class="footer-links"><a href="index.html">Главная</a><a href="#home">Наверх</a><a href="https://github.com/nikolskiy-project/ReConfig-Province" target="_blank" rel="noreferrer">GitHub</a></div>
     <span class="copyright">© <span id="year"></span> Nikolskiy</span>
   </footer>
 
@@ -448,10 +452,32 @@
     </section>
   </div>
 
+  <div class="account-overlay" id="accountOverlay" hidden aria-hidden="true">
+    <section class="account-dialog" role="dialog" aria-modal="true" aria-labelledby="accountDialogTitle">
+      <button type="button" class="account-close interactive" id="accountClose" aria-label="Закрыть">×</button>
+      <span class="kicker">ReConfig Province</span>
+      <h2 id="accountDialogTitle">Вход в мастерскую</h2>
+      <p class="account-lead">Собственные публикации, библиотека автора и подтверждённый профиль.</p>
+      <div class="account-tabs" role="group" aria-label="Действие с аккаунтом">
+        <button type="button" class="account-tab active interactive" data-account-mode="login">Вход</button>
+        <button type="button" class="account-tab interactive" data-account-mode="register">Регистрация</button>
+      </div>
+      <form id="accountForm" autocomplete="on">
+        <label>Логин <input name="username" minlength="3" maxlength="24" pattern="[A-Za-z][A-Za-z0-9_]{2,23}" autocomplete="username" required placeholder="Example_Player"></label>
+        <label>Пароль <input name="password" type="password" minlength="10" maxlength="128" autocomplete="current-password" required placeholder="Не менее 10 символов"></label>
+        <label class="account-confirm" hidden>Повтори пароль <input name="confirm" type="password" minlength="10" maxlength="128" autocomplete="new-password" placeholder="Повтори пароль"></label>
+        <p id="accountError" class="account-error" role="alert" hidden></p>
+        <button type="submit" class="btn btn-primary interactive account-submit">Войти</button>
+      </form>
+      <p class="account-footnote">Пароль не публикуется. Сессия сохраняется только до закрытия вкладки.</p>
+    </section>
+  </div>
+
   <div class="hub-toast" id="hubToast" role="status" aria-live="polite"></div>
 
   <script src="rehub-rich-editor.js?v=33"></script>
   <script src="rehub-config.js?v=1"></script>
-  <script src="rehub.js?v=43"></script>
+  <script src="rehub.js?v=profiles1"></script>
+  <script src="accounts.js?v=1"></script>
 </body>
 </html>

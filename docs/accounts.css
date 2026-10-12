@@ -1,0 +1,63 @@
+/* ReConfig Province · independent profile UI, scoped to new classes */
+.reconfig-login-top{border-color:rgba(167,139,250,.32)!important;white-space:nowrap}
+.account-overlay[hidden],.account-confirm[hidden]{display:none!important}
+.account-overlay{position:fixed;inset:0;z-index:2000;background:rgba(4,4,10,.78);backdrop-filter:blur(14px);display:grid;place-items:center;padding:18px;animation:accountShade .2s ease both}
+.account-dialog{position:relative;width:min(100%,440px);max-height:min(92vh,720px);overflow:auto;border:1px solid rgba(167,139,250,.25);border-radius:22px;background:linear-gradient(155deg,#20202f,#12121c 68%);padding:32px;box-shadow:0 30px 90px #0009;animation:accountRise .36s cubic-bezier(.2,1,.3,1) both;color:#f4f4fa}
+@keyframes accountShade{from{opacity:0}to{opacity:1}}
+@keyframes accountRise{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.account-close{position:absolute;right:18px;top:16px;background:#2b293b;border:1px solid #454057;border-radius:9px;color:#e8e4f4;font-size:24px;width:34px;height:34px;cursor:pointer}
+.account-dialog h2{font-size:27px;letter-spacing:-.04em;margin:12px 0 8px}
+.account-lead,.account-footnote{font-size:13px;color:#a5a3b6;line-height:1.65}
+.account-tabs{display:grid;grid-template-columns:1fr 1fr;background:#11121b;padding:4px;border:1px solid #353047;border-radius:12px;margin:22px 0 19px}
+.account-tab{padding:10px;border:0;border-radius:9px;color:#b6b0c9;background:transparent;cursor:pointer;font-weight:600;transition:background .23s,color .23s,transform .23s}
+.account-tab.active{background:#7755cf;color:white;box-shadow:0 3px 12px #7043b544}
+#accountForm{display:grid;gap:14px}
+#accountForm label{display:grid;gap:7px;font-size:13px;color:#cac6d7;font-weight:600}
+#accountForm input{background:#11111b;border:1px solid #363247;border-radius:10px;color:#fff;padding:12px 13px;font:inherit;outline:none;user-select:text}
+#accountForm input:focus{border-color:#a78bfa;box-shadow:0 0 0 3px #9772fb23}
+.account-error{color:#ff9aa9;font-size:12px;line-height:1.5}
+.account-submit{width:100%;justify-content:center;min-height:44px;margin-top:3px}
+.account-footnote{font-size:11px;margin-top:16px}
+.account-author-link{color:inherit;text-decoration:none;position:relative;z-index:3}
+.account-author-link:hover{color:#c3aaff;text-decoration:underline;text-underline-offset:3px}
+.account-author-verified{display:inline-flex;align-items:center;justify-content:center;color:white!important;font-size:10px!important;background:#7665d9;border-radius:100%;width:16px;height:16px;vertical-align:middle;font-weight:800}
+/* Profile cards */
+.authors-page{min-height:100vh;background:#0e0e15;color:#eeeef6}
+.authors-shell{max-width:1120px;margin:0 auto;padding:112px 28px 80px}
+.authors-back{display:inline-flex;align-items:center;gap:8px;color:#bca4ff;text-decoration:none;font-size:13px;margin-bottom:30px}
+.authors-hero{position:relative;overflow:hidden;background:linear-gradient(135deg,#26213c 0%,#161623 66%,#141420);border:1px solid #403857;border-radius:24px;padding:34px;box-shadow:0 18px 58px #0005;animation:accountRise .55s cubic-bezier(.22,1,.36,1) both}
+.authors-hero:after{content:'';pointer-events:none;position:absolute;width:260px;height:260px;right:-70px;top:-120px;background:#8760fc40;border-radius:50%;filter:blur(70px)}
+.authors-profile-line{display:flex;align-items:center;gap:22px;position:relative;z-index:1}
+.authors-avatar{display:grid;place-items:center;width:82px;height:82px;min-width:82px;border-radius:21px;background:linear-gradient(135deg,#ab8cf9,#6f4cc9);color:white;font-size:33px;font-weight:800;box-shadow:0 12px 30px #7755cf4c}
+.authors-profile-line h1{font-size:clamp(24px,4vw,37px);letter-spacing:-.04em;margin:3px 0}
+.authors-profile-line p{font-size:13px;color:#b4adc4;line-height:1.5}
+.authors-badge{display:inline-block;vertical-align:middle;padding:5px 9px;border-radius:999px;background:#7262d24d;border:1px solid #ada1ff70;color:#dfd7ff;font-size:11px;font-weight:700;letter-spacing:0}
+.authors-stats{display:flex;gap:12px;margin-top:27px;position:relative;z-index:1}
+.authors-stat{flex:1;max-width:180px;border:1px solid #474059;background:#ffffff0a;border-radius:13px;padding:15px}
+.authors-stat strong{display:block;font-size:25px;color:#f4f0ff}
+.authors-stat span{color:#b6aec8;font-size:12px}
+.authors-section-head{display:flex;align-items:center;justify-content:space-between;gap:15px;margin:35px 0 18px}
+.authors-section-head h2{font-size:22px}
+.authors-search{background:#181722;border:1px solid #3a3349;border-radius:11px;padding:12px 15px;color:#fff;width:min(100%,290px);user-select:text}
+.authors-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:15px}
+.authors-card{display:block;text-decoration:none;color:inherit;border:1px solid #393247;border-radius:16px;background:#171621;padding:19px;transition:transform .2s,border-color .2s,box-shadow .2s}
+.authors-card:hover{transform:translateY(-4px);border-color:#8e73db;box-shadow:0 12px 25px #0004}
+.authors-card strong{display:block;overflow-wrap:anywhere;font-size:16px;margin-bottom:7px}
+.authors-card p{color:#a6a1b5;font-size:12px;line-height:1.5;min-height:36px}
+.authors-card small{display:block;margin-top:15px;color:#b49cf9;font-size:12px}
+.authors-card-cover{width:100%;height:130px;object-fit:cover;border-radius:10px;margin-bottom:14px;background:#25223a}
+.authors-loading{color:#b9adcf;padding:24px 0;line-height:1.6}
+.authors-page .topbar{background:#0e0e15e8}
+.admin-authors-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:15px 0}
+.admin-author-item{padding:15px;border:1px solid #373047;border-radius:14px;background:#1b1928;display:grid;gap:10px}
+.admin-author-item strong{font-size:14px}
+.admin-author-item small{font-size:11px;color:#aa9ebd}
+.admin-author-item .btn{justify-content:center;max-width:100%}
+@media(max-width:640px){.account-dialog{padding:25px 19px}.authors-shell{padding:97px 17px 60px}.authors-hero{padding:22px 18px}.authors-profile-line{align-items:flex-start;gap:14px}.authors-avatar{width:62px;height:62px;min-width:62px;border-radius:15px;font-size:27px}.authors-stats{gap:8px}.authors-stat{padding:12px}.authors-section-head{display:grid}.authors-search{width:100%}}
+@media(prefers-reduced-motion:reduce){.account-overlay,.account-dialog,.authors-hero{animation:none!important}.authors-card,.account-tab{transition:none!important}}
+
+.rehub-top-actions{display:flex;justify-self:end;align-items:center;gap:8px;white-space:nowrap}
+@media(max-width:640px){.rehub-top-actions{gap:6px}.reconfig-login-top svg{display:block}.rehub-top-actions .header-github{flex:0 0 38px}}
+@media(max-width:640px){.rehub-top-actions .header-github span{display:none!important}}
+
+@media(max-width:640px){#authorsAccountLink span{display:none!important}}
