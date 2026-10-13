@@ -998,6 +998,7 @@ function makeCommunityCard(item, index = 0) {
   card.dataset.symbol = 'star';
   card.dataset.author = escapeText(item.author || 'Пользователь');
   card.dataset.authorUsername = /^[a-zA-Z][a-zA-Z0-9_]{2,23}$/.test(String(item.author_username||'')) ? item.author_username : '';
+  card.dataset.authorUserId = String(item.author_user_id || '');
   card.dataset.authorVerified = item.author_verified === true ? 'true' : 'false';
   card.dataset.authorAvatarUrl = item.author_avatar_url || '';
   card.dataset.ratingScore = String(item.rating?.score||0);

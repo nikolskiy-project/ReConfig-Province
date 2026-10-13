@@ -37,6 +37,21 @@ async function api(path, options={}) {
   return data;
 }
 
+function moderationError(error) {
+  const panel = $('#reviewActionError');
+  if (panel) {
+    panel.hidden = false;
+    panel.textContent = (error?.detail || error?.message || String(error)) +
+      ' — проверь разрешение GitHub Contents: Read and write, ветку GITHUB_BRANCH и журналы Worker.';
+  }
+  console.error('ReConfig moderation action:', error);
+  toast('Операция не выполнена — подробности показаны в окне публикации.');
+}
+function clearModerationError() {
+  const panel = $('#reviewActionError');
+  if (panel) { panel.textContent = ''; panel.hidden = true; }
+}
+
 const reviewFileCache = new Map();
 const reviewObjectUrlCache = new Map();
 
@@ -689,20 +704,20 @@ function openReview(item,status){
       ? '<strong>Удалить отклонённую публикацию?</strong><br>Она исчезнет из истории модерации, а XML, превью и метаданные будут полностью удалены из GitHub.'
       : '<strong>Удалить публикацию?</strong><br>Она исчезнет из мастерской, а XML, превью и метаданные будут полностью удалены из GitHub.';
   }
-  $('#deleteConfirmBox').hidden=true;
+  $('#deleteConfirmBox').hidden=true;clearModerationError();
   const reviewScroll=$('#reviewScroll');if(reviewScroll)reviewScroll.scrollTop=0;
   $('#reviewOverlay').hidden=false;document.body.classList.add('admin-review-open');bindAdminCursorHover();requestAnimationFrame(()=>window.syncAdminScrollbar?.());
   loadReviewPreview();
   requestAnimationFrame(() => { window.syncAdminReviewScrollbar?.(); window.syncAdminReviewCodeScrollbar?.(); });
 }
 function closeReview(){
-  $('#reviewOverlay').hidden=true;document.body.classList.remove('admin-review-open');selectedSubmission=null;$('#rejectBox').hidden=true;$('#deleteConfirmBox').hidden=true;reviewMediaMode='cover';requestAnimationFrame(()=>window.syncAdminScrollbar?.());
+  clearModerationError();$('#reviewOverlay').hidden=true;document.body.classList.remove('admin-review-open');selectedSubmission=null;$('#rejectBox').hidden=true;$('#deleteConfirmBox').hidden=true;reviewMediaMode='cover';requestAnimationFrame(()=>window.syncAdminScrollbar?.());
 }
 async function approveSelected(){
   if(!selectedSubmission||selectedSubmission.status!=='pending')return;
   const btn=$('#reviewApprove'),old=btn.textContent;btn.disabled=true;btn.textContent='Одобряю…';
   try{await api(`/api/admin/submissions/${selectedSubmission.id}/approve`,{method:'POST'});toast('Публикация одобрена и отмечена как проверенная.');closeReview();await loadCommunityModeration();}
-  catch(e){toast(e.detail||e.message);}finally{btn.disabled=false;btn.textContent=old;}
+  catch(e){moderationError(e);}finally{btn.disabled=false;btn.textContent=old;}
 }
 function beginReject(){if(!selectedSubmission)return;$('#rejectBox').hidden=false;$('#rejectReasonInput').focus();}
 async function rejectSelected(){
@@ -710,7 +725,7 @@ async function rejectSelected(){
   const reason=$('#rejectReasonInput').value.trim();if(reason.length<3){toast('Укажи причину отклонения.');return;}
   const btn=$('#rejectConfirm'),old=btn.textContent;btn.disabled=true;btn.textContent='Отклоняю…';
   try{await api(`/api/admin/submissions/${selectedSubmission.id}/reject`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reason})});toast('Публикация отклонена. Причина сохранена.');closeReview();await loadCommunityModeration();}
-  catch(e){toast(e.detail||e.message);}finally{btn.disabled=false;btn.textContent=old;}
+  catch(e){moderationError(e);}finally{btn.disabled=false;btn.textContent=old;}
 }
 
 function beginDeleteApproved(){
@@ -733,7 +748,7 @@ async function deleteApprovedSelected(){
     closeReview();
     await loadCommunityModeration();
   }catch(e){
-    toast(e.detail||e.message);
+    moderationError(e);
   }finally{
     btn.disabled=false;
     btn.textContent=old;

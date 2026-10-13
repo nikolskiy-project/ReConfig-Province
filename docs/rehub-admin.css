@@ -1330,3 +1330,6 @@ html:has(> body.admin-review-open) { overflow-y:hidden !important; }
 .admin-review-scroll::-webkit-scrollbar{width:7px}
 .admin-review-scroll::-webkit-scrollbar-thumb{background:#9975ed;border-radius:999px}
 
+
+/* Moderation errors must remain visible until the operator closes the review. */
+.admin-review-error:not([hidden]){display:block;margin:12px 0;padding:12px 14px;border:1px solid rgba(245,123,140,.34);border-radius:10px;background:rgba(141,46,68,.11);color:#ffbec8;font-size:12px;line-height:1.5;overflow-wrap:anywhere}

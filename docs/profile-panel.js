@@ -18,7 +18,8 @@ function init(){if(root)return root;
  document.body.append(root);
  root.querySelector('.profile-backdrop').addEventListener('click',close);
  root.querySelector('.profile-exit').addEventListener('click',close);
- root.querySelector('.profile-scroll').addEventListener('scroll',()=>menuCloser?.(),{passive:true});
+ root.querySelector('.profile-scroll').addEventListener('wheel',()=>menuCloser?.(),{passive:true});
+ root.querySelector('.profile-scroll').addEventListener('touchmove',()=>menuCloser?.(),{passive:true});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!root.hidden&&document.getElementById('accountOverlay')?.hidden!==false){close();e.stopPropagation();}});
  return root;
 }
@@ -59,8 +60,8 @@ function themePicker(value){
   for(const [key,name] of options){const option=el('button','profile-floating-option'+(key===select.value?' selected':' '));option.type='button';option.setAttribute('role','option');option.setAttribute('aria-selected',String(key===select.value));
    option.append(el('i','profile-theme-color theme-'+key),el('span','',name));
    option.onclick=()=>{select.value=key;chosen.textContent=name;trigger.querySelector('i').className='profile-theme-color theme-'+key;closeMenu();trigger.focus({preventScroll:true});};menu.append(option);}
-  root.append(menu);menu.addEventListener('keydown',event=>{if(event.key==='Escape'){closeMenu();trigger.focus();event.stopPropagation();}});const rect=trigger.getBoundingClientRect(),width=Math.max(rect.width,190),height=menu.offsetHeight;
-  menu.style.width=width+'px';menu.style.left=Math.max(9,Math.min(rect.left,window.innerWidth-width-9))+'px';
+  root.append(menu);menu.addEventListener('keydown',event=>{if(event.key==='Escape'){closeMenu();trigger.focus();event.stopPropagation();}});const rect=trigger.getBoundingClientRect(),width=Math.min(Math.max(rect.width,190),320,window.innerWidth-18),height=menu.offsetHeight;
+  menu.style.width=width+'px';menu.style.left=Math.max(9,Math.min(rect.right-width,window.innerWidth-width-9))+'px';
   menu.style.top=(rect.bottom+height+8<window.innerHeight?rect.bottom+5:Math.max(8,rect.top-height-5))+'px';
   trigger.setAttribute('aria-expanded','true');
   menu.querySelector('.selected')?.focus({preventScroll:true});

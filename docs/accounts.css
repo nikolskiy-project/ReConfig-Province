@@ -542,3 +542,14 @@ body.profile-open{overflow:hidden!important}
 @media(min-width:950px){.profile-overlay .profile-work-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
 @media(min-width:600px) and (max-width:949px){.profile-overlay .profile-work-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 @media(max-width:599px){.profile-overlay .profile-work-grid{grid-template-columns:1fr!important}}
+
+/* ReConfig unified floating picker — matches the upload form's compact dropdown. */
+.profile-overlay .profile-theme-trigger{min-height:42px!important;border:1px solid #42394f!important;background:#101017!important;border-radius:8px!important;padding:9px 12px!important;box-shadow:none!important;transition:border-color .2s ease,background .2s ease,box-shadow .2s ease!important}
+.profile-overlay .profile-theme-trigger:hover,.profile-overlay .profile-theme-trigger[aria-expanded="true"]{border-color:#b79cff!important;background:#12121c!important;box-shadow:0 0 0 2px rgba(183,156,255,.07)!important}
+.profile-overlay .profile-theme-color{width:10px!important;height:10px!important;flex:0 0 10px!important;border-radius:50%;box-shadow:none!important}
+.profile-overlay .profile-floating-menu{position:fixed!important;z-index:10055!important;display:flex!important;flex-direction:column!important;gap:2px!important;padding:5px!important;max-height:230px!important;overflow-y:auto!important;overflow-x:hidden!important;background:#12121c!important;border:1px solid #55496b!important;border-radius:9px!important;box-shadow:0 18px 40px rgba(0,0,0,.46)!important;scrollbar-width:thin!important;scrollbar-color:#9675ed transparent!important;animation:reconfigDropdownArrive .24s cubic-bezier(.22,1,.36,1) both!important;transform-origin:top center}
+.profile-overlay .profile-floating-option{display:flex!important;align-items:center!important;width:100%!important;min-height:34px!important;padding:8px 10px!important;border:0!important;border-radius:6px!important;background:transparent!important;color:#d2c9df!important;gap:10px!important;font-size:12px!important;line-height:1.25!important;transform:none!important;transition:background .16s,color .16s,padding-left .2s cubic-bezier(.22,1,.36,1)!important}
+.profile-overlay .profile-floating-option:hover,.profile-overlay .profile-floating-option:focus-visible{background:rgba(183,156,255,.13)!important;color:white!important;padding-left:13px!important}
+.profile-overlay .profile-floating-option.selected{background:rgba(183,156,255,.18)!important;color:#c9b2ff!important}
+@keyframes reconfigDropdownArrive{from{opacity:0;transform:translateY(-5px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.profile-overlay .profile-floating-menu{animation:none!important}}

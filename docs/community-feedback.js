@@ -27,6 +27,8 @@ function show(card){
  let row=tags.closest('.detail-tags-engagement')||tags.parentElement.querySelector('.detail-tags-engagement');
  if(!row){row=make('div','detail-tags-engagement');tags.before(row);}row.append(tags,root);
  const id=card.dataset.communityId,run=++sequence;
+ const current=window.reconfigCurrentAccount?.();
+ const isOwner=Boolean(current && ((current.id && card.dataset.authorUserId===String(current.id)) || (current.username && card.dataset.authorUsername?.toLowerCase()===String(current.username).toLowerCase())));
  const ratingArea=make('div','feedback-rating-area');
  const summary=make('span','community-feedback-summary','');
  summary.title='Средняя оценка пользователей';
@@ -54,13 +56,16 @@ function show(card){
   summary.innerHTML='<span class="feedback-visual-stars" aria-hidden="true"><span>★★★★★</span><span class="feedback-visual-fill" style="width:'+((avg/5)*100).toFixed(1)+'%">★★★★★</span></span>';
   summary.setAttribute('aria-label',rating.votes?`Рейтинг ${avg.toFixed(1)}, ${rating.votes} оценок`:'Оценок пока нет');
   summary.title=rating.votes?`${avg.toFixed(1)} · ${rating.votes} оценок`:'Нет оценок';stars.replaceChildren();
+  const readOnly=isOwner || (stats.can_rate===false && Boolean(token()));
+  stars.hidden=readOnly;stars.setAttribute('aria-hidden',String(readOnly));
+  if(readOnly)return;
   for(let n=1;n<=5;n++){const b=make('button',n<=(stats.my_score||0)?'selected':'','★');b.dataset.value=String(n);b.type='button';b.title='Оценить: '+n+' звёзд';b.setAttribute('aria-label',b.title);b.addEventListener('pointerenter',()=>stars.classList.add('is-previewing'));b.addEventListener('pointerenter',()=>stars.querySelectorAll('button').forEach(x=>x.classList.toggle('preview-selected',Number(x.dataset.value)<=n)));
     b.onclick=async()=>{if(!requireAccount(()=>show(card)))return;if(!stats.can_rate){summary.title='Нельзя оценить собственную работу';return;}
      stars.querySelectorAll('button').forEach(b=>b.disabled=true);
      try{const next=await call('/api/ratings/'+id,'POST',{score:n});stats={...stats,...next,my_score:n};paint(stats);const label=card.querySelector('.thumb-rating');if(label){label.textContent='★ '+Number(stats.rating.score).toFixed(1);} }catch(err){summary.title=err.message;stars.querySelectorAll('button').forEach(b=>b.disabled=false);}};stars.append(b);}
   stars.onpointerleave=()=>{stars.classList.remove('is-previewing');stars.querySelectorAll('button').forEach(x=>x.classList.remove('preview-selected'));};
  }
- paint({rating:{score:Number(card.dataset.ratingScore)||0,votes:Number(card.dataset.ratingVotes)||0},my_score:0,can_rate:true});
+ paint({rating:{score:Number(card.dataset.ratingScore)||0,votes:Number(card.dataset.ratingVotes)||0},my_score:0,can_rate:!isOwner && !token()});
  call('/api/ratings/'+id).then(data=>{if(run===sequence&&root.isConnected)paint(data);}).catch(err=>{if(run===sequence)summary.title=err.message;});
 }
 
