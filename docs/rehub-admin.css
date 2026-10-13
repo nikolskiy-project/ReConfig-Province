@@ -1305,3 +1305,15 @@ html:has(> body.admin-review-open) { overflow-y:hidden !important; }
 .admin-report-status{justify-self:start;background:#7155be1e;border:1px solid #8770ca5a;border-radius:7px;padding:4px 8px;color:#baa7ff;font-size:10px}
 .admin-report-actions{display:flex;flex-wrap:wrap;gap:7px}
 .admin-report-actions button{min-height:32px;font-size:11px}
+
+/* Profiles v8 · author verification and account administration */
+.admin-authors-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:12px}
+.admin-author-item{display:flex;flex-direction:column;gap:13px;min-width:0;padding:16px;border:1px solid rgba(173,145,246,.20);border-radius:13px;background:rgba(23,22,35,.84)}
+.admin-author-identity{display:flex;flex-direction:column;gap:5px;min-width:0}
+.admin-author-identity strong{font-size:14px;overflow-wrap:anywhere;color:#eeeaf6}
+.admin-author-identity small{font-size:11px;color:#a6a0b8}
+.admin-author-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;margin-top:auto}
+.admin-author-actions .btn{flex:1 1 120px;max-width:none;min-height:36px;font-size:11px;justify-content:center}
+.admin-author-actions .admin-author-delete{color:#f1a1ac;border-color:rgba(248,113,113,.24)}
+.admin-author-actions .admin-author-delete:hover{background:rgba(248,113,113,.10);border-color:#db8993}
+@media(max-width:550px){.admin-authors-list{grid-template-columns:minmax(0,1fr)}}

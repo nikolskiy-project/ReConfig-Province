@@ -1273,3 +1273,46 @@ label,
 
 /* Consistent low-strength backdrop blur for publication dialogs. */
 .hub-modal-backdrop{backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+
+/* Profiles v7 — match the soft, even background treatment of author panels.
+   This affects only the overlay behind an opened binds card. */
+#detailModal.hub-modal-backdrop {
+  background: rgba(7, 7, 13, .69);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition:
+    opacity .28s cubic-bezier(.22, 1, .36, 1),
+    visibility .28s step-end;
+}
+#detailModal.hub-modal-backdrop.open {
+  transition:
+    opacity .28s cubic-bezier(.22, 1, .36, 1),
+    visibility 0s;
+}
+@media (prefers-reduced-motion: reduce) {
+  #detailModal.hub-modal-backdrop,
+  #detailModal.hub-modal-backdrop.open {
+    transition: none;
+  }
+}
+
+/* Profiles v8: rating/downloads in one TikTok-style overlay, report beside community badge. */
+.thumb-engagement{position:absolute;z-index:4;right:10px;bottom:10px;display:flex;align-items:center;gap:7px;white-space:nowrap}
+.thumb-engagement .thumb-state{position:static!important;right:auto;bottom:auto;min-height:24px}
+.thumb-rating{display:inline-flex;align-items:center;justify-content:center;min-height:24px;padding:0 8px;border:1px solid rgba(255,255,255,.11);border-radius:7px;color:#f6d085;font-size:10px;font-weight:700;background:rgba(12,12,18,.79);backdrop-filter:blur(10px)}
+.detail-tags-engagement{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:17px}
+.detail-tags-engagement .detail-tags{flex:1 1 auto;margin:0;min-width:0}
+.detail-tags-engagement .community-feedback{display:flex;align-items:center;gap:5px;flex:0 0 auto;border:0;margin:0;padding:0;min-width:0}
+.detail-tags-engagement .community-feedback-rating-area{display:flex;align-items:center;gap:7px}
+.detail-tags-engagement .feedback-rating-area{display:flex;align-items:center;gap:8px}
+.detail-tags-engagement .community-feedback-summary{color:#f4cb7c;font-size:11px;font-weight:650;white-space:nowrap}
+.detail-tags-engagement .community-feedback-stars{display:flex;align-items:center;flex-wrap:nowrap;gap:0}
+.detail-tags-engagement .community-feedback-stars button{font-size:19px;padding:1px 2px;line-height:1;color:#84758d;transition:color .15s,transform .15s}
+.detail-tags-engagement .community-feedback-stars button:hover,.detail-tags-engagement .community-feedback-stars button.selected{color:#f2cb7d}
+.feedback-report-in-preview{position:absolute;z-index:7;top:16px;left:106px;display:grid;place-items:center;width:27px;height:25px;color:#d8cadf;background:rgba(12,12,17,.74);border:1px solid rgba(255,255,255,.14);border-radius:7px;backdrop-filter:blur(10px);cursor:pointer;transition:transform .17s,color .17s,border-color .17s}
+.feedback-report-in-preview:hover{transform:translateY(-2px);color:#f3c2c7;border-color:rgba(240,131,149,.55)}
+.feedback-report-in-preview svg{width:15px;height:15px}
+.community-feedback-report-host{margin-top:12px}
+.community-feedback-report-host[hidden]{display:none!important}
+.community-feedback-report-host .community-feedback-report{margin:0}
+@media(max-width:560px){.detail-tags-engagement{align-items:flex-start}.detail-tags-engagement .detail-tags{flex-basis:100%}.feedback-report-in-preview{left:104px}}

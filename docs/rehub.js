@@ -731,6 +731,7 @@ function openCard(card) {
   $('#detailStatus').textContent = status;
   $('#detailAuthorName').textContent = card.dataset.author || (isCommunity ? 'Пользователь ReHub' : 'ReConfig Province');
   $('#detailAuthorMeta').textContent = isCommunity ? (card.dataset.authorVerified === 'true' ? '✓ Проверенный автор' : 'Автор сообщества') : 'Официальный автор · ✓';
+  const authorAvatar=$('#detailAuthorAvatar');if(authorAvatar){let photo='assets/logo.png';try{const u=new URL(card.dataset.authorAvatarUrl||'',location.href);if(u.protocol==='https:')photo=u.href;}catch{}authorAvatar.src=photo;authorAvatar.onerror=()=>{authorAvatar.onerror=null;authorAvatar.src='assets/logo.png';};}
   const authorNameEl = $('#detailAuthorName');
   if (isCommunity && card.dataset.authorUsername) {
     const link=document.createElement('a');link.href='rehub.html?profile='+encodeURIComponent(card.dataset.authorUsername);
@@ -784,6 +785,11 @@ function openCard(card) {
   setModal(modal, true);
   window.reconfigShowFeedback?.(card);
 }
+
+window.reconfigOpenCommunityWork = id => {
+  const target = $$('.hub-video-card.community-card').find(card => card.dataset.communityId===String(id));
+  if(target) openCard(target);else showToast('Публикация не найдена или была удалена.');
+};
 
 function activateCard(card) {
   if (!card || card.classList.contains('card-click-flash')) return;
@@ -982,6 +988,9 @@ function makeCommunityCard(item, index = 0) {
   card.dataset.author = escapeText(item.author || 'Пользователь');
   card.dataset.authorUsername = /^[a-zA-Z][a-zA-Z0-9_]{2,23}$/.test(String(item.author_username||'')) ? item.author_username : '';
   card.dataset.authorVerified = item.author_verified === true ? 'true' : 'false';
+  card.dataset.authorAvatarUrl = item.author_avatar_url || '';
+  card.dataset.ratingScore = String(item.rating?.score||0);
+  card.dataset.ratingVotes = String(item.rating?.votes||0);
   card.dataset.communityId = /^[a-f0-9]{12}$/.test(String(item.id || '')) ? item.id : '';
   card.dataset.previewUrl = escapeText(item.preview_url || '');
   card.dataset.downloadUrl = escapeText(item.download_url || '');
@@ -1023,16 +1032,19 @@ function makeCommunityCard(item, index = 0) {
     item.downloads == null && !communityDownloadCounts.has(card.dataset.communityId) ? null : initialCount
   );
   downloads.appendChild(countLabel);
+  const ratingBadge=document.createElement('span');ratingBadge.className='thumb-rating';ratingBadge.title='Оценка публикации';ratingBadge.textContent=Number(item.rating?.votes)>0?'★ '+Number(item.rating.score).toFixed(1):'☆ —';
   const shine = document.createElement('div');
   shine.className = 'thumb-shine';
   shine.setAttribute('aria-hidden', 'true');
-  thumb.append(downloads, shine);
+  const engagement=document.createElement('div');engagement.className='thumb-engagement';engagement.append(ratingBadge,downloads);thumb.append(engagement,shine);
 
   const meta = document.createElement('div');
   meta.className = 'video-card-meta';
   const avatar = document.createElement('img');
   avatar.className = 'video-avatar';
-  avatar.src = 'assets/logo.png';
+  avatar.src = (() => {try {const url = new URL(item.author_avatar_url || '', location.href);return url.protocol === 'https:' ? url.href : 'assets/logo.png';}catch {return 'assets/logo.png';}})();
+  avatar.onerror=()=>{avatar.onerror=null;avatar.src='assets/logo.png';};
+  avatar.referrerPolicy='no-referrer';
   avatar.alt = '';
   const copy = document.createElement('div');
   copy.className = 'video-card-copy';

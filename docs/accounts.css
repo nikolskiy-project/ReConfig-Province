@@ -328,3 +328,54 @@ body.profile-open{overflow:hidden!important}
 .community-feedback-report .feedback-submit{justify-self:start;background:#8059d5;border:1px solid #a68bef;border-radius:9px;color:white;padding:9px 12px;font-size:12px;cursor:pointer}
 .community-feedback-message{font-size:11px;color:#b9abd6;line-height:1.5}
 .community-feedback[hidden]{display:none!important}
+
+
+/* Profiles v8 — compact badges, consistent author list, and native workshop polish */
+.account-author-verified,.authors-card .account-author-verified,.profile-verified {
+ display:inline-grid!important;place-items:center!important;flex:0 0 14px!important;
+ width:14px!important;height:14px!important;min-width:14px!important;
+ padding:0!important;margin:0 0 0 3px!important;
+ border-radius:50%!important;background:#8c6ee1!important;
+ color:#fff!important;font-size:9px!important;line-height:1!important;
+ font-weight:750!important;vertical-align:middle!important;
+ border:1px solid rgba(225,209,255,.37)!important;
+ box-shadow:0 0 0 1px rgba(98,70,173,.16)!important;
+ transform:none!important;letter-spacing:0!important;
+}
+.profile-username{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.profile-username .profile-verified{margin-top:2px!important}
+.video-card-copy p .account-author-verified {display:inline-grid!important;vertical-align:middle!important}
+.authors-avatar {position:relative;isolation:isolate;overflow:hidden;border-radius:18px!important;display:grid;place-items:center;line-height:1}
+.authors-avatar img {position:absolute!important;inset:0!important;width:100%!important;height:100%!important;object-fit:cover!important;border-radius:inherit!important;z-index:2}
+.authors-avatar.has-image{font-size:0!important}
+.authors-page{overflow-x:hidden}
+.authors-card{cursor:pointer}
+.authors-card:focus-visible{outline:2px solid #b299fa;outline-offset:3px}
+.profile-banner{background-color:#13131b!important}
+.profile-banner-image{mask-image:linear-gradient(to bottom,#000 0%,#000 22%,rgba(0,0,0,.94) 37%,rgba(0,0,0,.45) 65%,transparent 93%)!important;-webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 22%,rgba(0,0,0,.94) 37%,rgba(0,0,0,.45) 65%,transparent 93%)!important}
+.profile-banner:after{background:linear-gradient(to bottom,rgba(19,19,27,.03) 0%,rgba(19,19,27,.13) 25%,rgba(19,19,27,.57) 57%,#13131b 96%)!important}
+.profile-content{background:transparent;position:relative}
+.profile-work-clickable{cursor:pointer;outline:none;grid-template-columns:86px minmax(0,1fr)}
+.profile-work-clickable:focus-visible{border-color:#b196fb;box-shadow:0 0 0 3px #8b5cf633}
+.profile-work-clickable::after{content:'↗';position:absolute;right:12px;top:9px;color:#a58bd5;opacity:0;transform:translate(-4px,4px);transition:opacity .22s,transform .22s}
+.profile-work-clickable:hover::after,.profile-work-clickable:focus-visible::after{opacity:1;transform:none}
+.profile-work-preview img{display:block}
+/* Admin authors: clear alignment and equally sized actions. */
+.admin-authors-list{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.admin-author-item{display:flex;flex-direction:column;gap:12px;min-width:0;padding:16px}
+.admin-author-identity{display:flex;flex-direction:column;gap:4px;min-width:0}
+.admin-author-identity strong{font-size:14px;color:#eeeaf6;overflow-wrap:anywhere}
+.admin-author-identity small{font-size:12px;color:#a6a0b8}
+.admin-author-actions{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap;margin-top:auto}
+.admin-author-actions .btn{flex:1 1 122px;min-height:36px;max-width:none;font-size:11px}
+.admin-author-actions .admin-author-delete{color:#f1a1ac;border-color:rgba(248,113,113,.25)}
+.admin-author-actions .admin-author-delete:hover{background:rgba(248,113,113,.12);border-color:#e57c8b}
+@media(max-width:480px){.admin-authors-list{grid-template-columns:minmax(0,1fr)}.profile-work-clickable{grid-template-columns:78px minmax(0,1fr)}}
+/* Cursor for separate author catalog: matches the workshop, without trapping input I-beams on touch. */
+@media(pointer:fine) and (min-width:900px){
+ body.authors-page,body.authors-page a,body.authors-page button,body.authors-page input,body.authors-page .authors-card,body.authors-page .profile-panel,body.authors-page .profile-panel *{cursor:none!important}
+}
+
+/* Let the header fade continue under the overlapping profile content, not cut off at its top. */
+.profile-content{background:transparent!important}
+.profile-banner:after{background:linear-gradient(180deg,rgba(19,19,27,.02) 0%,rgba(19,19,27,.16) 18%,rgba(19,19,27,.64) 53%,#13131b 92%)!important}

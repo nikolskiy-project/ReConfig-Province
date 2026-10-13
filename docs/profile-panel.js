@@ -92,7 +92,7 @@ function contactButtons(author){const list=el('div','profile-contacts');const it
 function workCard(item,owner){const card=el('article','profile-work');const preview=el('div','profile-work-preview');
  if(item.preview_url&&safeUrl(item.preview_url)){const img=document.createElement('img');img.src=item.preview_url;img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';preview.append(img);}else preview.append(el('span','','RC'));
  const info=el('div','profile-work-main');info.append(el('strong','',item.title||'Без названия'),el('small','',`${item.category||'Другое'} · ${fmtNumber(item.downloads)} скачиваний`));
- const rating=item.rating||{votes:0,score:0};const rline=el('div','profile-work-rating');rline.append(el('span','profile-work-score',rating.votes?`★ ${Number(rating.score).toFixed(1)} (${rating.votes})`:'☆ Пока нет оценок'));
+ const rating=item.rating||{votes:0,score:0};const rline=el('div','profile-work-rating');rline.append(el('span','profile-work-score',rating.votes?`★ ${Number(rating.score).toFixed(1)} · ${rating.votes} оценок`:'☆ Пока нет оценок'));
  const ownerIsCurrent=window.reconfigCurrentAccount?.()?.username?.toLowerCase()===owner.toLowerCase() || (getToken() && sessionStorage.getItem('reconfig_self_user')?.toLowerCase()===owner.toLowerCase());
  const controls=el('div','profile-stars');controls.setAttribute('role','group');controls.setAttribute('aria-label','Оценить работу');for(let n=1;n<=5;n++){const b=el('button','profile-star','★');b.type='button';b.title=`Поставить ${n} из 5`;b.setAttribute('aria-label',b.title);b.onclick=async()=>{if(!getToken()){
    if(window.reconfigRequireAccount){window.reconfigRequireAccount(()=>{void refresh(owner);});return;}
@@ -102,8 +102,16 @@ function workCard(item,owner){const card=el('article','profile-work');const prev
  try{await request('/api/ratings/'+encodeURIComponent(item.id),{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+getToken()},body:JSON.stringify({score:n})});await refresh(owner);}
  catch(err){const fail=el('small','profile-rating-error',err.message);controls.replaceWith(fail);} };controls.append(b);}
  if(!ownerIsCurrent)rline.append(controls);info.append(rline);
- const open=el('a','profile-open-work','Открыть бинд ↗');open.href='rehub.html#config=community:'+encodeURIComponent(item.id);
- card.append(preview,info,open);return card;}
+ card.classList.add('profile-work-clickable');card.tabIndex=0;card.setAttribute('role','button');card.setAttribute('aria-label','Открыть бинд: '+(item.title||'Публикация'));
+ const navigate=()=>{
+   const here=Boolean(document.getElementById('hubGrid'));
+   if(here&&typeof window.reconfigOpenCommunityWork==='function'){
+     close();setTimeout(()=>window.reconfigOpenCommunityWork(item.id),255);
+   }else{close();setTimeout(()=>{location.href='rehub.html#config=community:'+encodeURIComponent(item.id);},220);}
+ };
+ card.addEventListener('click',event=>{if(event.target.closest('button,a'))return;navigate();});
+ card.addEventListener('keydown',event=>{if(event.target!==card)return;if(event.key==='Enter'||event.key===' '){event.preventDefault();navigate();}});
+ card.append(preview,info);return card;}
 async function refresh(name){const scroll=root.querySelector('.profile-scroll');const oldTop=scroll.scrollTop;scroll.replaceChildren(el('p','profile-loading','Загружаем профиль…'));
  try{const data=await request('/api/authors/'+encodeURIComponent(name));if(shown!==name)return;
  const user=data.author;scroll.replaceChildren();const banner=el('div','profile-banner theme-'+(user.banner_theme||'violet'));
@@ -113,7 +121,7 @@ async function refresh(name){const scroll=root.querySelector('.profile-scroll');
  const uname=el('div','profile-username');uname.append(el('h2','',user.username));if(user.verified){const verified=el('span','profile-verified','✓');verified.title='Проверенный автор';verified.setAttribute('aria-label','Проверенный автор');uname.append(verified);}ident.append(uname,el('p','profile-subtitle',user.verified?'Проверенный автор ReConfig Province':'Автор сообщества ReConfig Province'));
  head.append(avatarNode,ident);const share=el('button','profile-action profile-share','Скопировать ссылку');share.type='button';share.onclick=()=>{const url=new URL('rehub.html',location.href);url.searchParams.set('profile',user.username);const value=url.href;if(navigator.clipboard?.writeText)navigator.clipboard.writeText(value).then(()=>share.textContent='Ссылка скопирована').catch(()=>{share.textContent=value;});else{const temp=document.createElement('textarea');temp.value=value;temp.style.cssText='position:fixed;opacity:0;left:-9999px';document.body.append(temp);temp.select();const copied=document.execCommand('copy');temp.remove();share.textContent=copied?'Ссылка скопирована':value;}};const headerActions=el('div','profile-header-actions');headerActions.append(share);head.append(headerActions);content.append(head);
  if(user.bio)content.append(el('p','profile-bio',user.bio));const contacts=contactButtons(user);if(contacts.childElementCount){content.append(el('h3','profile-small-heading','Контакты'),contacts);}
- const rating=data.rating||{score:null,votes:0};const stats=el('div','profile-stat-grid');stats.append(stat(fmtNumber(data.publications),'Работ'),stat(fmtNumber(data.downloads),'Скачиваний'),stat(rating.votes?`${Number(rating.score).toFixed(1)} / 5`:'—','Оценка автора'),stat(fmtNumber(rating.votes),'Оценок'));
+ const rating=data.rating||{score:null,votes:0};const stats=el('div','profile-stat-grid');stats.append(stat(fmtNumber(data.publications),'Работ'),stat(fmtNumber(data.downloads),'Скачиваний'),stat(rating.votes?`★ ${Number(rating.score).toFixed(1)}`:'☆ —','Оценка автора'),stat(fmtNumber(rating.votes),'Оценок'));
  content.append(stats);
  const own=window.reconfigCurrentAccount?.()?.id===user.id || (getToken()&&window.location.pathname.endsWith('authors.html')&&sessionStorage.getItem('reconfig_self_user')===user.username);
  if(own){
