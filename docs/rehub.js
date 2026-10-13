@@ -733,7 +733,8 @@ function openCard(card) {
   $('#detailAuthorMeta').textContent = isCommunity ? (card.dataset.authorVerified === 'true' ? '✓ Проверенный автор' : 'Автор сообщества') : 'Официальный автор · ✓';
   const authorNameEl = $('#detailAuthorName');
   if (isCommunity && card.dataset.authorUsername) {
-    const link=document.createElement('a');link.href='authors.html?user='+encodeURIComponent(card.dataset.authorUsername);
+    const link=document.createElement('a');link.href='rehub.html?profile='+encodeURIComponent(card.dataset.authorUsername);
+    link.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();window.reconfigOpenProfile?.(card.dataset.authorUsername);});
     link.className='account-author-link';link.textContent=card.dataset.author||card.dataset.authorUsername;
     authorNameEl.replaceChildren(link);
   }
@@ -901,7 +902,7 @@ function initModals() {
     if (e.target === modal) setModal(modal, false);
   }));
   addEventListener('keydown', e => {
-    if (e.key !== 'Escape') return;
+    if (e.key !== 'Escape' || document.body.classList.contains('profile-open')) return;
     setModal(upload, false);
     setModal(detail, false);
   });
@@ -1039,7 +1040,8 @@ function makeCommunityCard(item, index = 0) {
   const p = document.createElement('p');
   if (card.dataset.authorUsername) {
     const authorLink=document.createElement('a');
-    authorLink.href='authors.html?user='+encodeURIComponent(card.dataset.authorUsername);
+    authorLink.href='rehub.html?profile='+encodeURIComponent(card.dataset.authorUsername);
+    authorLink.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();window.reconfigOpenProfile?.(card.dataset.authorUsername);});
     authorLink.className='account-author-link';
     authorLink.textContent=item.author||'Пользователь';
     authorLink.addEventListener('click',e=>e.stopPropagation());
