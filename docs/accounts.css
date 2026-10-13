@@ -486,3 +486,59 @@ body.profile-open{overflow:hidden!important}
 }
 .profile-content{background:linear-gradient(to bottom, transparent 0px,rgba(19,19,27,.54) 42px,#13131b 88px)!important;z-index:2!important}
 @media(prefers-reduced-motion:reduce){.profile-banner-image{animation:none!important}}
+
+
+/* Profiles v13 — unified workshop controls; image-first publications. */
+.profile-overlay .profile-exit{
+  inset:15px 15px auto auto!important;width:36px!important;height:36px!important;
+  border-radius:10px!important;border:1px solid rgba(173,153,229,.28)!important;
+  display:grid!important;place-items:center!important;padding:0!important;
+  font-size:0!important;line-height:0!important;background:rgba(17,16,26,.86)!important;
+  color:#e6d9ff!important;backdrop-filter:blur(8px);
+  transform:none;transition:background .22s ease,border-color .22s ease,transform .22s cubic-bezier(.22,1,.36,1)!important;
+}
+.profile-overlay .profile-exit svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.profile-overlay .profile-exit:hover{background:#252039!important;border-color:#ac8cf8!important;transform:scale(1.04)!important}
+.profile-overlay .profile-exit:focus-visible{outline:2px solid #b19afa;outline-offset:2px}
+.profile-overlay .profile-scroll{scrollbar-width:thin!important;scrollbar-color:#9572e7 transparent!important;scrollbar-gutter:stable}
+.profile-overlay .profile-scroll::-webkit-scrollbar,.profile-overlay .profile-library::-webkit-scrollbar,.profile-overlay .profile-pending-list::-webkit-scrollbar{width:6px!important}
+.profile-overlay .profile-scroll::-webkit-scrollbar-track,.profile-overlay .profile-library::-webkit-scrollbar-track,.profile-overlay .profile-pending-list::-webkit-scrollbar-track{background:transparent!important;margin:10px 0!important}
+.profile-overlay .profile-scroll::-webkit-scrollbar-thumb,.profile-overlay .profile-library::-webkit-scrollbar-thumb,.profile-overlay .profile-pending-list::-webkit-scrollbar-thumb{border-radius:99px!important;border:0!important;background:#9370e4!important}
+.profile-overlay .profile-scroll::-webkit-scrollbar-thumb:hover,.profile-overlay .profile-library::-webkit-scrollbar-thumb:hover{background:#b597ff!important}
+.profile-overlay .profile-theme-field{position:relative;isolation:auto}
+.profile-overlay .profile-theme-trigger{height:43px;min-height:43px;background:#111019;border:1px solid #393249;border-radius:10px;padding:0 13px;color:#ebe6f5;font-size:12px;box-shadow:none!important;outline:0!important;}
+.profile-overlay .profile-theme-trigger[aria-expanded="true"],.profile-overlay .profile-theme-trigger:focus-visible{border-color:#a487f3;box-shadow:0 0 0 2px rgba(148,107,231,.12)!important;}
+.profile-overlay .profile-floating-menu{z-index:9005;border:1px solid rgba(166,141,229,.36);background:rgba(19,18,29,.99);border-radius:12px;padding:5px;box-shadow:0 16px 42px rgba(0,0,0,.52);max-height:245px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#9c7df2 transparent;}
+.profile-overlay .profile-floating-option{min-height:38px;padding:9px 11px;border-radius:7px;font-size:12px;color:#c6bfce;transition:background .17s,color .17s,transform .2s cubic-bezier(.22,1,.36,1)}
+.profile-overlay .profile-floating-option:hover{background:rgba(168,132,247,.12);color:white;transform:translateX(2px)}
+.profile-overlay .profile-floating-option.selected{background:rgba(154,116,226,.17);color:#d9c6ff}
+/* Same layout as community bind tiles, with a narrower grid inside the author panel. */
+.profile-overlay .profile-library{min-height:0;max-height:min(43vh,390px);overflow-y:auto;overflow-x:hidden;}
+.profile-overlay .profile-work-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;align-items:stretch}
+.profile-overlay .profile-work{display:flex!important;flex-direction:column!important;gap:0!important;position:relative;min-width:0;padding:0!important;border-radius:13px;overflow:hidden;background:#171620;border:1px solid rgba(168,148,216,.19);box-shadow:none;}
+.profile-overlay .profile-work:hover{border-color:rgba(168,137,243,.47);background:#1c1928;transform:translateY(-2px);box-shadow:0 10px 25px #0003}
+.profile-overlay .profile-work::after{content:none!important}
+.profile-overlay .profile-work-preview{display:grid;grid-row:auto!important;flex:none;align-self:stretch;aspect-ratio:16/9!important;width:100%;min-height:0;margin:0!important;border-radius:0!important;background:linear-gradient(125deg,#4c3675,#27203a);overflow:hidden;}
+.profile-overlay .profile-work-preview img{display:block;width:100%;height:100%;object-fit:cover}
+.profile-overlay .profile-work-main{display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:12px 13px 13px;min-width:0;flex:1}
+.profile-overlay .profile-work-main strong{display:block;width:100%;font-size:13px;line-height:1.35;overflow-wrap:anywhere}
+.profile-overlay .profile-work-main small{margin:0;color:#aca3bb;font-size:11px}
+.profile-overlay .profile-work-rating{margin-top:auto;padding-top:7px;width:100%;display:flex;justify-content:space-between;gap:8px}
+.profile-overlay .profile-work-delete{position:absolute;right:9px;top:9px;z-index:4;width:30px;height:30px;min-width:30px;margin:0!important;padding:0!important;display:grid;place-items:center;color:#ffb4c0;background:rgba(20,15,24,.88);border:1px solid rgba(255,178,190,.34);border-radius:9px;opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .2s,transform .2s,background .2s,border-color .2s}
+.profile-overlay .profile-work:hover .profile-work-delete,.profile-overlay .profile-work:focus-within .profile-work-delete{opacity:1;transform:translateY(0);pointer-events:auto}
+.profile-overlay .profile-work-delete svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.profile-overlay .profile-work-delete:hover{background:#4b252f;border-color:#ec9bad}
+@media(hover:none){.profile-overlay .profile-work-delete{opacity:1;transform:none;pointer-events:auto}}
+@media(max-width:560px){.profile-overlay .profile-work-grid{grid-template-columns:1fr}.profile-overlay .profile-work-preview{aspect-ratio:16/8.5!important}}
+@media(prefers-reduced-motion:reduce){.profile-overlay .profile-floating-menu,.profile-overlay .profile-floating-option,.profile-overlay .profile-work-delete{animation:none!important;transition:none!important}}
+
+/* Keep the image completely sharp; soften only its lower edge near the panel boundary. */
+.profile-overlay .profile-banner::after{inset:auto 0 0!important;height:58px!important;background:linear-gradient(to bottom,transparent 0%,rgba(19,19,27,.28) 43%,#13131b 100%)!important;pointer-events:none;}
+.profile-overlay .profile-banner-image{filter:none!important;image-rendering:auto!important;transform:none!important;}
+.profile-overlay .profile-scroll{scrollbar-gutter:auto!important;}
+
+/* Compact desktop library; unobstructed sticky heading. */
+.profile-overlay .profile-library-title{position:sticky;top:0!important;z-index:5;background:#13131b!important;padding:8px 0 12px!important;margin:0!important;backdrop-filter:none!important}
+@media(min-width:950px){.profile-overlay .profile-work-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media(min-width:600px) and (max-width:949px){.profile-overlay .profile-work-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:599px){.profile-overlay .profile-work-grid{grid-template-columns:1fr!important}}

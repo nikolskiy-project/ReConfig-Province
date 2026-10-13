@@ -14,10 +14,11 @@ function avatar(username,url,cls='profile-portrait'){
 }
 function init(){if(root)return root;
  root=el('div','profile-overlay');root.hidden=true;root.setAttribute('aria-hidden','true');
- root.innerHTML=`<div class="profile-backdrop"></div><section class="profile-panel" role="dialog" aria-modal="true" aria-label="Профиль автора" tabindex="-1"><button class="profile-exit" type="button" aria-label="Закрыть профиль">×</button><div class="profile-scroll"><div class="profile-loading">Загружаем профиль автора…</div></div></section>`;
+ root.innerHTML=`<div class="profile-backdrop"></div><section class="profile-panel" role="dialog" aria-modal="true" aria-label="Профиль автора" tabindex="-1"><button class="profile-exit" type="button" aria-label="Закрыть профиль"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button><div class="profile-scroll"><div class="profile-loading">Загружаем профиль автора…</div></div></section>`;
  document.body.append(root);
  root.querySelector('.profile-backdrop').addEventListener('click',close);
  root.querySelector('.profile-exit').addEventListener('click',close);
+ root.querySelector('.profile-scroll').addEventListener('scroll',()=>menuCloser?.(),{passive:true});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!root.hidden&&document.getElementById('accountOverlay')?.hidden!==false){close();e.stopPropagation();}});
  return root;
 }
@@ -111,10 +112,11 @@ function workCard(item,owner){const card=el('article','profile-work');const prev
      close();setTimeout(()=>window.reconfigOpenCommunityWork(item.id),255);
    }else{close();setTimeout(()=>{location.href='rehub.html#config=community:'+encodeURIComponent(item.id);},220);}
  };
- if(ownerIsCurrent){const del=el('button','profile-work-delete','Удалить');del.type='button';del.title='Удалить эту публикацию';del.setAttribute('aria-label','Удалить '+(item.title||'публикацию'));
+ if(ownerIsCurrent){const del=el('button','profile-work-delete');del.type='button';del.title='Удалить эту публикацию';del.setAttribute('aria-label','Удалить '+(item.title||'публикацию'));
+ del.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>';
  del.onclick=async ev=>{ev.stopPropagation();if(!confirm('Безвозвратно удалить публикацию «'+(item.title||'Без названия')+'» из мастерской?'))return;
-  del.disabled=true;del.textContent='Удаляем…';try{await request('/api/auth/my-submissions/'+item.id,{method:'DELETE',headers:{'Content-Type':'application/json',Authorization:'Bearer '+getToken()},body:JSON.stringify({status:'approved',confirm:item.id})});await refresh(owner);window.dispatchEvent(new Event('reconfig:community-changed'));}
-  catch(error){alert(error.message);del.disabled=false;del.textContent='Удалить';}};info.append(del);}
+  del.disabled=true;try{await request('/api/auth/my-submissions/'+item.id,{method:'DELETE',headers:{'Content-Type':'application/json',Authorization:'Bearer '+getToken()},body:JSON.stringify({status:'approved',confirm:item.id})});await refresh(owner);window.dispatchEvent(new Event('reconfig:community-changed'));}
+  catch(error){alert(error.message);del.disabled=false;}};card.append(del);}
  card.addEventListener('click',event=>{if(event.target.closest('button,a'))return;navigate();});
  card.addEventListener('keydown',event=>{if(event.target!==card)return;if(event.key==='Enter'||event.key===' '){event.preventDefault();navigate();}});
  card.append(preview,info);return card;}
