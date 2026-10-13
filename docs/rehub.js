@@ -1165,26 +1165,35 @@ function rebuildCategorySelect(items, allCatalogItems = []) {
   }
 }
 
-async function loadCommunityConfigs() {
+let communityCatalogSignature = '';
+let communityCatalogLoading = false;
+async function loadCommunityConfigs(options = {}) {
+  if (communityCatalogLoading) return;
+  const firstCatalogLoad = !rehubCatalogLoaded;
+  communityCatalogLoading = true;
   const grid = $('#communityGrid');
   const empty = $('#communityEmpty');
   const emptyTitle = $('#communityEmptyTitle');
   const emptyText = $('#communityEmptyText');
-  if (!grid || !empty) return;
+  if (!grid || !empty) {communityCatalogLoading=false;return;}
 
   if (!REHUB_API || REHUB_API.includes('YOUR-WORKER')) {
     emptyTitle.textContent = 'API ReHub ещё не подключён';
     emptyText.textContent = 'Укажи адрес Cloudflare Worker в rehub-config.js — после этого опубликованные конфиги загрузятся автоматически.';
     rehubCatalogLoaded = true;
     openSharedConfig();
+    communityCatalogLoading = false;
     return;
   }
 
   try {
-    const response = await fetch(`${REHUB_API}/api/configs`, { headers: { 'Accept': 'application/json' } });
+    const response = await fetch(`${REHUB_API}/api/configs`, {cache:'no-store', headers: { 'Accept': 'application/json', 'Cache-Control':'no-cache' } });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     const items = Array.isArray(data) ? data : (Array.isArray(data.configs) ? data.configs : []);
+    const newSignature=JSON.stringify(items.map(item=>[item.id,item.title,item.approved_at,item.author_verified,item.rating?.score,item.rating?.votes]));
+    if(newSignature===communityCatalogSignature && !options.force)return;
+    communityCatalogSignature=newSignature;
     items.filter(item => item && item.official === true).forEach(applyOfficialConfig);
     const communityItems = items.filter(item => item && item.official !== true);
     grid.innerHTML = '';
@@ -1205,8 +1214,9 @@ async function loadCommunityConfigs() {
     emptyText.textContent = 'Проверь адрес API и настройки CORS в Cloudflare Worker.';
     console.error('ReHub API:', error);
   } finally {
+    communityCatalogLoading = false;
     rehubCatalogLoaded = true;
-    openSharedConfig();
+    if(firstCatalogLoad) openSharedConfig();
   }
 }
 
@@ -1687,4 +1697,14 @@ initHubRoundedScrollbars();
 initReHubMarkdownToolbar();
 addEventListener('hashchange', openSharedConfig);
 loadCommunityConfigs();
+// Refresh the published catalog after an approval or deletion, including changes on another device.
+// Skip updates while any modal is open so editing/scroll state is not destroyed.
+window.addEventListener('reconfig:community-changed',()=>{communityCatalogSignature='';void loadCommunityConfigs({force:true});});
+const refreshPublishedCatalog=()=>{
+  if(document.visibilityState==='hidden')return;
+  if(document.querySelector('.hub-modal-backdrop.open, .profile-overlay:not([hidden]):not(.is-closing)'))return;
+  void loadCommunityConfigs();
+};
+setInterval(refreshPublishedCatalog,30000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshPublishedCatalog();});
 bindCursorHover();

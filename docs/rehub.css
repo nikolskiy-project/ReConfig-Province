@@ -1355,3 +1355,53 @@ label,
 
 /* Profiles v10 — verified author badge matches the official small tick */
 .video-card-copy p .community-author-check.verified-dot{width:14px;height:14px;min-width:14px;margin:0 0 0 3px;display:inline-grid;place-items:center;border-radius:50%;font-size:9px;line-height:1;background:rgba(153,119,237,.2);color:#c0a1ff;border:0;box-shadow:none;vertical-align:middle;transform:none}
+
+
+/* Profiles v11 — consistent verification mark and content-sized detail modal. */
+.video-card-copy p .community-author-check.verified-dot{
+  display:inline-grid!important;place-items:center;width:12px!important;height:12px!important;
+  min-width:12px!important;padding:0!important;margin:0 0 0 3px!important;
+  border-radius:50%!important;background:#8a70df!important;color:#fff!important;
+  font-size:8px!important;font-weight:750!important;line-height:1!important;
+  vertical-align:1px!important;box-shadow:0 0 0 1px rgba(212,195,255,.13)!important;
+}
+.hub-modal.hub-detail-modal{height:auto!important;min-height:0!important;max-height:min(90dvh,820px)!important}
+.hub-detail-modal .hub-detail-scroll{
+  height:auto!important;flex:0 1 auto!important;min-height:0!important;
+  max-height:min(86dvh,740px)!important;
+}
+.hub-detail-modal .hub-detail-scroll .detail-layout{
+  height:auto!important;min-height:0!important;flex:0 1 auto!important;
+  max-height:min(86dvh,740px)!important;
+}
+.hub-detail-modal .detail-copy{
+  flex:0 1 auto!important;min-height:0!important;
+  max-height:calc(min(86dvh,740px) - 210px)!important;
+  overflow-y:auto!important;
+}
+.hub-detail-modal .detail-actions{margin-top:12px!important;padding-top:14px!important}
+/* The same input, select and scrollbar surfaces used in the workshop. */
+.upload-form input:not([type=file]):not([type=checkbox]),
+.upload-form select,.hub-modal input:not([type=file]):not([type=checkbox]),
+.hub-modal textarea,.community-filter-select select{
+  border-color:rgba(163,142,206,.22);
+  background:#111119;color:#eeeaf5;
+  border-radius:9px;
+  transition:border-color .2s ease,background .2s ease,box-shadow .2s ease;
+}
+.upload-form input:not([type=file]):focus,.hub-modal textarea:focus,.hub-modal select:focus{
+  outline:none;border-color:#a487f7;box-shadow:0 0 0 3px rgba(139,92,246,.15);
+}
+.hub-modal input[type=checkbox]{accent-color:#9875f4}
+.hub-detail-modal .detail-copy,.hub-upload-scroll{
+  scrollbar-width:thin!important;scrollbar-color:#9975ed transparent!important;
+}
+.hub-detail-modal .detail-copy::-webkit-scrollbar,.hub-upload-scroll::-webkit-scrollbar{width:7px}
+.hub-detail-modal .detail-copy::-webkit-scrollbar-thumb,.hub-upload-scroll::-webkit-scrollbar-thumb{
+  border-radius:999px;background:#9b7bef;border:1px solid #14131c;
+}
+@media(max-width:720px){
+  .hub-detail-modal .detail-copy{max-height:calc(92dvh - 195px)!important}
+  .hub-detail-modal .detail-preview{flex-basis:175px!important;min-height:175px!important;max-height:175px!important}
+}
+

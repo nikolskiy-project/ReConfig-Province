@@ -18,6 +18,22 @@ function card(user){
 function render(){const value=search.value.trim().toLowerCase();const filtered=items.filter(u=>(u.username+' '+(u.bio||'')).toLowerCase().includes(value));grid.replaceChildren(...filtered.map(card));if(!filtered.length)grid.append(element('p','authors-loading','Авторы не найдены.'));}
 async function load(){try{const res=await fetch(API+'/api/authors',{cache:'no-store'});const data=await res.json();if(!res.ok)throw Error(data.error||'Не удалось загрузить авторов');items=data.authors||[];render();}catch(err){grid.replaceChildren(element('p','authors-loading',err.message));}}
 search.addEventListener('input',render);void load();
+// Keep the creator directory in sync after moderation, without refreshing the page.
+let authorsRefreshBusy=false;
+async function updateAuthorsSilently(){
+ if(authorsRefreshBusy||document.visibilityState==='hidden')return;
+ authorsRefreshBusy=true;
+ try{
+  const res=await fetch(API+'/api/authors',{cache:'no-store'});
+  if(!res.ok)return;
+  const next=(await res.json()).authors||[];
+  const signature=values=>JSON.stringify(values.map(u=>[u.id,u.username,u.publications,u.downloads,u.rating?.score,u.rating?.votes,u.verified,u.avatar_url,u.bio]));
+  if(signature(next)!==signature(items)){items=next;render();}
+ }catch{}finally{authorsRefreshBusy=false;}
+}
+setInterval(updateAuthorsSilently,35000);
+window.addEventListener('reconfig:community-changed',()=>void updateAuthorsSilently());
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void updateAuthorsSilently();});
 $('authorsAccountLink')?.addEventListener('click',e=>{const name=sessionStorage.getItem('reconfig_self_user');if(name){e.preventDefault();window.reconfigOpenProfile?.(name);}});
 const token=sessionStorage.getItem('reconfig_session_token');if(token){fetch(API+'/api/auth/me',{headers:{Authorization:'Bearer '+token},cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()).then(data=>{sessionStorage.setItem('reconfig_self_user',data.user.username);$('authorsAccountLabel').textContent=data.user.username;}).catch(()=>{});}
 $('authorsLogout')?.addEventListener('click',async()=>{if(token)try{await fetch(API+'/api/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+token}})}catch{}sessionStorage.removeItem('reconfig_session_token');sessionStorage.removeItem('reconfig_self_user');location.href='authors.html';});

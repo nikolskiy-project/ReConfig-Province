@@ -186,6 +186,18 @@ function show(name){name=String(name||'').trim();if(!validName.test(name))return
 }
 window.reconfigOpenProfile=show;
 window.addEventListener('reconfig:submission-created',()=>{if(root&&!root.hidden&&shown){void refresh(shown);}});
+window.addEventListener('reconfig:community-changed',()=>{if(root&&!root.hidden&&shown&&!root.querySelector('.profile-edit-shell.is-open')){void refresh(shown);}});
+// New approved work should appear without closing the profile. Do not disrupt an open editor.
+let profileLastList='';
+setInterval(async()=>{
+ if(document.visibilityState==='hidden'||!shown||!root||root.hidden||root.querySelector('.profile-edit-shell.is-open'))return;
+ try{
+  const response=await request('/api/authors/'+encodeURIComponent(shown));
+  const signature=JSON.stringify((response.items||[]).map(item=>[item.id,item.title,item.downloads,item.rating?.votes]));
+  if(profileLastList&&signature!==profileLastList){profileLastList=signature;await refresh(shown);}
+  else profileLastList=signature;
+ }catch{}
+},45000);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{init();const selected=new URLSearchParams(location.search).get('profile');if(selected)show(selected);});
 else{init();const selected=new URLSearchParams(location.search).get('profile');if(selected)show(selected);}
 })();

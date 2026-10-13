@@ -1317,3 +1317,16 @@ html:has(> body.admin-review-open) { overflow-y:hidden !important; }
 .admin-author-actions .admin-author-delete{color:#f1a1ac;border-color:rgba(248,113,113,.24)}
 .admin-author-actions .admin-author-delete:hover{background:rgba(248,113,113,.10);border-color:#db8993}
 @media(max-width:550px){.admin-authors-list{grid-template-columns:minmax(0,1fr)}}
+
+
+/* Profiles v11 — same controls/scrollbars as ReConfig workshop. */
+:where(.admin-modal,.admin-panel,.admin-review-scroll) :where(input:not([type=file]):not([type=checkbox]),select,textarea){
+ background:#111119;color:#eeeaf5;border-color:rgba(163,142,206,.24);border-radius:9px;
+ transition:border-color .2s ease,background .2s ease,box-shadow .2s ease
+}
+:where(.admin-modal,.admin-panel,.admin-review-scroll) :where(input,select,textarea):focus{outline:none;border-color:#a487f7;box-shadow:0 0 0 3px rgba(139,92,246,.15)}
+:where(.admin-modal,.admin-panel,.admin-review-scroll) input[type=checkbox]{accent-color:#9875f4}
+.admin-review-scroll{scrollbar-width:thin;scrollbar-color:#9975ed transparent}
+.admin-review-scroll::-webkit-scrollbar{width:7px}
+.admin-review-scroll::-webkit-scrollbar-thumb{background:#9975ed;border-radius:999px}
+
