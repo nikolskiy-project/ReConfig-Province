@@ -1294,3 +1294,14 @@ html:has(> body.admin-review-open) { overflow-y:hidden !important; }
   color: var(--accent-light);
   margin-top: 1px;
 }
+
+/* Reports moderation matches other admin cards. */
+.admin-review-overlay{backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.admin-reports-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:12px;margin-top:18px}
+.admin-report-item{min-width:0;border:1px solid #ffffff18;border-radius:12px;background:#ffffff05;padding:16px;display:grid;gap:10px}
+.admin-report-item strong{font-size:13px;color:#f1e8ff;overflow-wrap:anywhere}
+.admin-report-item small{font-size:11px;color:#a9a1b4;line-height:1.55;overflow-wrap:anywhere}
+.admin-report-item p{font-size:12px;color:#cfc4e0;overflow-wrap:anywhere;white-space:pre-wrap}
+.admin-report-status{justify-self:start;background:#7155be1e;border:1px solid #8770ca5a;border-radius:7px;padding:4px 8px;color:#baa7ff;font-size:10px}
+.admin-report-actions{display:flex;flex-wrap:wrap;gap:7px}
+.admin-report-actions button{min-height:32px;font-size:11px}

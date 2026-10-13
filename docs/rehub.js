@@ -782,6 +782,7 @@ function openCard(card) {
   const detailScroll = $('#detailScroll');
   if (detailScroll) detailScroll.scrollTop = 0;
   setModal(modal, true);
+  window.reconfigShowFeedback?.(card);
 }
 
 function activateCard(card) {

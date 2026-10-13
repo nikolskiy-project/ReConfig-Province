@@ -3,7 +3,7 @@
 'use strict';
 const API=String(window.REHUB_API||'').replace(/\/$/,'');
 const validName=/^[a-zA-Z][a-zA-Z0-9_]{2,23}$/;
-let root=null,lastFocus=null,shown='',pending=null,closeTimer=null;
+let root=null,lastFocus=null,shown='',pending=null,closeTimer=null,menuCloser=null;
 const el=(tag,cls='',label='')=>{const node=document.createElement(tag);if(cls)node.className=cls;if(label!==undefined&&label!=='')node.textContent=label;return node;};
 function link(url,label,cls='') {const a=el('a',cls,label);a.href=url;a.target='_blank';a.rel='noopener noreferrer';return a;}
 function safeUrl(raw){try{const url=new URL(raw);return url.protocol==='https:'&&!url.username&&!url.password?url.href:null;}catch{return null;}}
@@ -21,7 +21,7 @@ function init(){if(root)return root;
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!root.hidden&&document.getElementById('accountOverlay')?.hidden!==false){close();e.stopPropagation();}});
  return root;
 }
-function close(){if(!root||root.hidden)return;root.classList.add('is-closing');root.setAttribute('aria-hidden','true');document.body.classList.remove('profile-open');clearTimeout(closeTimer);closeTimer=setTimeout(()=>{root.hidden=true;root.classList.remove('is-closing');root.querySelector('.profile-scroll').replaceChildren();lastFocus?.focus?.();},240);}
+function close(){if(menuCloser){menuCloser();menuCloser=null;}if(!root||root.hidden)return;root.classList.add('is-closing');root.setAttribute('aria-hidden','true');document.body.classList.remove('profile-open');clearTimeout(closeTimer);closeTimer=setTimeout(()=>{root.hidden=true;root.classList.remove('is-closing');root.querySelector('.profile-scroll').replaceChildren();lastFocus?.focus?.();},240);}
 function stat(value,label,extra=''){const c=el('div','profile-stat');c.append(el('strong','',String(value)),el('span','',label));if(extra)c.append(el('small','',extra));return c;}
 const fmtNumber=value=>Number(value||0).toLocaleString('ru-RU');
 function getToken(){return sessionStorage.getItem('reconfig_session_token')||'';}
@@ -40,6 +40,34 @@ function profileField(title,name,value,placeholder='',max=250){
  if(input.tagName==='TEXTAREA')input.rows=3;else input.autocomplete='off';
  lab.append(input);return lab;
 }
+function themePicker(value){
+ const field=el('div','profile-field profile-theme-field');
+ field.append(el('span','profile-field-label','Цвет шапки без изображения'));
+ const select=el('select','profile-input profile-native-select');select.name='banner_theme';
+ const options=[['violet','Фиолетовый'],['blue','Синий'],['rose','Розовый'],['emerald','Изумрудный']];
+ options.forEach(([key,name])=>{const opt=el('option','',name);opt.value=key;select.append(opt);});select.value=value||'violet';
+ select.tabIndex=-1;select.setAttribute('aria-hidden','true');
+ const trigger=el('button','profile-theme-trigger','');trigger.type='button';trigger.setAttribute('aria-haspopup','listbox');trigger.setAttribute('aria-expanded','false');
+ const chosen=el('span','profile-theme-name',options.find(x=>x[0]===select.value)?.[1]||'Фиолетовый');
+ trigger.append(el('i','profile-theme-color theme-'+select.value),chosen,el('span','profile-theme-arrow','⌄'));
+ field.append(trigger,select);
+ const closeMenu=()=>{const floating=root?.querySelector('.profile-floating-menu');floating?.remove();trigger.setAttribute('aria-expanded','false');if(menuCloser===closeMenu)menuCloser=null;};
+ trigger.addEventListener('click',()=>{
+  if(menuCloser===closeMenu){closeMenu();return;}menuCloser?.();menuCloser=closeMenu;
+  const menu=el('div','profile-floating-menu');menu.setAttribute('role','listbox');menu.setAttribute('aria-label','Цвет шапки');
+  for(const [key,name] of options){const option=el('button','profile-floating-option'+(key===select.value?' selected':' '));option.type='button';option.setAttribute('role','option');option.setAttribute('aria-selected',String(key===select.value));
+   option.append(el('i','profile-theme-color theme-'+key),el('span','',name));
+   option.onclick=()=>{select.value=key;chosen.textContent=name;trigger.querySelector('i').className='profile-theme-color theme-'+key;closeMenu();trigger.focus({preventScroll:true});};menu.append(option);}
+  root.append(menu);menu.addEventListener('keydown',event=>{if(event.key==='Escape'){closeMenu();trigger.focus();event.stopPropagation();}});const rect=trigger.getBoundingClientRect(),width=Math.max(rect.width,190),height=menu.offsetHeight;
+  menu.style.width=width+'px';menu.style.left=Math.max(9,Math.min(rect.left,window.innerWidth-width-9))+'px';
+  menu.style.top=(rect.bottom+height+8<window.innerHeight?rect.bottom+5:Math.max(8,rect.top-height-5))+'px';
+  trigger.setAttribute('aria-expanded','true');
+  menu.querySelector('.selected')?.focus({preventScroll:true});
+ });
+ document.addEventListener('pointerdown',event=>{if(menuCloser===closeMenu&&!field.contains(event.target)&&!root?.querySelector('.profile-floating-menu')?.contains(event.target))closeMenu();});
+ field.addEventListener('keydown',event=>{if(event.key==='Escape'&&menuCloser===closeMenu){closeMenu();trigger.focus();event.stopPropagation();}});
+ return field;
+}
 function editor(data){const form=el('form','profile-edit');
  form.append(el('h3','','Настройки профиля'),el('p','profile-help','Укажи свои ссылки и оформление. Контакты отображаются в профиле только при заполнении.'));
  const fields=[
@@ -52,8 +80,7 @@ function editor(data){const form=el('form','profile-edit');
  ['Форум Province','forum','https://forum.gtaprovince.ru/forum/...',320]
  ];
  for(const [label,name,placeholder,max] of fields)form.append(profileField(label,name,data[name],placeholder,max));
- const lab=el('label','profile-field');lab.append(el('span','profile-field-label','Цвет шапки без изображения'));
- const select=el('select','profile-input');select.name='banner_theme';for(const [value,label] of [['violet','Фиолетовый'],['blue','Синий'],['rose','Розовый'],['emerald','Изумрудный']]){const opt=el('option','',label);opt.value=value;select.append(opt);}select.value=data.banner_theme||'violet';lab.append(select);form.append(lab);
+ const themeField=themePicker(data.banner_theme);const select=themeField.querySelector('select');form.append(themeField);
  const message=el('p','profile-form-message');message.setAttribute('role','status');form.append(message);
  const actions=el('div','profile-edit-actions');const save=el('button','profile-action primary','Сохранить изменения');save.type='submit';const cancel=el('button','profile-action','Отмена');cancel.type='button';cancel.addEventListener('click',()=>form.dispatchEvent(new CustomEvent('profile-editor-close',{bubbles:true})));actions.append(save,cancel);form.append(actions);
  form.addEventListener('submit',async e=>{e.preventDefault();save.disabled=true;message.textContent='Сохраняем…';const body={};for(const field of fields)body[field[1]]=form.elements[field[1]].value.trim();body.banner_theme=select.value;
@@ -84,18 +111,38 @@ async function refresh(name){const scroll=root.querySelector('.profile-scroll');
  banner.append(el('span','profile-banner-watermark','ReConfig Province'));scroll.append(banner);
  const content=el('div','profile-content');const head=el('div','profile-head');const avatarNode=avatar(user.username,user.avatar_url);const ident=el('div','profile-identity');ident.append(el('span','profile-eyebrow','АВТОР МАСТЕРСКОЙ'));
  const uname=el('div','profile-username');uname.append(el('h2','',user.username));if(user.verified){const verified=el('span','profile-verified','✓');verified.title='Проверенный автор';verified.setAttribute('aria-label','Проверенный автор');uname.append(verified);}ident.append(uname,el('p','profile-subtitle',user.verified?'Проверенный автор ReConfig Province':'Автор сообщества ReConfig Province'));
- head.append(avatarNode,ident);const share=el('button','profile-action profile-share','Скопировать ссылку');share.type='button';share.onclick=()=>{const url=new URL('rehub.html',location.href);url.searchParams.set('profile',user.username);const value=url.href;if(navigator.clipboard?.writeText)navigator.clipboard.writeText(value).then(()=>share.textContent='Ссылка скопирована').catch(()=>{share.textContent=value;});else{const temp=document.createElement('textarea');temp.value=value;temp.style.cssText='position:fixed;opacity:0;left:-9999px';document.body.append(temp);temp.select();const copied=document.execCommand('copy');temp.remove();share.textContent=copied?'Ссылка скопирована':value;}};head.append(share);content.append(head);
+ head.append(avatarNode,ident);const share=el('button','profile-action profile-share','Скопировать ссылку');share.type='button';share.onclick=()=>{const url=new URL('rehub.html',location.href);url.searchParams.set('profile',user.username);const value=url.href;if(navigator.clipboard?.writeText)navigator.clipboard.writeText(value).then(()=>share.textContent='Ссылка скопирована').catch(()=>{share.textContent=value;});else{const temp=document.createElement('textarea');temp.value=value;temp.style.cssText='position:fixed;opacity:0;left:-9999px';document.body.append(temp);temp.select();const copied=document.execCommand('copy');temp.remove();share.textContent=copied?'Ссылка скопирована':value;}};const headerActions=el('div','profile-header-actions');headerActions.append(share);head.append(headerActions);content.append(head);
  if(user.bio)content.append(el('p','profile-bio',user.bio));const contacts=contactButtons(user);if(contacts.childElementCount){content.append(el('h3','profile-small-heading','Контакты'),contacts);}
  const rating=data.rating||{score:null,votes:0};const stats=el('div','profile-stat-grid');stats.append(stat(fmtNumber(data.publications),'Работ'),stat(fmtNumber(data.downloads),'Скачиваний'),stat(rating.votes?`${Number(rating.score).toFixed(1)} / 5`:'—','Оценка автора'),stat(fmtNumber(rating.votes),'Оценок'));
  content.append(stats);
  const own=window.reconfigCurrentAccount?.()?.id===user.id || (getToken()&&window.location.pathname.endsWith('authors.html')&&sessionStorage.getItem('reconfig_self_user')===user.username);
- if(own){const toggle=el('button','profile-action profile-edit-toggle','Редактировать профиль');toggle.type='button';toggle.setAttribute('aria-expanded','false');
- const shell=el('div','profile-edit-shell');const wrap=el('div','profile-edit-reveal');const form=editor(user);form.inert=true;
- wrap.append(form);shell.append(wrap);
- const changeOpen=next=>{shell.classList.toggle('is-open',next);toggle.classList.toggle('is-active',next);toggle.setAttribute('aria-expanded',String(next));toggle.textContent=next?'Свернуть настройки':'Редактировать профиль';form.inert=!next;
- if(next){requestAnimationFrame(()=>{const scroller=root?.querySelector('.profile-scroll');if(!scroller)return;const y=shell.getBoundingClientRect().top-scroller.getBoundingClientRect().top+scroller.scrollTop-65;scroller.scrollTo({top:Math.max(0,y),behavior:'smooth'});});}};
- toggle.addEventListener('click',()=>changeOpen(!shell.classList.contains('is-open')));
- shell.addEventListener('profile-editor-close',()=>changeOpen(false));content.append(toggle,shell);}
+ if(own){
+  const toggle=el('button','profile-action profile-edit-toggle','Редактировать');toggle.type='button';toggle.setAttribute('aria-expanded','false');
+  const logout=el('button','profile-action profile-logout','Выйти');logout.type='button';
+  logout.onclick=async()=>{
+    const token=getToken();try{if(token)await request('/api/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+token}});}catch{}
+    sessionStorage.removeItem('reconfig_session_token');sessionStorage.removeItem('reconfig_self_user');
+    window.reconfigSetCurrentAccount?.(null);close();if(!window.reconfigSetCurrentAccount && location.pathname.endsWith('/authors.html'))location.reload();
+  };
+  headerActions.append(toggle,logout);
+  const shell=el('div','profile-edit-shell');const form=editor(user);form.inert=true;shell.append(form);
+  shell.style.height='0px';shell.style.opacity='0';shell.style.overflow='hidden';
+  let animator=null;
+  const changeOpen=next=>{
+    menuCloser?.();const from=shell.getBoundingClientRect().height;animator?.cancel();
+    shell.classList.toggle('is-open',next);toggle.classList.toggle('is-active',next);
+    toggle.setAttribute('aria-expanded',String(next));toggle.textContent=next?'Свернуть':'Редактировать';form.inert=!next;
+    // Explicit measured-height animation: no 0fr / auto snap.
+    const to=next?form.scrollHeight+8:0;
+    shell.style.visibility='visible';shell.style.height=from+'px';
+    animator=shell.animate([{height:from+'px',opacity:next?'0':'1'},{height:to+'px',opacity:next?'1':'0'}],{
+      duration:480,easing:'cubic-bezier(.22,1,.36,1)',fill:'forwards'});
+    animator.onfinish=()=>{shell.style.height=next?'auto':'0px';shell.style.opacity=next?'1':'0';shell.style.visibility=next?'visible':'hidden';animator.cancel();animator=null;};
+    if(next){setTimeout(()=>{const scroller=root?.querySelector('.profile-scroll');if(!scroller)return;const y=shell.getBoundingClientRect().top-scroller.getBoundingClientRect().top+scroller.scrollTop-105;scroller.scrollTo({top:Math.max(0,y),behavior:'smooth'});},155);}
+  };
+  toggle.addEventListener('click',()=>changeOpen(!shell.classList.contains('is-open')));
+  shell.addEventListener('profile-editor-close',()=>changeOpen(false));content.append(shell);
+ }
  const section=el('section','profile-library');const top=el('div','profile-library-title');top.append(el('h3','','Библиотека работ'),el('span','',`${data.items.length} ${data.items.length%10===1 && data.items.length%100!==11?'публикация':data.items.length%10>=2 && data.items.length%10<=4 && (data.items.length%100<12||data.items.length%100>14)?'публикации':'публикаций'}`));section.append(top);
  if(!data.items.length)section.append(el('p','profile-empty','Здесь пока нет опубликованных биндов.'));
  else{const grid=el('div','profile-work-grid');data.items.forEach(item=>grid.append(workCard(item,user.username)));section.append(grid);}content.append(section);scroll.append(content);

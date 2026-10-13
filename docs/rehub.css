@@ -1270,3 +1270,6 @@ label,
   padding: 0 8px;
   white-space: nowrap;
 }
+
+/* Consistent low-strength backdrop blur for publication dialogs. */
+.hub-modal-backdrop{backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}

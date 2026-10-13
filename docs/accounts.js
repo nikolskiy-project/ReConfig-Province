@@ -28,7 +28,7 @@
   function update(data){token=data.token;account=data.user;sessionStorage.setItem(key,token);sessionStorage.setItem('reconfig_self_user',account.username);render();hide();
     onSignedIn=null;}
   window.reconfigCurrentAccount=()=>account;
-  window.reconfigSetCurrentAccount=next=>{account=next;render();};
+  window.reconfigSetCurrentAccount=next=>{account=next;if(!next){token='';sessionStorage.removeItem('reconfig_session_token');sessionStorage.removeItem('reconfig_self_user');}render();};
   window.reconfigAccountToken=()=>token;
   window.reconfigRequireAccount=callback=>{if(account){callback();return}onSignedIn=callback;setMode('login');show();};
   openButton?.addEventListener('click',()=>{if(account){if(window.reconfigOpenProfile)window.reconfigOpenProfile(account.username);else location.href='rehub.html?profile='+encodeURIComponent(account.username);return;}setMode('login');show();});
