@@ -1,5 +1,15 @@
 /* ReConfig Province · independent profile UI, scoped to new classes */
-.reconfig-login-top{border-color:rgba(167,139,250,.32)!important;white-space:nowrap}
+.reconfig-login-top{
+  -webkit-appearance:none;appearance:none;
+  border-color:rgba(167,139,250,.32)!important;
+  color:#f4f4f7!important;-webkit-text-fill-color:#f4f4f7!important;
+  font:inherit;font-size:12px;font-weight:600;white-space:nowrap;
+  cursor:pointer;
+}
+.reconfig-login-top span { color:inherit!important; -webkit-text-fill-color:currentColor!important; }
+.reconfig-login-top svg,.reconfig-login-top svg * { stroke:#f4f4f7!important; fill:none!important; }
+.reconfig-login-top:hover { color:#b79cff!important; -webkit-text-fill-color:#b79cff!important; }
+.reconfig-login-top:hover svg,.reconfig-login-top:hover svg * { stroke:#b79cff!important; }
 .account-overlay[hidden],.account-confirm[hidden]{display:none!important}
 .account-overlay{position:fixed;inset:0;z-index:2000;background:rgba(4,4,10,.78);backdrop-filter:blur(14px);display:grid;place-items:center;padding:18px;animation:accountShade .2s ease both}
 .account-dialog{position:relative;width:min(100%,440px);max-height:min(92vh,720px);overflow:auto;border:1px solid rgba(167,139,250,.25);border-radius:22px;background:linear-gradient(155deg,#20202f,#12121c 68%);padding:32px;box-shadow:0 30px 90px #0009;animation:accountRise .36s cubic-bezier(.2,1,.3,1) both;color:#f4f4fa}
@@ -57,7 +67,7 @@
 @media(prefers-reduced-motion:reduce){.account-overlay,.account-dialog,.authors-hero{animation:none!important}.authors-card,.account-tab{transition:none!important}}
 
 .rehub-top-actions{display:flex;justify-self:end;align-items:center;gap:8px;white-space:nowrap}
-@media(max-width:640px){.rehub-top-actions{gap:6px}.reconfig-login-top svg{display:block}.rehub-top-actions .header-github{flex:0 0 38px}}
+@media(max-width:640px){.rehub-top-actions{gap:6px}.reconfig-login-top svg{display:block}.rehub-top-actions .header-github{flex:0 0 38px;font-size:0}}
 @media(max-width:640px){.rehub-top-actions .header-github span{display:none!important}}
 
 @media(max-width:640px){#authorsAccountLink span{display:none!important}}

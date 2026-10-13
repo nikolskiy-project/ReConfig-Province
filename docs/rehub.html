@@ -9,34 +9,9 @@
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="rehub.css?v=43">
-  <link rel="stylesheet" href="accounts.css?v=1">
+  <link rel="stylesheet" href="accounts.css?v=2">
 
-  <style>
-    #openUploadTop {
-      -webkit-appearance: none !important;
-      appearance: none !important;
-      color: #f4f4f7 !important;
-      -webkit-text-fill-color: #f4f4f7 !important;
-      font: inherit;
-    }
 
-    #openUploadTop span {
-      color: #f4f4f7 !important;
-      -webkit-text-fill-color: #f4f4f7 !important;
-    }
-
-    #openUploadTop svg,
-    #openUploadTop svg * {
-      color: currentColor !important;
-      stroke: currentColor !important;
-    }
-
-    #openUploadTop:hover,
-    #openUploadTop:hover span {
-      color: #b79cff !important;
-      -webkit-text-fill-color: #b79cff !important;
-    }
-  </style>
 </head>
 <body class="rehub-page">
   <div class="page-noise" aria-hidden="true"></div>
@@ -60,14 +35,12 @@
     </nav>
 
     <div class="rehub-top-actions">
-    <button class="header-github interactive reconfig-login-top" id="openAccount" type="button" aria-label="Войти в аккаунт"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 21c0-4.5 3-7 7.5-7s7.5 2.5 7.5 7"/></svg><span id="accountButtonLabel">Войти</span></button>
-    <button class="header-github interactive" id="openUploadTop" type="button" title="Загрузить конфиг в ReHub" aria-label="Загрузить конфиг в ReHub">
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 16V4m0 0-4 4m4-4 4 4"/>
-        <path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>
-      </svg>
-      <span>Загрузить</span>
-    </button>
+      <button class="header-github interactive reconfig-login-top" id="openAccount" type="button" aria-label="Войти в аккаунт" title="Войти в аккаунт">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8" r="4"/><path d="M4.5 21c0-4.5 3-7 7.5-7s7.5 2.5 7.5 7"/>
+        </svg>
+        <span id="accountButtonLabel">Войти</span>
+      </button>
     </div>
   </header>
 
@@ -478,6 +451,6 @@
   <script src="rehub-rich-editor.js?v=33"></script>
   <script src="rehub-config.js?v=1"></script>
   <script src="rehub.js?v=profiles1"></script>
-  <script src="accounts.js?v=1"></script>
+  <script src="accounts.js?v=2"></script>
 </body>
 </html>

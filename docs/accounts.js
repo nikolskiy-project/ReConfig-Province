@@ -21,7 +21,7 @@
   function render(){if(openButton){const label=$('accountButtonLabel');if(label)label.textContent=account?account.username:'Войти';openButton.setAttribute('aria-label',account?('Профиль '+account.username):'Войти в аккаунт');}const author=document.querySelector('#uploadForm input[name="author"]');
     if(author){author.value=account?.username||'';author.readOnly=true;author.title='Автор устанавливается по аккаунту';}}
   async function call(path,body){const res=await fetch(api+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.error||'Ошибка сервера');return data;}
+    const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.error === 'Internal error' ? 'Ошибка API. Проверьте подключение D1 и обновление Worker.' : (data.error||'Ошибка сервера'));return data;}
   function update(data){token=data.token;account=data.user;sessionStorage.setItem(key,token);render();hide();
     onSignedIn=null;}
   window.reconfigCurrentAccount=()=>account;
