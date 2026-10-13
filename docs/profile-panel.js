@@ -45,29 +45,45 @@ function profileField(title,name,value,placeholder='',max=250){
 function themePicker(value){
  const field=el('div','profile-field profile-theme-field');
  field.append(el('span','profile-field-label','Цвет шапки без изображения'));
- const select=el('select','profile-input profile-native-select');select.name='banner_theme';
- const options=[['violet','Фиолетовый'],['blue','Синий'],['rose','Розовый'],['emerald','Изумрудный']];
- options.forEach(([key,name])=>{const opt=el('option','',name);opt.value=key;select.append(opt);});select.value=value||'violet';
+ const select=el('select','profile-native-select animated-native-select');
+ select.name='banner_theme';
+ const themes=[['violet','Фиолетовый'],['blue','Синий'],['rose','Розовый'],['emerald','Изумрудный']];
+ for(const [key,name] of themes){const option=el('option','',name);option.value=key;select.append(option);}
+ select.value=themes.some(theme=>theme[0]===value)?value:'violet';
  select.tabIndex=-1;select.setAttribute('aria-hidden','true');
- const trigger=el('button','profile-theme-trigger','');trigger.type='button';trigger.setAttribute('aria-haspopup','listbox');trigger.setAttribute('aria-expanded','false');
- const chosen=el('span','profile-theme-name',options.find(x=>x[0]===select.value)?.[1]||'Фиолетовый');
- trigger.append(el('i','profile-theme-color theme-'+select.value),chosen,el('span','profile-theme-arrow','⌄'));
- field.append(trigger,select);
- const closeMenu=()=>{const floating=root?.querySelector('.profile-floating-menu');floating?.remove();trigger.setAttribute('aria-expanded','false');if(menuCloser===closeMenu)menuCloser=null;};
- trigger.addEventListener('click',()=>{
-  if(menuCloser===closeMenu){closeMenu();return;}menuCloser?.();menuCloser=closeMenu;
-  const menu=el('div','profile-floating-menu');menu.setAttribute('role','listbox');menu.setAttribute('aria-label','Цвет шапки');
-  for(const [key,name] of options){const option=el('button','profile-floating-option'+(key===select.value?' selected':' '));option.type='button';option.setAttribute('role','option');option.setAttribute('aria-selected',String(key===select.value));
-   option.append(el('i','profile-theme-color theme-'+key),el('span','',name));
-   option.onclick=()=>{select.value=key;chosen.textContent=name;trigger.querySelector('i').className='profile-theme-color theme-'+key;closeMenu();trigger.focus({preventScroll:true});};menu.append(option);}
-  root.append(menu);menu.addEventListener('keydown',event=>{if(event.key==='Escape'){closeMenu();trigger.focus();event.stopPropagation();}});const rect=trigger.getBoundingClientRect(),width=Math.min(Math.max(rect.width,190),320,window.innerWidth-18),height=menu.offsetHeight;
-  menu.style.width=width+'px';menu.style.left=Math.max(9,Math.min(rect.right-width,window.innerWidth-width-9))+'px';
-  menu.style.top=(rect.bottom+height+8<window.innerHeight?rect.bottom+5:Math.max(8,rect.top-height-5))+'px';
-  trigger.setAttribute('aria-expanded','true');
-  menu.querySelector('.selected')?.focus({preventScroll:true});
- });
- document.addEventListener('pointerdown',event=>{if(menuCloser===closeMenu&&!field.contains(event.target)&&!root?.querySelector('.profile-floating-menu')?.contains(event.target))closeMenu();});
- field.addEventListener('keydown',event=>{if(event.key==='Escape'&&menuCloser===closeMenu){closeMenu();trigger.focus();event.stopPropagation();}});
+ field.append(select);
+ // The actual workshop "program-select" component, including its shutter
+ // animation, DOM structure and control classes (not a second custom picker).
+ const wrap=el('div','program-select');
+ wrap.innerHTML='<button type="button" class="program-select-trigger interactive" aria-expanded="false" aria-haspopup="listbox"><span class="program-select-value"></span><span class="program-select-arrow" aria-hidden="true"></span></button><div class="program-select-dropdown"><div class="program-select-options" role="listbox" aria-label="Цвет шапки"></div></div>';
+ field.append(wrap);
+ const button=wrap.querySelector('.program-select-trigger');
+ const optionList=wrap.querySelector('.program-select-options');
+ let animationTimer=null;
+ const setOpen=open=>{
+  clearTimeout(animationTimer);
+  wrap.classList.add('animating');wrap.classList.toggle('open',open);
+  button.setAttribute('aria-expanded',String(open));
+  animationTimer=setTimeout(()=>{wrap.classList.remove('animating');animationTimer=null;},330);
+ };
+ const closeMenu=()=>{setOpen(false);if(menuCloser===closeMenu)menuCloser=null;};
+ const syncOptions=()=>{
+  wrap.querySelector('.program-select-value').textContent=themes.find(t=>t[0]===select.value)?.[1]||themes[0][1];
+  optionList.replaceChildren();
+  themes.forEach(([key,name],index)=>{
+   const option=el('button','program-select-option'+(select.value===key?' selected':''),name);
+   option.type='button';option.setAttribute('role','option');
+   option.setAttribute('aria-selected',String(select.value===key));
+   option.style.setProperty('--option-index',String(index));
+   option.onclick=event=>{event.stopPropagation();select.value=key;select.dispatchEvent(new Event('change',{bubbles:true}));syncOptions();closeMenu();button.focus({preventScroll:true});};
+   optionList.append(option);
+  });
+ };
+ syncOptions();
+ button.onclick=event=>{event.stopPropagation();const willOpen=!wrap.classList.contains('open');menuCloser?.();if(willOpen)menuCloser=closeMenu;setOpen(willOpen);};
+ document.addEventListener('pointerdown',event=>{if(menuCloser===closeMenu&&!field.contains(event.target))closeMenu();});
+ field.addEventListener('keydown',event=>{if(event.key==='Escape'&&wrap.classList.contains('open')){closeMenu();button.focus();event.stopPropagation();}});
+ optionList.addEventListener('wheel',event=>event.stopPropagation(),{passive:true});
  return field;
 }
 function editor(data){const form=el('form','profile-edit');

@@ -697,6 +697,8 @@ function openReview(item,status){
   $('#reviewActions').hidden=status!=='pending';$('#rejectBox').hidden=true;$('#rejectReasonInput').value='';
   const canDelete = status==='approved' || status==='rejected';
   $('#approvedDeleteArea').hidden=!canDelete;
+  $('#approvedDeleteArea').classList.remove('confirming');
+  $('#reviewRejectApproved').hidden=status!=='approved';
   $('#reviewDelete').textContent = status==='rejected' ? 'Удалить отклонённую публикацию' : 'Удалить публикацию';
   const deleteText = $('#deleteConfirmText');
   if (deleteText) {
@@ -711,7 +713,7 @@ function openReview(item,status){
   requestAnimationFrame(() => { window.syncAdminReviewScrollbar?.(); window.syncAdminReviewCodeScrollbar?.(); });
 }
 function closeReview(){
-  clearModerationError();$('#reviewOverlay').hidden=true;document.body.classList.remove('admin-review-open');selectedSubmission=null;$('#rejectBox').hidden=true;$('#deleteConfirmBox').hidden=true;reviewMediaMode='cover';requestAnimationFrame(()=>window.syncAdminScrollbar?.());
+  clearModerationError();$('#reviewOverlay').hidden=true;document.body.classList.remove('admin-review-open');selectedSubmission=null;$('#rejectBox').hidden=true;$('#deleteConfirmBox').hidden=true;$('#approvedDeleteArea').classList.remove('confirming');$('#reviewDelete').setAttribute('aria-expanded','false');reviewMediaMode='cover';requestAnimationFrame(()=>window.syncAdminScrollbar?.());
 }
 async function approveSelected(){
   if(!selectedSubmission||selectedSubmission.status!=='pending')return;
@@ -719,18 +721,21 @@ async function approveSelected(){
   try{await api(`/api/admin/submissions/${selectedSubmission.id}/approve`,{method:'POST'});toast('Публикация одобрена и отмечена как проверенная.');closeReview();await loadCommunityModeration();}
   catch(e){moderationError(e);}finally{btn.disabled=false;btn.textContent=old;}
 }
-function beginReject(){if(!selectedSubmission)return;$('#rejectBox').hidden=false;$('#rejectReasonInput').focus();}
+function beginReject(){if(!selectedSubmission||!['pending','approved'].includes(selectedSubmission.status))return;$('#deleteConfirmBox').hidden=true;$('#approvedDeleteArea').classList.remove('confirming');$('#reviewDelete').setAttribute('aria-expanded','false');$('#rejectBox').hidden=false;$('#rejectReasonInput').focus();}
 async function rejectSelected(){
-  if(!selectedSubmission||selectedSubmission.status!=='pending')return;
+  if(!selectedSubmission||!['pending','approved'].includes(selectedSubmission.status))return;
   const reason=$('#rejectReasonInput').value.trim();if(reason.length<3){toast('Укажи причину отклонения.');return;}
   const btn=$('#rejectConfirm'),old=btn.textContent;btn.disabled=true;btn.textContent='Отклоняю…';
-  try{await api(`/api/admin/submissions/${selectedSubmission.id}/reject`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reason})});toast('Публикация отклонена. Причина сохранена.');closeReview();await loadCommunityModeration();}
+  try{await api(`/api/admin/submissions/${selectedSubmission.id}/reject`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reason,status:selectedSubmission.status})});toast('Публикация отклонена. Причина сохранена.');closeReview();await loadCommunityModeration();}
   catch(e){moderationError(e);}finally{btn.disabled=false;btn.textContent=old;}
 }
 
 function beginDeleteApproved(){
   if(!selectedSubmission || !['approved','rejected'].includes(selectedSubmission.status)) return;
+  $('#rejectBox').hidden=true;
   $('#deleteConfirmBox').hidden=false;
+  $('#approvedDeleteArea').classList.add('confirming');
+  $('#reviewDelete').setAttribute('aria-expanded','true');
   bindAdminCursorHover();
 }
 
@@ -963,12 +968,13 @@ function bindModeration(){
   $('#reviewOverlay').addEventListener('click',e=>{if(e.target===$('#reviewOverlay'))closeReview();});
   $('#reviewApprove').addEventListener('click',approveSelected);
   $('#reviewReject').addEventListener('click',beginReject);
+  $('#reviewRejectApproved').addEventListener('click',beginReject);
   $('#rejectCancel').addEventListener('click',()=>{$('#rejectBox').hidden=true;$('#rejectReasonInput').value='';});
   $('#rejectConfirm').addEventListener('click',rejectSelected);
   $('#reviewXmlLink').addEventListener('click',downloadReviewConfig);
   $('#reviewPreviewLink').addEventListener('click',openReviewPreviewOriginal);
   $('#reviewDelete').addEventListener('click',beginDeleteApproved);
-  $('#deleteCancel').addEventListener('click',()=>{$('#deleteConfirmBox').hidden=true;});
+  $('#deleteCancel').addEventListener('click',()=>{$('#deleteConfirmBox').hidden=true;$('#approvedDeleteArea').classList.remove('confirming');$('#reviewDelete').setAttribute('aria-expanded','false');});
   $('#deleteConfirm').addEventListener('click',deleteApprovedSelected);
   addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#reviewOverlay').hidden)closeReview();});
 }

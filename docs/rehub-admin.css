@@ -1333,3 +1333,9 @@ html:has(> body.admin-review-open) { overflow-y:hidden !important; }
 
 /* Moderation errors must remain visible until the operator closes the review. */
 .admin-review-error:not([hidden]){display:block;margin:12px 0;padding:12px 14px;border:1px solid rgba(245,123,140,.34);border-radius:10px;background:rgba(141,46,68,.11);color:#ffbec8;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+
+/* Profiles v15 — admin moderation actions correctly open, including for approved posts. */
+#approvedDeleteArea[hidden],#reviewRejectApproved[hidden],#rejectBox[hidden] {display:none!important}
+#approvedDeleteArea #reviewRejectApproved {width:100%;margin-bottom:9px;border-color:rgba(248,126,139,.30)}
+#approvedDeleteArea.confirming #reviewRejectApproved {display:none!important}
+#approvedDeleteArea.confirming #reviewDelete {pointer-events:none}
