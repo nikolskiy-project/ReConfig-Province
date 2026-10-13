@@ -3,12 +3,18 @@
 const API=String(window.REHUB_API||'').replace(/\/$/,'');const $=id=>document.getElementById(id);
 const grid=$('authorsGrid'),search=$('authorsSearch');let items=[];
 function element(tag,cls='',text=''){const x=document.createElement(tag);x.className=cls;x.textContent=text;return x;}
-function card(user){const a=element('a','authors-card');a.href='rehub.html?profile='+encodeURIComponent(user.username);
+function card(user){
+ const a=element('a','authors-card');a.href='rehub.html?profile='+encodeURIComponent(user.username);
  a.addEventListener('click',e=>{e.preventDefault();window.reconfigOpenProfile?.(user.username);});
- const row=element('div','authors-profile-line');const avatar=element('div','authors-avatar',user.username[0].toUpperCase());const imageUrl=user.avatar_url;
- if(typeof imageUrl==='string'&&imageUrl.startsWith('https://')){const img=document.createElement('img');img.src=imageUrl;img.alt='';img.loading='lazy';img.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block';img.referrerPolicy='no-referrer';img.onerror=()=>img.remove();img.onload=()=>avatar.classList.add('has-image');avatar.append(img);}
- const heading=element('div');heading.append(element('strong','',user.username));if(user.verified)heading.append(element('span','account-author-verified','✓'));
- const count=element('small','',`${user.publications||0} публикаций`);heading.append(count);row.append(avatar,heading);a.append(row,element('p','',user.bio||'Автор пользовательских конфигураций'));return a;}
+ const row=element('div','authors-profile-line');const avatar=element('div','authors-avatar',user.username[0].toUpperCase());
+ const imageUrl=user.avatar_url;
+ if(typeof imageUrl==='string'&&imageUrl.startsWith('https://')){const img=document.createElement('img');img.src=imageUrl;img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>img.remove();img.onload=()=>avatar.classList.add('has-image');avatar.append(img);}
+ const heading=element('div','authors-card-heading');const name=element('div','authors-card-name');name.append(element('strong','',user.username));if(user.verified)name.append(element('span','account-author-verified','✓'));heading.append(name,element('p','authors-card-bio',user.bio||'Автор игровых биндов'));
+ row.append(avatar,heading);a.append(row);
+ const info=element('div','authors-card-stats');
+ for(const [value,label] of [[user.publications||0,'работ'],[Number(user.downloads||0).toLocaleString('ru-RU'),'скачиваний'],[Number(user.rating?.votes)>0?'★ '+Number(user.rating.score).toFixed(1):'☆ —','рейтинг']]){
+ const part=element('span','authors-card-stat');part.append(element('b','',String(value)),document.createTextNode(' '+label));info.append(part);}
+ a.append(info);return a;}
 function render(){const value=search.value.trim().toLowerCase();const filtered=items.filter(u=>(u.username+' '+(u.bio||'')).toLowerCase().includes(value));grid.replaceChildren(...filtered.map(card));if(!filtered.length)grid.append(element('p','authors-loading','Авторы не найдены.'));}
 async function load(){try{const res=await fetch(API+'/api/authors',{cache:'no-store'});const data=await res.json();if(!res.ok)throw Error(data.error||'Не удалось загрузить авторов');items=data.authors||[];render();}catch(err){grid.replaceChildren(element('p','authors-loading',err.message));}}
 search.addEventListener('input',render);void load();

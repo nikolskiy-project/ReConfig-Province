@@ -732,6 +732,16 @@ function openCard(card) {
   $('#detailAuthorName').textContent = card.dataset.author || (isCommunity ? 'Пользователь ReHub' : 'ReConfig Province');
   $('#detailAuthorMeta').textContent = isCommunity ? (card.dataset.authorVerified === 'true' ? '✓ Проверенный автор' : 'Автор сообщества') : 'Официальный автор · ✓';
   const authorAvatar=$('#detailAuthorAvatar');if(authorAvatar){let photo='assets/logo.png';try{const u=new URL(card.dataset.authorAvatarUrl||'',location.href);if(u.protocol==='https:')photo=u.href;}catch{}authorAvatar.src=photo;authorAvatar.onerror=()=>{authorAvatar.onerror=null;authorAvatar.src='assets/logo.png';};}
+  const authorMeta=$('#detailModal .detail-author');
+  authorMeta?.classList.toggle('profile-author-open',Boolean(isCommunity&&card.dataset.authorUsername));
+  if(authorMeta){authorMeta.onclick=null;authorMeta.onkeydown=null;authorMeta.removeAttribute('tabindex');authorMeta.removeAttribute('role');}
+  if(isCommunity&&card.dataset.authorUsername&&authorMeta){
+    const profileName=card.dataset.authorUsername;
+    authorMeta.tabIndex=0;authorMeta.setAttribute('role','button');
+    authorMeta.setAttribute('aria-label','Открыть профиль '+profileName);
+    authorMeta.onclick=e=>{if(e.target.closest('a'))return;e.preventDefault();e.stopPropagation();window.reconfigOpenProfile?.(profileName);};
+    authorMeta.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();window.reconfigOpenProfile?.(profileName);}};
+  }
   const authorNameEl = $('#detailAuthorName');
   if (isCommunity && card.dataset.authorUsername) {
     const link=document.createElement('a');link.href='rehub.html?profile='+encodeURIComponent(card.dataset.authorUsername);
@@ -782,6 +792,7 @@ function openCard(card) {
 
   const detailScroll = $('#detailScroll');
   if (detailScroll) detailScroll.scrollTop = 0;
+  const detailBody=$('#detailModal .detail-copy');if(detailBody)detailBody.scrollTop=0;
   setModal(modal, true);
   window.reconfigShowFeedback?.(card);
 }
@@ -1060,12 +1071,18 @@ function makeCommunityCard(item, index = 0) {
     authorLink.addEventListener('click',e=>e.stopPropagation());
     authorLink.addEventListener('keydown',e=>e.stopPropagation());
     p.append(authorLink);
-    if (item.author_verified) { const badge=document.createElement('span');badge.className='account-author-verified';badge.title='Проверенный автор';badge.textContent='✓';p.append(' ',badge); }
+    if (item.author_verified) { const badge=document.createElement('span');badge.className='verified-dot community-author-check';badge.title='Проверенный автор';badge.setAttribute('aria-label','Проверенный автор');badge.textContent='✓';p.append(' ',badge); }
   } else p.textContent = item.author || 'Пользователь';
   const small = document.createElement('small');
   small.textContent = `${item.verified ? 'Проверенный конфиг' : 'Сообщество'} · ${item.category || 'Другое'}`;
   copy.append(h3, p, small);
   meta.append(avatar, copy);
+  if(card.dataset.authorUsername){
+    meta.classList.add('community-author-meta-link');meta.tabIndex=0;meta.setAttribute('role','button');
+    meta.setAttribute('aria-label','Профиль автора '+card.dataset.authorUsername);
+    const openAuthor=event=>{if(event.target.closest('a'))return;event.preventDefault();event.stopPropagation();window.reconfigOpenProfile?.(card.dataset.authorUsername);};
+    meta.addEventListener('click',openAuthor);meta.addEventListener('keydown',event=>{if(event.target!==meta)return;if(event.key==='Enter'||event.key===' '){openAuthor(event);}});
+  }
   card.append(thumb, meta);
 
   card.addEventListener('click', () => activateCard(card));
@@ -1628,6 +1645,9 @@ function initUpload() {
       if (!response.ok) throw new Error(result.error || `Ошибка API ${response.status}`);
       showToast(`Отправлено на модерацию · ID ${result.id}`);
       form.reset();
+      if(form.elements.author)form.elements.author.value=window.reconfigCurrentAccount?.()?.username||account.username;
+      const editor=document.querySelector('#uploadForm .rehub-rich-editor,[data-rich-editor]');if(editor&&editor.isContentEditable)editor.replaceChildren();
+      window.dispatchEvent(new CustomEvent('reconfig:submission-created',{detail:{id:result.id}}));
       selectedConfigs = { male: null, female: null };
       selectedGender = 'male';
       selectedPreview = null;

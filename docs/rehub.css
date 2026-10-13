@@ -1316,3 +1316,39 @@ label,
 .community-feedback-report-host[hidden]{display:none!important}
 .community-feedback-report-host .community-feedback-report{margin:0}
 @media(max-width:560px){.detail-tags-engagement{align-items:flex-start}.detail-tags-engagement .detail-tags{flex-basis:100%}.feedback-report-in-preview{left:104px}}
+
+/* Profiles v9 — visible feedback stars and properly anchored report action */
+.community-author-check.verified-dot{display:inline-grid;place-items:center;vertical-align:middle;margin-left:3px;width:14px;height:14px;min-width:14px;padding:0;border-radius:50%;font-size:9px;line-height:1;background:#896de3;color:#fff;box-shadow:0 0 0 1px rgba(240,230,255,.18)}
+.community-author-meta-link{cursor:pointer;transition:background .18s,border-radius .18s}
+.community-author-meta-link:hover .video-card-copy p,.community-author-meta-link:focus-visible .video-card-copy p{color:#cbb7ff}
+.community-author-meta-link:focus-visible{outline:2px solid #997de4;outline-offset:4px;border-radius:8px}
+.detail-author.profile-author-open{cursor:pointer;border-radius:10px;outline-offset:5px}
+.detail-author.profile-author-open:hover strong{color:#c7b0ff}
+.detail-author.profile-author-open:focus-visible{outline:2px solid #a48bff}
+.detail-preview-engagement{position:absolute;top:16px;left:16px;display:flex;align-items:center;gap:8px;z-index:9}
+.detail-preview-engagement .detail-preview-badge{position:static!important;inset:auto!important;display:inline-flex!important;min-height:26px!important;align-items:center;white-space:nowrap}
+.detail-preview-engagement .feedback-report-in-preview{position:static!important;inset:auto!important;display:grid;flex:0 0 27px;height:26px!important;width:27px;min-height:26px;align-items:center;justify-items:center;transform:none}
+.detail-preview-engagement .feedback-report-in-preview:hover{transform:translateY(-2px)}
+.detail-tags-engagement{gap:8px}
+.detail-tags-engagement .feedback-rating-area{gap:8px;max-width:100%;flex:0 0 auto}
+.detail-tags-engagement .community-feedback-summary{display:inline-flex;align-items:center;height:22px;font-size:0;white-space:nowrap}
+.feedback-visual-stars{position:relative;display:inline-block;font-size:17px!important;line-height:1.15;letter-spacing:0.03em;color:#686174}
+.feedback-visual-fill{position:absolute;top:0;left:0;overflow:hidden;white-space:nowrap;color:#f2c977;height:100%}
+.detail-tags-engagement .community-feedback-stars{display:inline-flex;align-items:center;gap:1px}
+.detail-tags-engagement .community-feedback-stars button{font-size:19px;line-height:1;min-width:19px;height:25px;padding:0;display:grid;place-items:center;color:#6d6278}
+.detail-tags-engagement .community-feedback-stars button.selected{color:#f3c980}
+.detail-tags-engagement .community-feedback-stars.is-previewing button{color:#6d6278}
+.detail-tags-engagement .community-feedback-stars.is-previewing button.preview-selected{color:#f3c980;transform:scale(1.08)}
+/* Image remains fixed, only the segment below it scrolls inside the publication. */
+.hub-modal.hub-detail-modal{display:flex!important;flex-direction:column!important}
+.hub-detail-scroll{display:flex;flex-direction:column;overflow:hidden!important;flex:1 1 auto;min-height:0;height:min(84vh,700px);max-height:min(84vh,700px)}
+.hub-detail-scroll .detail-layout{display:flex!important;flex-direction:column!important;height:100%;min-height:0!important;overflow:hidden}
+.hub-detail-modal .detail-preview{flex:0 0 210px;min-height:210px!important;max-height:210px!important}
+.hub-detail-modal .detail-copy{flex:1 1 auto;min-height:0!important;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#8d6dd6 transparent}
+.hub-detail-modal .detail-copy::-webkit-scrollbar{width:7px}
+.hub-detail-modal .detail-copy::-webkit-scrollbar-thumb{background:#9773e8;border-radius:20px;border:1px solid #14131c}
+@media(max-width:720px){.hub-detail-scroll{height:calc(100vh - 18px);max-height:calc(100vh - 18px)}.hub-detail-modal .detail-preview{flex-basis:175px;min-height:175px!important;max-height:175px!important}}
+@media(max-width:570px){.detail-tags-engagement{gap:7px}.detail-tags-engagement .feedback-rating-area{margin-left:auto}.feedback-visual-stars{font-size:15px!important}.detail-tags-engagement .community-feedback-stars button{font-size:17px;min-width:16px}}
+
+/* Read-only average versus the editable five-star control. */
+.detail-tags-engagement .community-feedback-stars{margin-left:4px;padding-left:9px;border-left:1px solid rgba(177,161,203,.23)}

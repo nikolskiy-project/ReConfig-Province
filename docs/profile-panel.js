@@ -123,7 +123,7 @@ async function refresh(name){const scroll=root.querySelector('.profile-scroll');
  if(user.bio)content.append(el('p','profile-bio',user.bio));const contacts=contactButtons(user);if(contacts.childElementCount){content.append(el('h3','profile-small-heading','Контакты'),contacts);}
  const rating=data.rating||{score:null,votes:0};const stats=el('div','profile-stat-grid');stats.append(stat(fmtNumber(data.publications),'Работ'),stat(fmtNumber(data.downloads),'Скачиваний'),stat(rating.votes?`★ ${Number(rating.score).toFixed(1)}`:'☆ —','Оценка автора'),stat(fmtNumber(rating.votes),'Оценок'));
  content.append(stats);
- const own=window.reconfigCurrentAccount?.()?.id===user.id || (getToken()&&window.location.pathname.endsWith('authors.html')&&sessionStorage.getItem('reconfig_self_user')===user.username);
+ const own=Boolean(getToken() && (window.reconfigCurrentAccount?.()?.id===user.id || sessionStorage.getItem('reconfig_self_user')?.toLowerCase()===user.username.toLowerCase()));
  if(own){
   const toggle=el('button','profile-action profile-edit-toggle','Редактировать');toggle.type='button';toggle.setAttribute('aria-expanded','false');
   const logout=el('button','profile-action profile-logout','Выйти');logout.type='button';
@@ -153,13 +153,24 @@ async function refresh(name){const scroll=root.querySelector('.profile-scroll');
  }
  const section=el('section','profile-library');const top=el('div','profile-library-title');top.append(el('h3','','Библиотека работ'),el('span','',`${data.items.length} ${data.items.length%10===1 && data.items.length%100!==11?'публикация':data.items.length%10>=2 && data.items.length%10<=4 && (data.items.length%100<12||data.items.length%100>14)?'публикации':'публикаций'}`));section.append(top);
  if(!data.items.length)section.append(el('p','profile-empty','Здесь пока нет опубликованных биндов.'));
- else{const grid=el('div','profile-work-grid');data.items.forEach(item=>grid.append(workCard(item,user.username)));section.append(grid);}content.append(section);scroll.append(content);
+ else{const grid=el('div','profile-work-grid');data.items.forEach(item=>grid.append(workCard(item,user.username)));section.append(grid);}content.append(section);
+ if(own){const pendingSection=el('section','profile-pending-section');pendingSection.append(el('h3','','На модерации'));const pendingList=el('div','profile-pending-list');pendingList.append(el('p','profile-empty','Загружаем заявки…'));pendingSection.append(pendingList);content.append(pendingSection);
+  request('/api/auth/my-submissions',{headers:{Authorization:'Bearer '+getToken()}}).then(res=>{
+   if(shown!==name||!pendingList.isConnected)return;
+   const items=Array.isArray(res.items)?res.items:[];pendingList.replaceChildren();
+   if(!items.length){pendingSection.remove();return;}
+   for(const item of items){const row=el('div','profile-pending-work');const preview=el('span','profile-pending-thumb');if(safeUrl(item.preview_url)){const img=el('img');img.src=item.preview_url;img.alt='';img.loading='lazy';img.onerror=()=>img.remove();preview.append(img);}else preview.textContent='XML';
+    const info=el('div','profile-pending-info');info.append(el('strong','',item.title||'Новая публикация'),el('small','',item.category||'Бинды'));row.append(preview,info,el('span','profile-pending-label','На модерации'));pendingList.append(row);}
+  }).catch(()=>{if(pendingList.isConnected)pendingList.replaceChildren(el('p','profile-empty','Не удалось загрузить заявки.'));});
+ }
+ scroll.append(content);
  scroll.scrollTop=oldTop;
  }catch(err){scroll.replaceChildren(el('p','profile-loading',err.message));}}
 function show(name){name=String(name||'').trim();if(!validName.test(name))return;
  init();lastFocus=document.activeElement;shown=name;clearTimeout(closeTimer);root.hidden=false;root.classList.remove('is-closing');root.setAttribute('aria-hidden','false');document.body.classList.add('profile-open');root.querySelector('.profile-scroll').scrollTop=0;root.querySelector('.profile-panel').focus({preventScroll:true});void refresh(name);
 }
 window.reconfigOpenProfile=show;
+window.addEventListener('reconfig:submission-created',()=>{if(root&&!root.hidden&&shown){void refresh(shown);}});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{init();const selected=new URLSearchParams(location.search).get('profile');if(selected)show(selected);});
 else{init();const selected=new URLSearchParams(location.search).get('profile');if(selected)show(selected);}
 })();
