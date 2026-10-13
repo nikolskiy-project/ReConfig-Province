@@ -1187,7 +1187,7 @@ async function loadCommunityConfigs(options = {}) {
   }
 
   try {
-    const response = await fetch(`${REHUB_API}/api/configs`, {cache:'no-store', headers: { 'Accept': 'application/json', 'Cache-Control':'no-cache' } });
+    const response = await fetch(`${REHUB_API}/api/configs`, {cache:'no-store', headers: { 'Accept': 'application/json' } });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     const items = Array.isArray(data) ? data : (Array.isArray(data.configs) ? data.configs : []);

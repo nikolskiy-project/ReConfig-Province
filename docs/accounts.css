@@ -446,13 +446,6 @@ body.profile-open{overflow:hidden!important}
 }
 .authors-card-stat{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:4px!important;white-space:normal;min-width:0;line-height:1.3}
 .authors-card-stat b{font-size:14px!important;line-height:1.1;font-variant-numeric:tabular-nums}
-.profile-banner{overflow:visible;isolation:isolate}
-.profile-banner-image{mask-image:none!important;-webkit-mask-image:none!important}
-.profile-banner:after{
-  inset:auto 0 -48px!important;height:148px!important;z-index:1;
-  background:linear-gradient(to bottom,transparent 0%,rgba(19,19,27,.12) 15%,rgba(19,19,27,.58) 45%,#13131b 74%,#13131b 100%)!important;
-  pointer-events:none
-}
 .profile-content{position:relative;z-index:3}
 .profile-overlay .profile-input,.authors-page .authors-search,.account-dialog input{
   border-radius:10px;border:1px solid rgba(165,148,209,.2);background:#111119;
@@ -469,3 +462,27 @@ body.profile-open{overflow:hidden!important}
 .profile-scroll::-webkit-scrollbar-thumb,.profile-library::-webkit-scrollbar-thumb,.profile-pending-list::-webkit-scrollbar-thumb{border-radius:999px;background:#9a75ec;border:1px solid #13131b}
 @media(prefers-reduced-motion:reduce){.profile-theme-trigger,.account-tab,.profile-contact,.profile-action{transition:none!important}}
 
+
+/* Profiles v12: no oversized band across the face or description. Image stays sharp.
+   A narrow shade along the very top of the panel and a subtle bottom blend only. */
+.profile-panel{isolation:isolate}
+.profile-panel::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:20px;
+  border-radius:23px 23px 0 0;z-index:5;pointer-events:none;
+  background:linear-gradient(to bottom,#13131b 0%,rgba(19,19,27,.44) 38%,transparent 100%);
+}
+.profile-banner{overflow:hidden!important;isolation:auto!important;background-color:#13131b}
+.profile-banner-image{
+  -webkit-mask-image:none!important;mask-image:none!important;
+  object-fit:cover!important;image-rendering:auto!important;
+  transform:none!important;filter:none!important;
+  animation:profileCoverV12 .35s ease-out both!important;
+}
+@keyframes profileCoverV12{from{opacity:.82}to{opacity:1}}
+.profile-banner:after{
+  content:"";position:absolute;inset:auto 0 0!important;height:30px!important;
+  background:linear-gradient(to bottom,transparent,#13131b)!important;
+  pointer-events:none;z-index:1;
+}
+.profile-content{background:linear-gradient(to bottom, transparent 0px,rgba(19,19,27,.54) 42px,#13131b 88px)!important;z-index:2!important}
+@media(prefers-reduced-motion:reduce){.profile-banner-image{animation:none!important}}

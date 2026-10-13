@@ -33,7 +33,7 @@ function headers() { return { 'Authorization': `Bearer ${adminKey}`, 'Accept':'a
 async function api(path, options={}) {
   const response = await fetch(`${API}${path}`, { ...options, headers: { ...headers(), ...(options.headers || {}) } });
   let data = null; try { data = await response.json(); } catch (_) {}
-  if (!response.ok) { const err = new Error(data?.error || `HTTP ${response.status}`); err.status=response.status; err.detail=data?.detail; throw err; }
+  if (!response.ok) { const suffix=data?.request_id ? ` [${data.code||'ERROR'}: ${data.request_id}]` : ''; const err = new Error((data?.error || `HTTP ${response.status}`)+suffix); err.status=response.status; err.detail=data?.detail ? data.detail+suffix : err.message; throw err; }
   return data;
 }
 
