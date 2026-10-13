@@ -1352,3 +1352,6 @@ label,
 
 /* Read-only average versus the editable five-star control. */
 .detail-tags-engagement .community-feedback-stars{margin-left:4px;padding-left:9px;border-left:1px solid rgba(177,161,203,.23)}
+
+/* Profiles v10 — verified author badge matches the official small tick */
+.video-card-copy p .community-author-check.verified-dot{width:14px;height:14px;min-width:14px;margin:0 0 0 3px;display:inline-grid;place-items:center;border-radius:50%;font-size:9px;line-height:1;background:rgba(153,119,237,.2);color:#c0a1ff;border:0;box-shadow:none;vertical-align:middle;transform:none}

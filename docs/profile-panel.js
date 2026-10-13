@@ -30,7 +30,7 @@ function safeContactUrl(raw,kind){
  const value=safeUrl(raw);if(!value)return null;
  try{const u=new URL(value),host=u.hostname.toLowerCase();const hosts={telegram:['t.me','telegram.me'],discord:['discord.gg','discord.com'],vk:['vk.com','m.vk.com','vk.ru'],forum:['forum.gtaprovince.ru']};
  if(!hosts[kind]?.includes(host))return null;
- if(kind==='forum'&&!u.pathname.startsWith('/forum/'))return null;
+ if(kind==='forum'&&!/^\/(?:forum(?:\/|$)|profile\/[0-9]+-[a-zA-Z0-9_-]+\/?$)/.test(u.pathname))return null;
  return value;}catch{return null;}
 }
 function profileField(title,name,value,placeholder='',max=250){
@@ -75,9 +75,9 @@ function editor(data){const form=el('form','profile-edit');
  ['Аватарка (ссылка на изображение)','avatar_url','https://site.example/avatar.webp',320],
  ['Шапка (ссылка на изображение)','banner_url','https://site.example/banner.webp',320],
  ['Telegram','telegram','https://t.me/username',320],
- ['Discord','discord','https://discord.gg/invite',320],
+ ['Discord','discord','kead_ или kead#2222',32],
  ['ВКонтакте','vk','https://vk.com/username',320],
- ['Форум Province','forum','https://forum.gtaprovince.ru/forum/...',320]
+ ['Форум Province','forum','https://forum.gtaprovince.ru/profile/343829-artem_nikolskiy/',320]
  ];
  for(const [label,name,placeholder,max] of fields)form.append(profileField(label,name,data[name],placeholder,max));
  const themeField=themePicker(data.banner_theme);const select=themeField.querySelector('select');form.append(themeField);
@@ -88,7 +88,9 @@ function editor(data){const form=el('form','profile-edit');
  catch(err){message.textContent=err.message;}finally{save.disabled=false;}});
  return form;
 }
-function contactButtons(author){const list=el('div','profile-contacts');const items=[['telegram','Telegram'],['discord','Discord'],['vk','ВКонтакте'],['forum','Форум Province']];for(const [key,label] of items){const url=safeContactUrl(author[key],key);if(url){const button=link(url,label,'profile-contact');button.title='Открыть '+label;list.append(button);}}return list;}
+function contactButtons(author){const list=el('div','profile-contacts');
+ if(author.discord){const b=el('button','profile-contact profile-discord-copy','Discord: '+author.discord);b.type='button';b.title='Скопировать логин Discord';b.onclick=async()=>{try{await navigator.clipboard.writeText(author.discord);b.textContent='Логин скопирован';setTimeout(()=>{if(b.isConnected)b.textContent='Discord: '+author.discord;},1400);}catch{b.textContent='Discord: '+author.discord;}};list.append(b);}
+ const items=[['telegram','Telegram'],['vk','ВКонтакте'],['forum','Форум Province']];for(const [key,label] of items){const url=safeContactUrl(author[key],key);if(url){const button=link(url,label,'profile-contact');button.title='Открыть '+label;list.append(button);}}return list;}
 function workCard(item,owner){const card=el('article','profile-work');const preview=el('div','profile-work-preview');
  if(item.preview_url&&safeUrl(item.preview_url)){const img=document.createElement('img');img.src=item.preview_url;img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';preview.append(img);}else preview.append(el('span','','RC'));
  const info=el('div','profile-work-main');info.append(el('strong','',item.title||'Без названия'),el('small','',`${item.category||'Другое'} · ${fmtNumber(item.downloads)} скачиваний`));
@@ -109,6 +111,10 @@ function workCard(item,owner){const card=el('article','profile-work');const prev
      close();setTimeout(()=>window.reconfigOpenCommunityWork(item.id),255);
    }else{close();setTimeout(()=>{location.href='rehub.html#config=community:'+encodeURIComponent(item.id);},220);}
  };
+ if(ownerIsCurrent){const del=el('button','profile-work-delete','Удалить');del.type='button';del.title='Удалить эту публикацию';del.setAttribute('aria-label','Удалить '+(item.title||'публикацию'));
+ del.onclick=async ev=>{ev.stopPropagation();if(!confirm('Безвозвратно удалить публикацию «'+(item.title||'Без названия')+'» из мастерской?'))return;
+  del.disabled=true;del.textContent='Удаляем…';try{await request('/api/auth/my-submissions/'+item.id,{method:'DELETE',headers:{'Content-Type':'application/json',Authorization:'Bearer '+getToken()},body:JSON.stringify({status:'approved',confirm:item.id})});await refresh(owner);window.dispatchEvent(new Event('reconfig:community-changed'));}
+  catch(error){alert(error.message);del.disabled=false;del.textContent='Удалить';}};info.append(del);}
  card.addEventListener('click',event=>{if(event.target.closest('button,a'))return;navigate();});
  card.addEventListener('keydown',event=>{if(event.target!==card)return;if(event.key==='Enter'||event.key===' '){event.preventDefault();navigate();}});
  card.append(preview,info);return card;}
@@ -154,13 +160,22 @@ async function refresh(name){const scroll=root.querySelector('.profile-scroll');
  const section=el('section','profile-library');const top=el('div','profile-library-title');top.append(el('h3','','Библиотека работ'),el('span','',`${data.items.length} ${data.items.length%10===1 && data.items.length%100!==11?'публикация':data.items.length%10>=2 && data.items.length%10<=4 && (data.items.length%100<12||data.items.length%100>14)?'публикации':'публикаций'}`));section.append(top);
  if(!data.items.length)section.append(el('p','profile-empty','Здесь пока нет опубликованных биндов.'));
  else{const grid=el('div','profile-work-grid');data.items.forEach(item=>grid.append(workCard(item,user.username)));section.append(grid);}content.append(section);
- if(own){const pendingSection=el('section','profile-pending-section');pendingSection.append(el('h3','','На модерации'));const pendingList=el('div','profile-pending-list');pendingList.append(el('p','profile-empty','Загружаем заявки…'));pendingSection.append(pendingList);content.append(pendingSection);
+ if(own){const pendingSection=el('section','profile-pending-section');pendingSection.append(el('h3','','Мои заявки'));const pendingList=el('div','profile-pending-list');pendingList.append(el('p','profile-empty','Загружаем заявки…'));pendingSection.append(pendingList);content.append(pendingSection);
   request('/api/auth/my-submissions',{headers:{Authorization:'Bearer '+getToken()}}).then(res=>{
    if(shown!==name||!pendingList.isConnected)return;
    const items=Array.isArray(res.items)?res.items:[];pendingList.replaceChildren();
    if(!items.length){pendingSection.remove();return;}
    for(const item of items){const row=el('div','profile-pending-work');const preview=el('span','profile-pending-thumb');if(safeUrl(item.preview_url)){const img=el('img');img.src=item.preview_url;img.alt='';img.loading='lazy';img.onerror=()=>img.remove();preview.append(img);}else preview.textContent='XML';
-    const info=el('div','profile-pending-info');info.append(el('strong','',item.title||'Новая публикация'),el('small','',item.category||'Бинды'));row.append(preview,info,el('span','profile-pending-label','На модерации'));pendingList.append(row);}
+    const info=el('div','profile-pending-info');info.append(el('strong','',item.title||'Новая публикация'),el('small','',item.category||'Бинды'));
+    const status=el('span','profile-pending-label'+(item.status==='rejected'?' is-rejected':''),item.status==='rejected'?(item.rejection_reason||'Отклонено'):'На модерации');
+    if(item.status==='rejected'){status.title='Причина отклонения: '+(item.rejection_reason||'Не указана');row.classList.add('is-rejected');}
+    const tools=el('div','profile-pending-tools');tools.append(status);
+    const del=el('button','profile-pending-delete','');del.type='button';del.title='Удалить заявку';del.setAttribute('aria-label','Удалить заявку');
+    del.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m5 4v7m4-7v7"/></svg>';
+    del.onclick=async()=>{if(!confirm('Безвозвратно удалить '+(item.status==='rejected'?'отклонённую публикацию':'заявку')+' «'+(item.title||'Без названия')+'»?'))return;
+      del.disabled=true;try{await request('/api/auth/my-submissions/'+item.id,{method:'DELETE',headers:{'Content-Type':'application/json',Authorization:'Bearer '+getToken()},body:JSON.stringify({status:item.status,confirm:item.id})});row.remove();if(!pendingList.childElementCount)pendingSection.remove();}
+      catch(error){del.disabled=false;alert(error.message);}};
+    tools.append(del);row.append(preview,info,tools);pendingList.append(row);}
   }).catch(()=>{if(pendingList.isConnected)pendingList.replaceChildren(el('p','profile-empty','Не удалось загрузить заявки.'));});
  }
  scroll.append(content);

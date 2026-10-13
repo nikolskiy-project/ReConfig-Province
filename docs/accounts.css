@@ -415,3 +415,25 @@ body.profile-open{overflow:hidden!important}
 .profile-header-actions{margin-right:8px;margin-left:auto}
 @media(max-width:710px){.profile-banner{flex-basis:150px}.profile-library{max-height:34vh}.profile-pending-label{font-size:9px}}
 @media(max-width:480px){.profile-banner{flex-basis:142px}.authors-card{padding:14px}.authors-avatar{width:62px!important;height:62px!important;min-width:62px!important;flex-basis:62px}.profile-library{max-height:36vh}}
+
+/* Profiles v10 — narrow author tiles, editable creator contacts and moderation states */
+.authors-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,302px),302px));justify-content:start;gap:13px}
+.authors-card{min-height:154px;padding:15px 16px;max-width:302px}
+.authors-avatar{width:64px!important;height:64px!important;min-width:64px!important;flex-basis:64px;border-radius:15px!important}
+.authors-card-stats{margin-top:12px;padding-top:10px;gap:7px;justify-content:flex-start;column-gap:14px}
+.authors-card-stat{font-size:10px}
+.authors-card-stat b{font-size:12px}
+.profile-discord-copy{font:inherit;cursor:pointer;appearance:none}
+.profile-work-main{min-width:0}
+.profile-work-delete{display:inline-flex;align-items:center;justify-content:center;margin-top:7px;padding:6px 9px;border:1px solid rgba(228,128,145,.22);border-radius:7px;background:#e26a8410;color:#efadbb;font-size:11px;cursor:pointer;transition:background .18s,border-color .18s}
+.profile-work-delete:hover{background:#e26a8426;border-color:#f28c9e}
+.profile-work-delete:disabled{opacity:.55;cursor:wait}
+.profile-pending-tools{display:flex;align-items:center;gap:8px;flex:0 0 auto;min-width:0;max-width:45%;}
+.profile-pending-label.is-rejected{border-color:rgba(239,104,123,.3);background:rgba(223,74,100,.09);color:#f0a3b1;max-width:215px;overflow:hidden;text-overflow:ellipsis;display:inline-block;white-space:nowrap;vertical-align:middle}
+.profile-pending-delete{width:28px;height:28px;display:grid;place-items:center;flex:0 0 28px;border:1px solid rgba(229,138,148,.26);border-radius:8px;background:#bd536018;color:#e2a2aa;cursor:pointer;opacity:0;transform:translateX(-5px);pointer-events:none;transition:opacity .18s,transform .18s,border-color .18s}
+.profile-pending-delete svg{width:14px;height:14px}
+.profile-pending-work:hover .profile-pending-delete,.profile-pending-work:focus-within .profile-pending-delete{opacity:1;transform:none;pointer-events:auto}
+.profile-pending-delete:hover{border-color:#e7a1b1;background:#bc455c30}
+@media(pointer:coarse){.profile-pending-delete{opacity:1;transform:none;pointer-events:auto}}
+@media(max-width:550px){.authors-grid{grid-template-columns:1fr}.authors-card{max-width:none}.profile-pending-tools{max-width:48%}.profile-pending-label.is-rejected{max-width:125px}}
+@media(prefers-reduced-motion:reduce){.profile-pending-delete{transition:none!important}}
